@@ -1,6 +1,5 @@
 import 'package:hive/hive.dart';
 
-import '../../../../core/storage/hive_storage.dart';
 import '../../domain/entities/budget.dart';
 
 part 'budget_dto.g.dart';

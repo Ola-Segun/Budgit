@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../../domain/entities/transaction.dart';
+import '../../domain/entities/transaction_filter.dart';
 
 part 'transaction_state.freezed.dart';
 
@@ -10,9 +11,14 @@ class TransactionState with _$TransactionState {
   const factory TransactionState({
     @Default([]) List<Transaction> transactions,
     @Default(false) bool isLoading,
+    @Default(false) bool isLoadingMore,
     String? error,
     String? searchQuery,
     TransactionFilter? filter,
+    @Default(20) int pageSize,
+    @Default(0) int currentOffset,
+    @Default(false) bool hasMoreData,
+    @Default(false) bool isInitialized,
   }) = _TransactionState;
 
   const TransactionState._();
@@ -40,9 +46,15 @@ class TransactionState with _$TransactionState {
           return false;
         }
 
-        // Filter by category
-        if (filter!.categoryId != null &&
-            transaction.categoryId != filter!.categoryId) {
+        // Filter by categories (multi-select)
+        if (filter!.categoryIds != null && filter!.categoryIds!.isNotEmpty &&
+            !filter!.categoryIds!.contains(transaction.categoryId)) {
+          return false;
+        }
+
+        // Filter by account
+        if (filter!.accountId != null &&
+            transaction.accountId != filter!.accountId) {
           return false;
         }
 
@@ -103,32 +115,6 @@ class TransactionState with _$TransactionState {
   }
 }
 
-/// Filter for transactions
-@freezed
-class TransactionFilter with _$TransactionFilter {
-  const factory TransactionFilter({
-    TransactionType? transactionType,
-    String? categoryId,
-    DateTime? startDate,
-    DateTime? endDate,
-    double? minAmount,
-    double? maxAmount,
-  }) = _TransactionFilter;
-
-  const TransactionFilter._();
-
-  /// Check if filter is empty (no filters applied)
-  bool get isEmpty =>
-      transactionType == null &&
-      categoryId == null &&
-      startDate == null &&
-      endDate == null &&
-      minAmount == null &&
-      maxAmount == null;
-
-  /// Check if filter has any active filters
-  bool get isNotEmpty => !isEmpty;
-}
 
 /// Statistics for transactions
 @freezed

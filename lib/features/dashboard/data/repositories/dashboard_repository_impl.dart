@@ -1,0 +1,286 @@
+import 'package:collection/collection.dart';
+
+import '../../../../core/error/failures.dart';
+import '../../../../core/error/result.dart';
+import '../../../bills/domain/entities/bill.dart';
+import '../../../bills/domain/repositories/bill_repository.dart';
+import '../../../budgets/domain/entities/budget.dart';
+import '../../../budgets/domain/repositories/budget_repository.dart';
+import '../../../budgets/domain/usecases/calculate_budget_status.dart';
+import '../../../transactions/domain/entities/transaction.dart';
+import '../../../insights/domain/entities/insight.dart';
+import '../../../insights/domain/repositories/insight_repository.dart';
+import '../../../transactions/domain/entities/transaction.dart';
+import '../../../transactions/domain/repositories/transaction_repository.dart';
+import '../../domain/entities/dashboard_data.dart';
+import '../../domain/repositories/dashboard_repository.dart';
+
+/// Implementation of dashboard repository that aggregates data from multiple sources
+class DashboardRepositoryImpl implements DashboardRepository {
+  const DashboardRepositoryImpl(
+    this._transactionRepository,
+    this._budgetRepository,
+    this._billRepository,
+    this._insightRepository,
+    this._calculateBudgetStatus,
+  );
+
+  final TransactionRepository _transactionRepository;
+  final BudgetRepository _budgetRepository;
+  final BillRepository _billRepository;
+  final InsightRepository _insightRepository;
+  final CalculateBudgetStatus _calculateBudgetStatus;
+
+  @override
+  Future<Result<DashboardData>> getDashboardData() async {
+    try {
+      // Get all data concurrently
+      final results = await Future.wait([
+        getFinancialSnapshot(),
+        getBudgetOverview(),
+        getUpcomingBills(),
+        getRecentTransactions(),
+        getDashboardInsights(),
+      ]);
+
+      // Check for errors
+      for (final result in results) {
+        if (result.isError) {
+          return Result.error(result.failureOrNull!);
+        }
+      }
+
+      final financialSnapshot = results[0] as Result<FinancialSnapshot>;
+      final budgetOverview = results[1] as Result<List<BudgetCategoryOverview>>;
+      final upcomingBills = results[2] as Result<List<Bill>>;
+      final recentTransactions = results[3] as Result<List<Transaction>>;
+      final insights = results[4] as Result<List<Insight>>;
+
+      final dashboardData = DashboardData(
+        financialSnapshot: financialSnapshot.dataOrNull!,
+        budgetOverview: budgetOverview.dataOrNull!,
+        upcomingBills: upcomingBills.dataOrNull!,
+        recentTransactions: recentTransactions.dataOrNull!,
+        insights: insights.dataOrNull!,
+        generatedAt: DateTime.now(),
+      );
+
+      return Result.success(dashboardData);
+    } catch (e) {
+      return Result.error(Failure.unknown('Failed to get dashboard data: $e'));
+    }
+  }
+
+  @override
+  Future<Result<FinancialSnapshot>> getFinancialSnapshot() async {
+    try {
+      // Get current month date range
+      final now = DateTime.now();
+      final startOfMonth = DateTime(now.year, now.month, 1);
+      final endOfMonth = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+
+      // Get all transactions for current month
+      final transactionsResult = await _transactionRepository.getByDateRange(
+        startOfMonth,
+        endOfMonth,
+      );
+
+      if (transactionsResult.isError) {
+        return Result.error(transactionsResult.failureOrNull!);
+      }
+
+      final transactions = transactionsResult.dataOrNull ?? [];
+
+      // Calculate total spent (expenses only)
+      final spentThisMonth = transactions
+          .where((t) => t.type == TransactionType.expense)
+          .fold<double>(0.0, (sum, t) => sum + t.amount);
+
+      // Get current budget (assuming there's a current budget)
+      final budgetsResult = await _budgetRepository.getAll();
+      if (budgetsResult.isError) {
+        return Result.error(budgetsResult.failureOrNull!);
+      }
+
+      final budgets = budgetsResult.dataOrNull ?? [];
+      final currentBudget = budgets.firstWhereOrNull(
+        (budget) => budget.startDate.isBefore(now) && budget.endDate.isAfter(now),
+      );
+
+      double budgetThisMonth = 0.0;
+      if (currentBudget != null) {
+        budgetThisMonth = currentBudget.totalBudget;
+      }
+
+      // Calculate progress and health status
+      final progressPercentage = budgetThisMonth > 0 ? (spentThisMonth / budgetThisMonth) : 0.0;
+      final healthStatus = _getBudgetHealthStatus(progressPercentage);
+
+      final snapshot = FinancialSnapshot(
+        spentThisMonth: spentThisMonth,
+        budgetThisMonth: budgetThisMonth,
+        remainingAmount: budgetThisMonth - spentThisMonth,
+        progressPercentage: progressPercentage,
+        healthStatus: healthStatus,
+      );
+
+      return Result.success(snapshot);
+    } catch (e) {
+      return Result.error(Failure.unknown('Failed to get financial snapshot: $e'));
+    }
+  }
+
+  @override
+  Future<Result<List<BudgetCategoryOverview>>> getBudgetOverview({int limit = 5}) async {
+    try {
+      // Get current budgets
+      final budgetsResult = await _budgetRepository.getAll();
+      if (budgetsResult.isError) {
+        return Result.error(budgetsResult.failureOrNull!);
+      }
+
+      final budgets = budgetsResult.dataOrNull ?? [];
+      if (budgets.isEmpty) {
+        return Result.success([]);
+      }
+
+      // Use the first active budget (in a real app, you'd have logic to select current budget)
+      final currentBudget = budgets.first;
+
+      // Calculate budget status
+      final statusResult = await _calculateBudgetStatus(currentBudget.id);
+      if (statusResult.isError) {
+        return Result.error(statusResult.failureOrNull!);
+      }
+
+      final budgetStatus = statusResult.dataOrNull!;
+      final categoryOverviews = budgetStatus.categoryStatuses
+          .map((status) => BudgetCategoryOverview(
+                categoryId: status.categoryId,
+                categoryName: _getCategoryName(status.categoryId), // You'd implement this
+                spent: status.spent,
+                budget: status.budget,
+                percentage: status.percentage,
+                status: _mapBudgetHealthToStatus(status.status),
+              ))
+          .sorted((a, b) => b.spent.compareTo(a.spent)) // Sort by spending amount
+          .take(limit)
+          .toList();
+
+      return Result.success(categoryOverviews);
+    } catch (e) {
+      return Result.error(Failure.unknown('Failed to get budget overview: $e'));
+    }
+  }
+
+  @override
+  Future<Result<List<Bill>>> getUpcomingBills({int limit = 3}) async {
+    try {
+      final billsResult = await _billRepository.getAll();
+      if (billsResult.isError) {
+        return Result.error(billsResult.failureOrNull!);
+      }
+
+      final bills = billsResult.dataOrNull ?? [];
+
+      // Filter and sort upcoming bills
+      final upcomingBills = bills
+          .where((bill) => !bill.isPaid && bill.daysUntilDue >= 0)
+          .sorted((a, b) => a.daysUntilDue.compareTo(b.daysUntilDue))
+          .take(limit)
+          .toList();
+
+      return Result.success(upcomingBills);
+    } catch (e) {
+      return Result.error(Failure.unknown('Failed to get upcoming bills: $e'));
+    }
+  }
+
+  @override
+  Future<Result<List<Transaction>>> getRecentTransactions({int limit = 7}) async {
+    try {
+      final transactionsResult = await _transactionRepository.getAll();
+      if (transactionsResult.isError) {
+        return Result.error(transactionsResult.failureOrNull!);
+      }
+
+      final transactions = transactionsResult.dataOrNull ?? [];
+
+      // Sort by date descending and take recent ones
+      final recentTransactions = transactions
+          .sorted((a, b) => b.date.compareTo(a.date))
+          .take(limit)
+          .toList();
+
+      return Result.success(recentTransactions);
+    } catch (e) {
+      return Result.error(Failure.unknown('Failed to get recent transactions: $e'));
+    }
+  }
+
+  @override
+  Future<Result<List<Insight>>> getDashboardInsights({int limit = 3}) async {
+    try {
+      final insightsResult = await _insightRepository.getAll();
+      if (insightsResult.isError) {
+        return Result.error(insightsResult.failureOrNull!);
+      }
+
+      final insights = insightsResult.dataOrNull ?? [];
+
+      // Take most recent insights
+      final recentInsights = insights
+          .sorted((a, b) => b.generatedAt.compareTo(a.generatedAt))
+          .take(limit)
+          .toList();
+
+      return Result.success(recentInsights);
+    } catch (e) {
+      return Result.error(Failure.unknown('Failed to get dashboard insights: $e'));
+    }
+  }
+
+  @override
+  Future<Result<void>> refreshDashboardData() async {
+    // In a real implementation, this might clear caches or force refresh
+    // For now, just return success
+    return Result.success(null);
+  }
+
+  /// Get budget health status based on progress percentage
+  BudgetHealthStatus _getBudgetHealthStatus(double percentage) {
+    if (percentage > 1.0) return BudgetHealthStatus.overBudget;
+    if (percentage > 0.9) return BudgetHealthStatus.critical;
+    if (percentage > 0.75) return BudgetHealthStatus.warning;
+    return BudgetHealthStatus.healthy;
+  }
+
+  /// Map BudgetHealth to BudgetHealthStatus
+  BudgetHealthStatus _mapBudgetHealthToStatus(BudgetHealth health) {
+    switch (health) {
+      case BudgetHealth.healthy:
+        return BudgetHealthStatus.healthy;
+      case BudgetHealth.warning:
+        return BudgetHealthStatus.warning;
+      case BudgetHealth.critical:
+        return BudgetHealthStatus.critical;
+      case BudgetHealth.overBudget:
+        return BudgetHealthStatus.overBudget;
+    }
+  }
+
+  /// Get category name by ID (placeholder implementation)
+  String _getCategoryName(String categoryId) {
+    // In a real app, you'd have a category repository
+    final categoryNames = {
+      'food': 'Food & Dining',
+      'transportation': 'Transportation',
+      'entertainment': 'Entertainment',
+      'shopping': 'Shopping',
+      'utilities': 'Utilities',
+      'healthcare': 'Healthcare',
+    };
+
+    return categoryNames[categoryId] ?? categoryId;
+  }
+}

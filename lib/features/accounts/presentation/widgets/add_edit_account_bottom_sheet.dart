@@ -176,7 +176,7 @@ class _AddEditAccountBottomSheetState extends State<AddEditAccountBottomSheet> {
 
             // Currency
             DropdownButtonFormField<String>(
-              value: _selectedCurrency,
+              initialValue: _selectedCurrency,
               decoration: const InputDecoration(
                 labelText: 'Currency',
               ),
@@ -299,7 +299,7 @@ class _AddEditAccountBottomSheetState extends State<AddEditAccountBottomSheet> {
             decoration: BoxDecoration(
               color: isSelected
                   ? Color(type.color).withOpacity(0.1)
-                  : Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+                  : Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
               border: Border.all(
                 color: isSelected
                     ? Color(type.color)

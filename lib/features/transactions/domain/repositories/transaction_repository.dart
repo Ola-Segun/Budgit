@@ -1,5 +1,6 @@
 import '../../../../core/error/result.dart';
 import '../entities/transaction.dart';
+import '../entities/transaction_filter.dart';
 
 /// Repository interface for transaction operations
 /// Defines the contract for transaction data access
@@ -36,6 +37,32 @@ abstract class TransactionRepository {
 
   /// Get transaction count
   Future<Result<int>> getCount();
+
+  /// Get paginated transactions
+  Future<Result<List<Transaction>>> getTransactionsPaginated({
+    int limit = 20,
+    int offset = 0,
+    TransactionFilter? filter,
+  });
+
+  /// Get paginated transactions by date range
+  Future<Result<List<Transaction>>> getTransactionsPaginatedByDateRange(
+    DateTime start,
+    DateTime end, {
+    int limit = 20,
+    int offset = 0,
+    TransactionFilter? filter,
+  });
+
+  /// Get paginated transactions
+  Future<Result<List<Transaction>>> getPaginated({
+    int limit = 20,
+    int offset = 0,
+    TransactionFilter? filter,
+  });
+
+  /// Get paginated transaction count with filters
+  Future<Result<int>> getFilteredCount(TransactionFilter? filter);
 }
 
 /// Repository interface for transaction categories

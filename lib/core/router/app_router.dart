@@ -8,32 +8,61 @@ import '../../features/transactions/presentation/providers/transaction_providers
 import '../../features/budgets/presentation/screens/budget_list_screen.dart';
 import '../../features/budgets/presentation/screens/budget_creation_screen.dart';
 import '../../features/budgets/presentation/screens/budget_detail_screen.dart';
+import '../../features/bills/presentation/screens/bills_dashboard_screen.dart';
+import '../../features/bills/presentation/screens/bill_creation_screen.dart';
+import '../../features/goals/presentation/screens/goals_list_screen.dart';
+import '../../features/goals/presentation/screens/goal_creation_screen.dart';
+import '../../features/goals/presentation/screens/goal_detail_screen.dart';
 import '../../features/insights/presentation/screens/insights_dashboard_screen.dart';
+import '../../features/receipt_scanning/presentation/screens/receipt_scanning_screen.dart';
+import '../../features/receipt_scanning/presentation/screens/receipt_review_screen.dart';
+import '../../features/receipt_scanning/domain/entities/receipt_data.dart';
+import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/accounts/presentation/screens/accounts_overview_screen.dart';
+import '../../features/accounts/presentation/screens/account_detail_screen.dart';
+import '../../features/accounts/presentation/screens/bank_connection_screen.dart';
+import '../../features/notifications/presentation/screens/notification_center_screen.dart';
+import '../../features/settings/presentation/screens/help_center_screen.dart';
 import '../widgets/app_bottom_sheet.dart';
 import '../navigation/main_navigation_scaffold.dart';
+import '../navigation/screens/home_dashboard_screen.dart';
+import '../navigation/screens/more_menu_screen.dart';
 
 /// App router configuration using GoRouter
 class AppRouter {
   static final GoRouter router = GoRouter(
     initialLocation: '/',
     routes: [
-      // Home/Dashboard
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const _HomeScreen(),
+      ShellRoute(
+        builder: (context, state, child) => MainNavigationScaffold(child: child),
         routes: [
-          // Transaction routes
+          // Home/Dashboard
           GoRoute(
-            path: 'transactions',
-            builder: (context, state) => const _TransactionsScreen(),
+            path: '/',
+            builder: (context, state) => const HomeDashboardScreen(),
             routes: [
               GoRoute(
-                path: ':id',
+                path: 'scan-receipt',
+                builder: (context, state) => const ReceiptScanningScreen(),
+              ),
+              GoRoute(
+                path: 'review-receipt',
                 builder: (context, state) {
-                  final id = state.pathParameters['id']!;
-                  return _TransactionDetailScreen(id: id);
+                  final receiptData = state.extra as ReceiptData?;
+                  if (receiptData == null) {
+                    return _ErrorScreen(error: Exception('No receipt data provided'));
+                  }
+                  return ReceiptReviewScreen(receiptData: receiptData);
                 },
               ),
+            ],
+          ),
+
+          // Transaction routes
+          GoRoute(
+            path: '/transactions',
+            builder: (context, state) => const TransactionListScreen(),
+            routes: [
               GoRoute(
                 path: 'add',
                 builder: (context, state) => const _AddTransactionScreen(),
@@ -43,8 +72,8 @@ class AppRouter {
 
           // Budget routes
           GoRoute(
-            path: 'budgets',
-            builder: (context, state) => const _BudgetsScreen(),
+            path: '/budgets',
+            builder: (context, state) => const BudgetListScreen(),
             routes: [
               GoRoute(
                 path: 'add',
@@ -62,8 +91,8 @@ class AppRouter {
 
           // Goals routes
           GoRoute(
-            path: 'goals',
-            builder: (context, state) => const _GoalsScreen(),
+            path: '/goals',
+            builder: (context, state) => const GoalsListScreen(),
             routes: [
               GoRoute(
                 path: 'add',
@@ -79,28 +108,55 @@ class AppRouter {
             ],
           ),
 
-          // Bills routes
+          // More menu routes
           GoRoute(
-            path: 'bills',
-            builder: (context, state) => const _BillsScreen(),
+            path: '/more',
+            builder: (context, state) => const MoreMenuScreen(),
             routes: [
               GoRoute(
-                path: 'add',
-                builder: (context, state) => const _AddBillScreen(),
+                path: 'accounts',
+                builder: (context, state) => const _AccountsScreen(),
+                routes: [
+                  GoRoute(
+                    path: ':id',
+                    builder: (context, state) {
+                      final id = state.pathParameters['id']!;
+                      return _AccountDetailScreen(id: id);
+                    },
+                  ),
+                  GoRoute(
+                    path: 'bank-connection',
+                    builder: (context, state) => const _BankConnectionScreen(),
+                  ),
+                ],
+              ),
+              GoRoute(
+                path: 'bills',
+                builder: (context, state) => const _BillsScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'add',
+                    builder: (context, state) => const _AddBillScreen(),
+                  ),
+                ],
+              ),
+              GoRoute(
+                path: 'insights',
+                builder: (context, state) => const _InsightsScreen(),
+              ),
+              GoRoute(
+                path: 'notifications',
+                builder: (context, state) => const _NotificationCenterScreen(),
+              ),
+              GoRoute(
+                path: 'help',
+                builder: (context, state) => const _HelpCenterScreen(),
+              ),
+              GoRoute(
+                path: 'settings',
+                builder: (context, state) => const _SettingsScreen(),
               ),
             ],
-          ),
-
-          // Insights routes
-          GoRoute(
-            path: 'insights',
-            builder: (context, state) => const _InsightsScreen(),
-          ),
-
-          // Settings
-          GoRoute(
-            path: 'settings',
-            builder: (context, state) => const _SettingsScreen(),
           ),
         ],
       ),
@@ -112,38 +168,8 @@ class AppRouter {
 }
 
 // Actual implemented screens
-class _HomeScreen extends ConsumerWidget {
-  const _HomeScreen();
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return const MainNavigationScaffold();
-  }
-}
-
-class _TransactionsScreen extends ConsumerWidget {
-  const _TransactionsScreen();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return const TransactionListScreen();
-  }
-}
-
-class _TransactionDetailScreen extends StatelessWidget {
-  const _TransactionDetailScreen({required this.id});
-
-  final String id;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Transaction Details')),
-      body: Center(child: Text('Transaction Detail: $id - Coming Soon')),
-    );
-  }
-}
-
+// Screen classes for sub-routes
 class _AddTransactionScreen extends ConsumerWidget {
   const _AddTransactionScreen();
 
@@ -175,15 +201,6 @@ class _AddTransactionScreen extends ConsumerWidget {
   }
 }
 
-class _BudgetsScreen extends ConsumerWidget {
-  const _BudgetsScreen();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return const BudgetListScreen();
-  }
-}
-
 class _AddBudgetScreen extends ConsumerWidget {
   const _AddBudgetScreen();
 
@@ -204,27 +221,12 @@ class _BudgetDetailScreen extends StatelessWidget {
   }
 }
 
-class _GoalsScreen extends StatelessWidget {
-  const _GoalsScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Goals')),
-      body: const Center(child: Text('Goals Screen - Coming Soon')),
-    );
-  }
-}
-
-class _AddGoalScreen extends StatelessWidget {
+class _AddGoalScreen extends ConsumerWidget {
   const _AddGoalScreen();
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Add Goal')),
-      body: const Center(child: Text('Add Goal Screen - Coming Soon')),
-    );
+  Widget build(BuildContext context, WidgetRef ref) {
+    return const GoalCreationScreen();
   }
 }
 
@@ -235,34 +237,25 @@ class _GoalDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Goal Details')),
-      body: Center(child: Text('Goal Detail: $id - Coming Soon')),
-    );
+    return GoalDetailScreen(goalId: id);
   }
 }
 
-class _BillsScreen extends StatelessWidget {
+class _BillsScreen extends ConsumerWidget {
   const _BillsScreen();
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Bills')),
-      body: const Center(child: Text('Bills Screen - Coming Soon')),
-    );
+  Widget build(BuildContext context, WidgetRef ref) {
+    return const BillsDashboardScreen();
   }
 }
 
-class _AddBillScreen extends StatelessWidget {
+class _AddBillScreen extends ConsumerWidget {
   const _AddBillScreen();
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Add Bill')),
-      body: const Center(child: Text('Add Bill Screen - Coming Soon')),
-    );
+  Widget build(BuildContext context, WidgetRef ref) {
+    return const BillCreationScreen();
   }
 }
 
@@ -280,10 +273,54 @@ class _SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: const Center(child: Text('Settings Screen - Coming Soon')),
-    );
+    return const SettingsScreen();
+  }
+}
+
+class _AccountsScreen extends ConsumerWidget {
+  const _AccountsScreen();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return const AccountsOverviewScreen();
+  }
+}
+
+class _AccountDetailScreen extends StatelessWidget {
+  const _AccountDetailScreen({required this.id});
+
+  final String id;
+
+  @override
+  Widget build(BuildContext context) {
+    return AccountDetailScreen(accountId: id);
+  }
+}
+
+class _NotificationCenterScreen extends StatelessWidget {
+  const _NotificationCenterScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const NotificationCenterScreen();
+  }
+}
+
+class _HelpCenterScreen extends StatelessWidget {
+  const _HelpCenterScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const HelpCenterScreen();
+  }
+}
+
+class _BankConnectionScreen extends StatelessWidget {
+  const _BankConnectionScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const BankConnectionScreen();
   }
 }
 

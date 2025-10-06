@@ -5,7 +5,6 @@ import '../../../budgets/domain/entities/budget.dart';
 import '../../../budgets/domain/usecases/create_budget.dart';
 import '../../data/datasources/user_profile_hive_datasource.dart';
 import '../../domain/entities/income_source.dart';
-import '../../domain/entities/onboarding_data.dart';
 import '../../domain/entities/user_profile.dart';
 import '../states/onboarding_state.dart';
 

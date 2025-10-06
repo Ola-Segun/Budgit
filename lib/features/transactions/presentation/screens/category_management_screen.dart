@@ -237,7 +237,7 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
 
               // Type selection
               DropdownButtonFormField<TransactionType>(
-                value: _selectedType,
+                initialValue: _selectedType,
                 decoration: const InputDecoration(
                   labelText: 'Type',
                 ),
@@ -438,7 +438,7 @@ class _EditCategoryDialogState extends State<EditCategoryDialog> {
 
             // Type selection
             DropdownButtonFormField<TransactionType>(
-              value: _selectedType,
+              initialValue: _selectedType,
               decoration: const InputDecoration(
                 labelText: 'Type',
               ),

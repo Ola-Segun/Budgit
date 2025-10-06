@@ -27,6 +27,7 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
   TransactionType _selectedType = TransactionType.expense;
   DateTime _selectedDate = DateTime.now();
   String _selectedCategoryId = 'food'; // Default category
+  String _selectedAccountId = 'checking'; // Default account
 
   bool _isSubmitting = false;
 
@@ -304,6 +305,7 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
         type: _selectedType,
         date: _selectedDate,
         categoryId: _selectedCategoryId,
+        accountId: _selectedAccountId,
         description: _noteController.text.isNotEmpty
             ? _noteController.text
             : null,

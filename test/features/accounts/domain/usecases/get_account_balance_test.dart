@@ -1,23 +1,30 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
-import '../../../../../lib/core/error/failures.dart';
-import '../../../../../lib/core/error/result.dart';
-import '../../../../../lib/features/accounts/domain/entities/account.dart';
-import '../../../../../lib/features/accounts/domain/repositories/account_repository.dart';
-import '../../../../../lib/features/accounts/domain/usecases/get_account_balance.dart';
+import 'package:budget_tracker/core/error/failures.dart';
+import 'package:budget_tracker/core/error/result.dart';
+import 'package:budget_tracker/features/accounts/domain/entities/account.dart';
+import 'package:budget_tracker/features/accounts/domain/repositories/account_repository.dart';
+import 'package:budget_tracker/features/accounts/domain/usecases/get_account_balance.dart';
 
-// Mock classes
-class MockAccountRepository extends Mock implements AccountRepository {}
+import 'get_account_balance_test.mocks.dart';
+
+@GenerateMocks([AccountRepository])
 
 void main() {
-  late GetAccountBalance useCase;
-  late MockAccountRepository mockRepository;
+   late GetAccountBalance useCase;
+   late MockAccountRepository mockRepository;
 
-  setUp(() {
-    mockRepository = MockAccountRepository();
-    useCase = GetAccountBalance(mockRepository);
-  });
+   setUpAll(() {
+     provideDummy<Result<double>>(Result.error(Failure.unknown('Dummy error')));
+     provideDummy<Result<Account?>>(Result.error(Failure.unknown('Dummy error')));
+   });
+
+   setUp(() {
+     mockRepository = MockAccountRepository();
+     useCase = GetAccountBalance(mockRepository);
+   });
 
   group('GetAccountBalance Use Case', () {
     const accountId = 'test-account-id';

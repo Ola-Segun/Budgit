@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/di/providers.dart' as core_providers;
+import '../../../transactions/domain/entities/transaction.dart';
+import '../../../transactions/presentation/providers/transaction_providers.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/usecases/create_account.dart';
 import '../../domain/usecases/delete_account.dart';
@@ -125,6 +127,32 @@ final liabilityAccountsProvider = Provider<AsyncValue<List<Account>>>((ref) {
 
   return accountState.when(
     data: (state) => AsyncValue.data(state.liabilityAccounts),
+    loading: () => const AsyncValue.loading(),
+    error: (error, stack) => AsyncValue.error(error, stack),
+  );
+});
+
+/// Provider for a single account by ID
+final accountProvider = Provider.family<AsyncValue<Account?>, String>((ref, accountId) {
+  final accountState = ref.watch(accountNotifierProvider);
+  return accountState.when(
+    data: (state) => AsyncValue.data(
+      state.accounts.where((account) => account.id == accountId).firstOrNull,
+    ),
+    loading: () => const AsyncValue.loading(),
+    error: (error, stack) => AsyncValue.error(error, stack),
+  );
+});
+
+/// Provider for transactions of a specific account
+final accountTransactionsProvider = Provider.family<AsyncValue<List<Transaction>>, String>((ref, accountId) {
+  final transactionState = ref.watch(transactionNotifierProvider);
+  return transactionState.when(
+    data: (state) => AsyncValue.data(
+      state.transactions
+          .where((transaction) => transaction.accountId == accountId)
+          .toList(),
+    ),
     loading: () => const AsyncValue.loading(),
     error: (error, stack) => AsyncValue.error(error, stack),
   );

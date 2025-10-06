@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import '../../../../../lib/features/transactions/domain/entities/transaction.dart';
+import 'package:budget_tracker/features/transactions/domain/entities/transaction.dart';
 
 void main() {
   group('Transaction Entity', () {
@@ -12,6 +12,7 @@ void main() {
       type: TransactionType.expense,
       date: testDate,
       categoryId: 'food',
+      accountId: 'account1',
       description: 'Test description',
       receiptUrl: 'receipt.jpg',
       tags: ['tag1', 'tag2'],
@@ -37,6 +38,7 @@ void main() {
         type: TransactionType.income,
         date: testDate,
         categoryId: 'salary',
+        accountId: 'account2',
       );
 
       expect(minimalTransaction.id, 'minimal-id');

@@ -1,5 +1,6 @@
 /// Result type for handling success/error states
 /// Always wrap async operations in Result to ensure proper error handling
+library;
 
 import 'failures.dart';
 

@@ -61,6 +61,19 @@ dependencies:
   # Input
   currency_text_input_formatter: ^2.1.10
 
+  # Camera and ML Kit for receipt scanning
+  camera: ^0.10.5+9
+  google_ml_kit: ^0.18.0
+  image_picker: ^1.0.7
+
+  # Calendar integration
+  device_calendar: ^4.3.2
+
+  # PDF generation and email
+  pdf: ^3.10.7
+  printing: ^5.13.3
+  mailer: ^6.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -18,9 +18,14 @@ final _privateConstructorUsedError = UnsupportedError(
 mixin _$TransactionState {
   List<Transaction> get transactions => throw _privateConstructorUsedError;
   bool get isLoading => throw _privateConstructorUsedError;
+  bool get isLoadingMore => throw _privateConstructorUsedError;
   String? get error => throw _privateConstructorUsedError;
   String? get searchQuery => throw _privateConstructorUsedError;
   TransactionFilter? get filter => throw _privateConstructorUsedError;
+  int get pageSize => throw _privateConstructorUsedError;
+  int get currentOffset => throw _privateConstructorUsedError;
+  bool get hasMoreData => throw _privateConstructorUsedError;
+  bool get isInitialized => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
   $TransactionStateCopyWith<TransactionState> get copyWith =>
@@ -36,9 +41,14 @@ abstract class $TransactionStateCopyWith<$Res> {
   $Res call(
       {List<Transaction> transactions,
       bool isLoading,
+      bool isLoadingMore,
       String? error,
       String? searchQuery,
-      TransactionFilter? filter});
+      TransactionFilter? filter,
+      int pageSize,
+      int currentOffset,
+      bool hasMoreData,
+      bool isInitialized});
 
   $TransactionFilterCopyWith<$Res>? get filter;
 }
@@ -58,9 +68,14 @@ class _$TransactionStateCopyWithImpl<$Res, $Val extends TransactionState>
   $Res call({
     Object? transactions = null,
     Object? isLoading = null,
+    Object? isLoadingMore = null,
     Object? error = freezed,
     Object? searchQuery = freezed,
     Object? filter = freezed,
+    Object? pageSize = null,
+    Object? currentOffset = null,
+    Object? hasMoreData = null,
+    Object? isInitialized = null,
   }) {
     return _then(_value.copyWith(
       transactions: null == transactions
@@ -70,6 +85,10 @@ class _$TransactionStateCopyWithImpl<$Res, $Val extends TransactionState>
       isLoading: null == isLoading
           ? _value.isLoading
           : isLoading // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isLoadingMore: null == isLoadingMore
+          ? _value.isLoadingMore
+          : isLoadingMore // ignore: cast_nullable_to_non_nullable
               as bool,
       error: freezed == error
           ? _value.error
@@ -83,6 +102,22 @@ class _$TransactionStateCopyWithImpl<$Res, $Val extends TransactionState>
           ? _value.filter
           : filter // ignore: cast_nullable_to_non_nullable
               as TransactionFilter?,
+      pageSize: null == pageSize
+          ? _value.pageSize
+          : pageSize // ignore: cast_nullable_to_non_nullable
+              as int,
+      currentOffset: null == currentOffset
+          ? _value.currentOffset
+          : currentOffset // ignore: cast_nullable_to_non_nullable
+              as int,
+      hasMoreData: null == hasMoreData
+          ? _value.hasMoreData
+          : hasMoreData // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isInitialized: null == isInitialized
+          ? _value.isInitialized
+          : isInitialized // ignore: cast_nullable_to_non_nullable
+              as bool,
     ) as $Val);
   }
 
@@ -110,9 +145,14 @@ abstract class _$$TransactionStateImplCopyWith<$Res>
   $Res call(
       {List<Transaction> transactions,
       bool isLoading,
+      bool isLoadingMore,
       String? error,
       String? searchQuery,
-      TransactionFilter? filter});
+      TransactionFilter? filter,
+      int pageSize,
+      int currentOffset,
+      bool hasMoreData,
+      bool isInitialized});
 
   @override
   $TransactionFilterCopyWith<$Res>? get filter;
@@ -131,9 +171,14 @@ class __$$TransactionStateImplCopyWithImpl<$Res>
   $Res call({
     Object? transactions = null,
     Object? isLoading = null,
+    Object? isLoadingMore = null,
     Object? error = freezed,
     Object? searchQuery = freezed,
     Object? filter = freezed,
+    Object? pageSize = null,
+    Object? currentOffset = null,
+    Object? hasMoreData = null,
+    Object? isInitialized = null,
   }) {
     return _then(_$TransactionStateImpl(
       transactions: null == transactions
@@ -143,6 +188,10 @@ class __$$TransactionStateImplCopyWithImpl<$Res>
       isLoading: null == isLoading
           ? _value.isLoading
           : isLoading // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isLoadingMore: null == isLoadingMore
+          ? _value.isLoadingMore
+          : isLoadingMore // ignore: cast_nullable_to_non_nullable
               as bool,
       error: freezed == error
           ? _value.error
@@ -156,6 +205,22 @@ class __$$TransactionStateImplCopyWithImpl<$Res>
           ? _value.filter
           : filter // ignore: cast_nullable_to_non_nullable
               as TransactionFilter?,
+      pageSize: null == pageSize
+          ? _value.pageSize
+          : pageSize // ignore: cast_nullable_to_non_nullable
+              as int,
+      currentOffset: null == currentOffset
+          ? _value.currentOffset
+          : currentOffset // ignore: cast_nullable_to_non_nullable
+              as int,
+      hasMoreData: null == hasMoreData
+          ? _value.hasMoreData
+          : hasMoreData // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isInitialized: null == isInitialized
+          ? _value.isInitialized
+          : isInitialized // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }
@@ -166,9 +231,14 @@ class _$TransactionStateImpl extends _TransactionState {
   const _$TransactionStateImpl(
       {final List<Transaction> transactions = const [],
       this.isLoading = false,
+      this.isLoadingMore = false,
       this.error,
       this.searchQuery,
-      this.filter})
+      this.filter,
+      this.pageSize = 20,
+      this.currentOffset = 0,
+      this.hasMoreData = false,
+      this.isInitialized = false})
       : _transactions = transactions,
         super._();
 
@@ -185,15 +255,30 @@ class _$TransactionStateImpl extends _TransactionState {
   @JsonKey()
   final bool isLoading;
   @override
+  @JsonKey()
+  final bool isLoadingMore;
+  @override
   final String? error;
   @override
   final String? searchQuery;
   @override
   final TransactionFilter? filter;
+  @override
+  @JsonKey()
+  final int pageSize;
+  @override
+  @JsonKey()
+  final int currentOffset;
+  @override
+  @JsonKey()
+  final bool hasMoreData;
+  @override
+  @JsonKey()
+  final bool isInitialized;
 
   @override
   String toString() {
-    return 'TransactionState(transactions: $transactions, isLoading: $isLoading, error: $error, searchQuery: $searchQuery, filter: $filter)';
+    return 'TransactionState(transactions: $transactions, isLoading: $isLoading, isLoadingMore: $isLoadingMore, error: $error, searchQuery: $searchQuery, filter: $filter, pageSize: $pageSize, currentOffset: $currentOffset, hasMoreData: $hasMoreData, isInitialized: $isInitialized)';
   }
 
   @override
@@ -205,10 +290,20 @@ class _$TransactionStateImpl extends _TransactionState {
                 .equals(other._transactions, _transactions) &&
             (identical(other.isLoading, isLoading) ||
                 other.isLoading == isLoading) &&
+            (identical(other.isLoadingMore, isLoadingMore) ||
+                other.isLoadingMore == isLoadingMore) &&
             (identical(other.error, error) || other.error == error) &&
             (identical(other.searchQuery, searchQuery) ||
                 other.searchQuery == searchQuery) &&
-            (identical(other.filter, filter) || other.filter == filter));
+            (identical(other.filter, filter) || other.filter == filter) &&
+            (identical(other.pageSize, pageSize) ||
+                other.pageSize == pageSize) &&
+            (identical(other.currentOffset, currentOffset) ||
+                other.currentOffset == currentOffset) &&
+            (identical(other.hasMoreData, hasMoreData) ||
+                other.hasMoreData == hasMoreData) &&
+            (identical(other.isInitialized, isInitialized) ||
+                other.isInitialized == isInitialized));
   }
 
   @override
@@ -216,9 +311,14 @@ class _$TransactionStateImpl extends _TransactionState {
       runtimeType,
       const DeepCollectionEquality().hash(_transactions),
       isLoading,
+      isLoadingMore,
       error,
       searchQuery,
-      filter);
+      filter,
+      pageSize,
+      currentOffset,
+      hasMoreData,
+      isInitialized);
 
   @JsonKey(ignore: true)
   @override
@@ -232,9 +332,14 @@ abstract class _TransactionState extends TransactionState {
   const factory _TransactionState(
       {final List<Transaction> transactions,
       final bool isLoading,
+      final bool isLoadingMore,
       final String? error,
       final String? searchQuery,
-      final TransactionFilter? filter}) = _$TransactionStateImpl;
+      final TransactionFilter? filter,
+      final int pageSize,
+      final int currentOffset,
+      final bool hasMoreData,
+      final bool isInitialized}) = _$TransactionStateImpl;
   const _TransactionState._() : super._();
 
   @override
@@ -242,244 +347,24 @@ abstract class _TransactionState extends TransactionState {
   @override
   bool get isLoading;
   @override
+  bool get isLoadingMore;
+  @override
   String? get error;
   @override
   String? get searchQuery;
   @override
   TransactionFilter? get filter;
   @override
+  int get pageSize;
+  @override
+  int get currentOffset;
+  @override
+  bool get hasMoreData;
+  @override
+  bool get isInitialized;
+  @override
   @JsonKey(ignore: true)
   _$$TransactionStateImplCopyWith<_$TransactionStateImpl> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-mixin _$TransactionFilter {
-  TransactionType? get transactionType => throw _privateConstructorUsedError;
-  String? get categoryId => throw _privateConstructorUsedError;
-  DateTime? get startDate => throw _privateConstructorUsedError;
-  DateTime? get endDate => throw _privateConstructorUsedError;
-  double? get minAmount => throw _privateConstructorUsedError;
-  double? get maxAmount => throw _privateConstructorUsedError;
-
-  @JsonKey(ignore: true)
-  $TransactionFilterCopyWith<TransactionFilter> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $TransactionFilterCopyWith<$Res> {
-  factory $TransactionFilterCopyWith(
-          TransactionFilter value, $Res Function(TransactionFilter) then) =
-      _$TransactionFilterCopyWithImpl<$Res, TransactionFilter>;
-  @useResult
-  $Res call(
-      {TransactionType? transactionType,
-      String? categoryId,
-      DateTime? startDate,
-      DateTime? endDate,
-      double? minAmount,
-      double? maxAmount});
-}
-
-/// @nodoc
-class _$TransactionFilterCopyWithImpl<$Res, $Val extends TransactionFilter>
-    implements $TransactionFilterCopyWith<$Res> {
-  _$TransactionFilterCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? transactionType = freezed,
-    Object? categoryId = freezed,
-    Object? startDate = freezed,
-    Object? endDate = freezed,
-    Object? minAmount = freezed,
-    Object? maxAmount = freezed,
-  }) {
-    return _then(_value.copyWith(
-      transactionType: freezed == transactionType
-          ? _value.transactionType
-          : transactionType // ignore: cast_nullable_to_non_nullable
-              as TransactionType?,
-      categoryId: freezed == categoryId
-          ? _value.categoryId
-          : categoryId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      startDate: freezed == startDate
-          ? _value.startDate
-          : startDate // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      endDate: freezed == endDate
-          ? _value.endDate
-          : endDate // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      minAmount: freezed == minAmount
-          ? _value.minAmount
-          : minAmount // ignore: cast_nullable_to_non_nullable
-              as double?,
-      maxAmount: freezed == maxAmount
-          ? _value.maxAmount
-          : maxAmount // ignore: cast_nullable_to_non_nullable
-              as double?,
-    ) as $Val);
-  }
-}
-
-/// @nodoc
-abstract class _$$TransactionFilterImplCopyWith<$Res>
-    implements $TransactionFilterCopyWith<$Res> {
-  factory _$$TransactionFilterImplCopyWith(_$TransactionFilterImpl value,
-          $Res Function(_$TransactionFilterImpl) then) =
-      __$$TransactionFilterImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {TransactionType? transactionType,
-      String? categoryId,
-      DateTime? startDate,
-      DateTime? endDate,
-      double? minAmount,
-      double? maxAmount});
-}
-
-/// @nodoc
-class __$$TransactionFilterImplCopyWithImpl<$Res>
-    extends _$TransactionFilterCopyWithImpl<$Res, _$TransactionFilterImpl>
-    implements _$$TransactionFilterImplCopyWith<$Res> {
-  __$$TransactionFilterImplCopyWithImpl(_$TransactionFilterImpl _value,
-      $Res Function(_$TransactionFilterImpl) _then)
-      : super(_value, _then);
-
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? transactionType = freezed,
-    Object? categoryId = freezed,
-    Object? startDate = freezed,
-    Object? endDate = freezed,
-    Object? minAmount = freezed,
-    Object? maxAmount = freezed,
-  }) {
-    return _then(_$TransactionFilterImpl(
-      transactionType: freezed == transactionType
-          ? _value.transactionType
-          : transactionType // ignore: cast_nullable_to_non_nullable
-              as TransactionType?,
-      categoryId: freezed == categoryId
-          ? _value.categoryId
-          : categoryId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      startDate: freezed == startDate
-          ? _value.startDate
-          : startDate // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      endDate: freezed == endDate
-          ? _value.endDate
-          : endDate // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      minAmount: freezed == minAmount
-          ? _value.minAmount
-          : minAmount // ignore: cast_nullable_to_non_nullable
-              as double?,
-      maxAmount: freezed == maxAmount
-          ? _value.maxAmount
-          : maxAmount // ignore: cast_nullable_to_non_nullable
-              as double?,
-    ));
-  }
-}
-
-/// @nodoc
-
-class _$TransactionFilterImpl extends _TransactionFilter {
-  const _$TransactionFilterImpl(
-      {this.transactionType,
-      this.categoryId,
-      this.startDate,
-      this.endDate,
-      this.minAmount,
-      this.maxAmount})
-      : super._();
-
-  @override
-  final TransactionType? transactionType;
-  @override
-  final String? categoryId;
-  @override
-  final DateTime? startDate;
-  @override
-  final DateTime? endDate;
-  @override
-  final double? minAmount;
-  @override
-  final double? maxAmount;
-
-  @override
-  String toString() {
-    return 'TransactionFilter(transactionType: $transactionType, categoryId: $categoryId, startDate: $startDate, endDate: $endDate, minAmount: $minAmount, maxAmount: $maxAmount)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$TransactionFilterImpl &&
-            (identical(other.transactionType, transactionType) ||
-                other.transactionType == transactionType) &&
-            (identical(other.categoryId, categoryId) ||
-                other.categoryId == categoryId) &&
-            (identical(other.startDate, startDate) ||
-                other.startDate == startDate) &&
-            (identical(other.endDate, endDate) || other.endDate == endDate) &&
-            (identical(other.minAmount, minAmount) ||
-                other.minAmount == minAmount) &&
-            (identical(other.maxAmount, maxAmount) ||
-                other.maxAmount == maxAmount));
-  }
-
-  @override
-  int get hashCode => Object.hash(runtimeType, transactionType, categoryId,
-      startDate, endDate, minAmount, maxAmount);
-
-  @JsonKey(ignore: true)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$TransactionFilterImplCopyWith<_$TransactionFilterImpl> get copyWith =>
-      __$$TransactionFilterImplCopyWithImpl<_$TransactionFilterImpl>(
-          this, _$identity);
-}
-
-abstract class _TransactionFilter extends TransactionFilter {
-  const factory _TransactionFilter(
-      {final TransactionType? transactionType,
-      final String? categoryId,
-      final DateTime? startDate,
-      final DateTime? endDate,
-      final double? minAmount,
-      final double? maxAmount}) = _$TransactionFilterImpl;
-  const _TransactionFilter._() : super._();
-
-  @override
-  TransactionType? get transactionType;
-  @override
-  String? get categoryId;
-  @override
-  DateTime? get startDate;
-  @override
-  DateTime? get endDate;
-  @override
-  double? get minAmount;
-  @override
-  double? get maxAmount;
-  @override
-  @JsonKey(ignore: true)
-  _$$TransactionFilterImplCopyWith<_$TransactionFilterImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 

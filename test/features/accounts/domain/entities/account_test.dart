@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import '../../../../../lib/features/accounts/domain/entities/account.dart';
+import 'package:budget_tracker/features/accounts/domain/entities/account.dart';
 
 void main() {
   group('Account Entity', () {

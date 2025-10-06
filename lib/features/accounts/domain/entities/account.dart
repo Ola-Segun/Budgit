@@ -24,6 +24,11 @@ class Account with _$Account {
     double? minimumPayment, // For loans/credit cards
     DateTime? dueDate, // For loans/credit cards
     @Default(true) bool isActive,
+    // Bank connection fields
+    @Default(false) bool isBankConnected,
+    String? bankConnectionId,
+    DateTime? lastSyncedAt,
+    BankConnectionStatus? connectionStatus,
   }) = _Account;
 
   const Account._();
@@ -126,5 +131,44 @@ enum AccountType {
   bool get isAsset => this == AccountType.bankAccount || this == AccountType.investment || this == AccountType.manualAccount;
 
   /// Check if this account type represents a liability
-  bool get isLiability => this == AccountType.creditCard || this == AccountType.loan;
-}
+    bool get isLiability => this == AccountType.creditCard || this == AccountType.loan;
+  }
+  
+  /// Bank connection status enum
+  enum BankConnectionStatus {
+    connected,
+    connecting,
+    disconnected,
+    error,
+    requiresReauth;
+  
+    String get displayName {
+      switch (this) {
+        case BankConnectionStatus.connected:
+          return 'Connected';
+        case BankConnectionStatus.connecting:
+          return 'Connecting';
+        case BankConnectionStatus.disconnected:
+          return 'Disconnected';
+        case BankConnectionStatus.error:
+          return 'Connection Error';
+        case BankConnectionStatus.requiresReauth:
+          return 'Re-authorization Required';
+      }
+    }
+  
+    String get color {
+      switch (this) {
+        case BankConnectionStatus.connected:
+          return '#10B981'; // Green
+        case BankConnectionStatus.connecting:
+          return '#F59E0B'; // Yellow
+        case BankConnectionStatus.disconnected:
+          return '#64748B'; // Gray
+        case BankConnectionStatus.error:
+          return '#EF4444'; // Red
+        case BankConnectionStatus.requiresReauth:
+          return '#F97316'; // Orange
+      }
+    }
+  }

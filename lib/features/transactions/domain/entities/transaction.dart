@@ -13,9 +13,11 @@ class Transaction with _$Transaction {
     required TransactionType type,
     required DateTime date,
     required String categoryId,
+    required String accountId,
     String? description,
     String? receiptUrl,
     @Default([]) List<String> tags,
+    @Default('USD') String currencyCode, // Currency code (USD, EUR, etc.)
   }) = _Transaction;
 
   const Transaction._();

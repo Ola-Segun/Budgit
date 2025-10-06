@@ -89,7 +89,7 @@ class BudgetCard extends StatelessWidget {
                         builder: (context, animatedProgress, child) {
                           return LinearProgressIndicator(
                             value: animatedProgress,
-                            backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+                            backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                             valueColor: AlwaysStoppedAnimation<Color>(_getHealthColor(health)),
                           );
                         },

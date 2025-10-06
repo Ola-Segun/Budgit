@@ -1,14 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
-import '../../../../../lib/core/error/failures.dart';
-import '../../../../../lib/core/error/result.dart';
-import '../../../../../lib/features/accounts/domain/entities/account.dart';
-import '../../../../../lib/features/accounts/domain/repositories/account_repository.dart';
-import '../../../../../lib/features/accounts/domain/usecases/create_account.dart';
+import 'package:budget_tracker/core/error/failures.dart';
+import 'package:budget_tracker/core/error/result.dart';
+import 'package:budget_tracker/features/accounts/domain/entities/account.dart';
+import 'package:budget_tracker/features/accounts/domain/repositories/account_repository.dart';
+import 'package:budget_tracker/features/accounts/domain/usecases/create_account.dart';
 
-// Mock classes
-class MockAccountRepository extends Mock implements AccountRepository {}
+import 'create_account_test.mocks.dart';
+
+@GenerateMocks([AccountRepository])
 
 void main() {
   late CreateAccount useCase;
@@ -17,6 +19,10 @@ void main() {
   setUp(() {
     mockRepository = MockAccountRepository();
     useCase = CreateAccount(mockRepository);
+  });
+
+  setUpAll(() {
+    provideDummy<Result<Account>>(Result.error(Failure.unknown('Dummy error')));
   });
 
   group('CreateAccount Use Case', () {
@@ -32,8 +38,8 @@ void main() {
 
     test('should create account successfully', () async {
       // Arrange
-      when(mockRepository.add(any as Account))
-          .thenAnswer((_) async => Result.success(testAccount));
+      when(mockRepository.add(any))
+          .thenAnswer((invocation) async => Result.success(invocation.positionalArguments[0] as Account));
 
       // Act
       final result = await useCase(testAccount);
@@ -50,7 +56,7 @@ void main() {
         },
         error: (_) => fail('Should not error'),
       );
-      verify(mockRepository.add(any as Account)).called(1);
+      verify(mockRepository.add(any)).called(1);
     });
 
     test('should return validation error for empty name', () async {
@@ -69,7 +75,7 @@ void main() {
           expect(failure.message, contains('name'));
         },
       );
-      verifyNever(mockRepository.add(any as Account));
+      verifyNever(mockRepository.add(any));
     });
 
     test('should return validation error for NaN balance', () async {
@@ -88,7 +94,7 @@ void main() {
           expect(failure.message, contains('balance'));
         },
       );
-      verifyNever(mockRepository.add(any as Account));
+      verifyNever(mockRepository.add(any));
     });
 
     test('should return validation error for infinite balance', () async {
@@ -107,7 +113,7 @@ void main() {
           expect(failure.message, contains('balance'));
         },
       );
-      verifyNever(mockRepository.add(any as Account));
+      verifyNever(mockRepository.add(any));
     });
 
     test('should return validation error for credit card without credit limit', () async {
@@ -126,10 +132,10 @@ void main() {
         success: (_) => fail('Should not succeed'),
         error: (failure) {
           expect(failure, isA<ValidationFailure>());
-          expect(failure.message, contains('credit limit'));
+          expect(failure.message, contains('Credit limit'));
         },
       );
-      verifyNever(mockRepository.add(any as Account));
+      verifyNever(mockRepository.add(any));
     });
 
     test('should return validation error for credit card with zero credit limit', () async {
@@ -148,10 +154,10 @@ void main() {
         success: (_) => fail('Should not succeed'),
         error: (failure) {
           expect(failure, isA<ValidationFailure>());
-          expect(failure.message, contains('credit limit'));
+          expect(failure.message, contains('Credit limit'));
         },
       );
-      verifyNever(mockRepository.add(any as Account));
+      verifyNever(mockRepository.add(any));
     });
 
     test('should return validation error for credit card balance exceeding limit', () async {
@@ -174,7 +180,7 @@ void main() {
           expect(failure.message, contains('exceed'));
         },
       );
-      verifyNever(mockRepository.add(any as Account));
+      verifyNever(mockRepository.add(any));
     });
 
     test('should return validation error for invalid interest rate on loan', () async {
@@ -193,10 +199,10 @@ void main() {
         success: (_) => fail('Should not succeed'),
         error: (failure) {
           expect(failure, isA<ValidationFailure>());
-          expect(failure.message, contains('interest rate'));
+          expect(failure.message, contains('Interest rate'));
         },
       );
-      verifyNever(mockRepository.add(any as Account));
+      verifyNever(mockRepository.add(any));
     });
 
     test('should return validation error for negative interest rate on loan', () async {
@@ -215,15 +221,15 @@ void main() {
         success: (_) => fail('Should not succeed'),
         error: (failure) {
           expect(failure, isA<ValidationFailure>());
-          expect(failure.message, contains('interest rate'));
+          expect(failure.message, contains('Interest rate'));
         },
       );
-      verifyNever(mockRepository.add(any as Account));
+      verifyNever(mockRepository.add(any));
     });
 
     test('should handle repository failure', () async {
       // Arrange
-      when(mockRepository.add(any as Account))
+      when(mockRepository.add(any))
           .thenAnswer((_) async => Result.error(Failure.cache('Database error')));
 
       // Act
@@ -241,7 +247,7 @@ void main() {
 
     test('should handle unknown errors', () async {
       // Arrange
-      when(mockRepository.add(any as Account))
+      when(mockRepository.add(any))
           .thenThrow(Exception('Unexpected error'));
 
       // Act
@@ -264,15 +270,15 @@ void main() {
         balance: 1000.0,
         creditLimit: 5000.0,
       );
-      when(mockRepository.add(any as Account))
-          .thenAnswer((_) async => Result.success(creditCard));
+      when(mockRepository.add(any))
+          .thenAnswer((invocation) async => Result.success(invocation.positionalArguments[0] as Account));
 
       // Act
       final result = await useCase(creditCard);
 
       // Assert
       expect(result, isA<Success<Account>>());
-      verify(mockRepository.add(any as Account)).called(1);
+      verify(mockRepository.add(any)).called(1);
     });
 
     test('should accept valid loan account', () async {
@@ -283,15 +289,15 @@ void main() {
         interestRate: 5.5,
         minimumPayment: 200.0,
       );
-      when(mockRepository.add(any as Account))
-          .thenAnswer((_) async => Result.success(loan));
+      when(mockRepository.add(any))
+          .thenAnswer((invocation) async => Result.success(invocation.positionalArguments[0] as Account));
 
       // Act
       final result = await useCase(loan);
 
       // Assert
       expect(result, isA<Success<Account>>());
-      verify(mockRepository.add(any as Account)).called(1);
+      verify(mockRepository.add(any)).called(1);
     });
 
     test('should accept account with all optional fields', () async {
@@ -308,15 +314,15 @@ void main() {
         dueDate: DateTime(2025, 11, 1),
         isActive: false,
       );
-      when(mockRepository.add(any as Account))
-          .thenAnswer((_) async => Result.success(detailedAccount));
+      when(mockRepository.add(any))
+          .thenAnswer((invocation) async => Result.success(invocation.positionalArguments[0] as Account));
 
       // Act
       final result = await useCase(detailedAccount);
 
       // Assert
       expect(result, isA<Success<Account>>());
-      verify(mockRepository.add(any as Account)).called(1);
+      verify(mockRepository.add(any)).called(1);
     });
   });
 }

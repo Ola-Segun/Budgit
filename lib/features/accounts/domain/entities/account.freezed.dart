@@ -37,7 +37,13 @@ mixin _$Account {
       throw _privateConstructorUsedError; // For loans/credit cards
   DateTime? get dueDate =>
       throw _privateConstructorUsedError; // For loans/credit cards
-  bool get isActive => throw _privateConstructorUsedError;
+  bool get isActive =>
+      throw _privateConstructorUsedError; // Bank connection fields
+  bool get isBankConnected => throw _privateConstructorUsedError;
+  String? get bankConnectionId => throw _privateConstructorUsedError;
+  DateTime? get lastSyncedAt => throw _privateConstructorUsedError;
+  BankConnectionStatus? get connectionStatus =>
+      throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
   $AccountCopyWith<Account> get copyWith => throw _privateConstructorUsedError;
@@ -64,7 +70,11 @@ abstract class $AccountCopyWith<$Res> {
       double? interestRate,
       double? minimumPayment,
       DateTime? dueDate,
-      bool isActive});
+      bool isActive,
+      bool isBankConnected,
+      String? bankConnectionId,
+      DateTime? lastSyncedAt,
+      BankConnectionStatus? connectionStatus});
 }
 
 /// @nodoc
@@ -96,6 +106,10 @@ class _$AccountCopyWithImpl<$Res, $Val extends Account>
     Object? minimumPayment = freezed,
     Object? dueDate = freezed,
     Object? isActive = null,
+    Object? isBankConnected = null,
+    Object? bankConnectionId = freezed,
+    Object? lastSyncedAt = freezed,
+    Object? connectionStatus = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -162,6 +176,22 @@ class _$AccountCopyWithImpl<$Res, $Val extends Account>
           ? _value.isActive
           : isActive // ignore: cast_nullable_to_non_nullable
               as bool,
+      isBankConnected: null == isBankConnected
+          ? _value.isBankConnected
+          : isBankConnected // ignore: cast_nullable_to_non_nullable
+              as bool,
+      bankConnectionId: freezed == bankConnectionId
+          ? _value.bankConnectionId
+          : bankConnectionId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      lastSyncedAt: freezed == lastSyncedAt
+          ? _value.lastSyncedAt
+          : lastSyncedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      connectionStatus: freezed == connectionStatus
+          ? _value.connectionStatus
+          : connectionStatus // ignore: cast_nullable_to_non_nullable
+              as BankConnectionStatus?,
     ) as $Val);
   }
 }
@@ -189,7 +219,11 @@ abstract class _$$AccountImplCopyWith<$Res> implements $AccountCopyWith<$Res> {
       double? interestRate,
       double? minimumPayment,
       DateTime? dueDate,
-      bool isActive});
+      bool isActive,
+      bool isBankConnected,
+      String? bankConnectionId,
+      DateTime? lastSyncedAt,
+      BankConnectionStatus? connectionStatus});
 }
 
 /// @nodoc
@@ -219,6 +253,10 @@ class __$$AccountImplCopyWithImpl<$Res>
     Object? minimumPayment = freezed,
     Object? dueDate = freezed,
     Object? isActive = null,
+    Object? isBankConnected = null,
+    Object? bankConnectionId = freezed,
+    Object? lastSyncedAt = freezed,
+    Object? connectionStatus = freezed,
   }) {
     return _then(_$AccountImpl(
       id: null == id
@@ -285,6 +323,22 @@ class __$$AccountImplCopyWithImpl<$Res>
           ? _value.isActive
           : isActive // ignore: cast_nullable_to_non_nullable
               as bool,
+      isBankConnected: null == isBankConnected
+          ? _value.isBankConnected
+          : isBankConnected // ignore: cast_nullable_to_non_nullable
+              as bool,
+      bankConnectionId: freezed == bankConnectionId
+          ? _value.bankConnectionId
+          : bankConnectionId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      lastSyncedAt: freezed == lastSyncedAt
+          ? _value.lastSyncedAt
+          : lastSyncedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      connectionStatus: freezed == connectionStatus
+          ? _value.connectionStatus
+          : connectionStatus // ignore: cast_nullable_to_non_nullable
+              as BankConnectionStatus?,
     ));
   }
 }
@@ -308,7 +362,11 @@ class _$AccountImpl extends _Account {
       this.interestRate,
       this.minimumPayment,
       this.dueDate,
-      this.isActive = true})
+      this.isActive = true,
+      this.isBankConnected = false,
+      this.bankConnectionId,
+      this.lastSyncedAt,
+      this.connectionStatus})
       : super._();
 
   @override
@@ -351,10 +409,20 @@ class _$AccountImpl extends _Account {
   @override
   @JsonKey()
   final bool isActive;
+// Bank connection fields
+  @override
+  @JsonKey()
+  final bool isBankConnected;
+  @override
+  final String? bankConnectionId;
+  @override
+  final DateTime? lastSyncedAt;
+  @override
+  final BankConnectionStatus? connectionStatus;
 
   @override
   String toString() {
-    return 'Account(id: $id, name: $name, type: $type, balance: $balance, description: $description, institution: $institution, accountNumber: $accountNumber, currency: $currency, createdAt: $createdAt, updatedAt: $updatedAt, creditLimit: $creditLimit, availableCredit: $availableCredit, interestRate: $interestRate, minimumPayment: $minimumPayment, dueDate: $dueDate, isActive: $isActive)';
+    return 'Account(id: $id, name: $name, type: $type, balance: $balance, description: $description, institution: $institution, accountNumber: $accountNumber, currency: $currency, createdAt: $createdAt, updatedAt: $updatedAt, creditLimit: $creditLimit, availableCredit: $availableCredit, interestRate: $interestRate, minimumPayment: $minimumPayment, dueDate: $dueDate, isActive: $isActive, isBankConnected: $isBankConnected, bankConnectionId: $bankConnectionId, lastSyncedAt: $lastSyncedAt, connectionStatus: $connectionStatus)';
   }
 
   @override
@@ -388,28 +456,41 @@ class _$AccountImpl extends _Account {
                 other.minimumPayment == minimumPayment) &&
             (identical(other.dueDate, dueDate) || other.dueDate == dueDate) &&
             (identical(other.isActive, isActive) ||
-                other.isActive == isActive));
+                other.isActive == isActive) &&
+            (identical(other.isBankConnected, isBankConnected) ||
+                other.isBankConnected == isBankConnected) &&
+            (identical(other.bankConnectionId, bankConnectionId) ||
+                other.bankConnectionId == bankConnectionId) &&
+            (identical(other.lastSyncedAt, lastSyncedAt) ||
+                other.lastSyncedAt == lastSyncedAt) &&
+            (identical(other.connectionStatus, connectionStatus) ||
+                other.connectionStatus == connectionStatus));
   }
 
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      name,
-      type,
-      balance,
-      description,
-      institution,
-      accountNumber,
-      currency,
-      createdAt,
-      updatedAt,
-      creditLimit,
-      availableCredit,
-      interestRate,
-      minimumPayment,
-      dueDate,
-      isActive);
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        name,
+        type,
+        balance,
+        description,
+        institution,
+        accountNumber,
+        currency,
+        createdAt,
+        updatedAt,
+        creditLimit,
+        availableCredit,
+        interestRate,
+        minimumPayment,
+        dueDate,
+        isActive,
+        isBankConnected,
+        bankConnectionId,
+        lastSyncedAt,
+        connectionStatus
+      ]);
 
   @JsonKey(ignore: true)
   @override
@@ -435,7 +516,11 @@ abstract class _Account extends Account {
       final double? interestRate,
       final double? minimumPayment,
       final DateTime? dueDate,
-      final bool isActive}) = _$AccountImpl;
+      final bool isActive,
+      final bool isBankConnected,
+      final String? bankConnectionId,
+      final DateTime? lastSyncedAt,
+      final BankConnectionStatus? connectionStatus}) = _$AccountImpl;
   const _Account._() : super._();
 
   @override
@@ -470,6 +555,14 @@ abstract class _Account extends Account {
   DateTime? get dueDate;
   @override // For loans/credit cards
   bool get isActive;
+  @override // Bank connection fields
+  bool get isBankConnected;
+  @override
+  String? get bankConnectionId;
+  @override
+  DateTime? get lastSyncedAt;
+  @override
+  BankConnectionStatus? get connectionStatus;
   @override
   @JsonKey(ignore: true)
   _$$AccountImplCopyWith<_$AccountImpl> get copyWith =>

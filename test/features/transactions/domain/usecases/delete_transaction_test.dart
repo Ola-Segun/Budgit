@@ -1,14 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
-import '../../../../../lib/core/error/failures.dart';
-import '../../../../../lib/core/error/result.dart';
-import '../../../../../lib/features/transactions/domain/entities/transaction.dart';
-import '../../../../../lib/features/transactions/domain/repositories/transaction_repository.dart';
-import '../../../../../lib/features/transactions/domain/usecases/delete_transaction.dart';
+import 'package:budget_tracker/core/error/failures.dart';
+import 'package:budget_tracker/core/error/result.dart';
+import 'package:budget_tracker/features/transactions/domain/entities/transaction.dart';
+import 'package:budget_tracker/features/transactions/domain/repositories/transaction_repository.dart';
+import 'package:budget_tracker/features/transactions/domain/usecases/delete_transaction.dart';
 
-// Mock classes
-class MockTransactionRepository extends Mock implements TransactionRepository {}
+@GenerateMocks([TransactionRepository])
+import 'delete_transaction_test.mocks.dart';
 
 void main() {
   late DeleteTransaction useCase;
@@ -17,6 +18,10 @@ void main() {
   setUp(() {
     mockRepository = MockTransactionRepository();
     useCase = DeleteTransaction(mockRepository);
+
+    // Provide dummy values for Mockito
+    provideDummy<Result<Transaction?>>(Result.error(Failure.unknown('dummy')));
+    provideDummy<Result<void>>(Result.error(Failure.unknown('dummy')));
   });
 
   group('DeleteTransaction Use Case', () {
@@ -28,6 +33,7 @@ void main() {
       type: TransactionType.expense,
       date: DateTime(2025, 10, 2),
       categoryId: 'food',
+      accountId: 'account1',
     );
 
     test('should delete transaction successfully', () async {

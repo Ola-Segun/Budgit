@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 
 import 'package:budget_tracker/features/onboarding/presentation/onboarding_flow.dart';
 import 'package:budget_tracker/features/onboarding/presentation/providers/onboarding_providers.dart';

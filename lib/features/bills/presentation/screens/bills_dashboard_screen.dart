@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:go_router/go_router.dart';
+
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/error_view.dart';
 import '../../../../core/widgets/loading_view.dart';
 import '../../domain/entities/bill.dart';
 import '../providers/bill_providers.dart';
-import '../states/bill_state.dart';
 
 /// Dashboard screen for bills and subscriptions management
 class BillsDashboardScreen extends ConsumerWidget {
@@ -26,12 +27,7 @@ class BillsDashboardScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () {
-              // TODO: Navigate to add bill screen
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Add bill feature coming soon')),
-              );
-            },
+            onPressed: () => context.go('/more/bills/add'),
           ),
         ],
       ),
@@ -289,12 +285,7 @@ class BillsDashboardScreen extends ConsumerWidget {
                 'Add Bill',
                 Icons.add,
                 Colors.blue,
-                () {
-                  // TODO: Navigate to add bill
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Add bill feature coming soon')),
-                  );
-                },
+                () => context.go('/more/bills/add'),
               ),
             ),
             const SizedBox(width: 16),
@@ -305,9 +296,10 @@ class BillsDashboardScreen extends ConsumerWidget {
                 Icons.list,
                 Colors.green,
                 () {
-                  // TODO: Navigate to bills list
+                  // Already on the bills dashboard, maybe scroll to top or refresh
+                  // For now, just show a message
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Bills list feature coming soon')),
+                    const SnackBar(content: Text('All bills shown above')),
                   );
                 },
               ),

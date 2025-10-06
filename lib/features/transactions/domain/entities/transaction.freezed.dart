@@ -22,9 +22,11 @@ mixin _$Transaction {
   TransactionType get type => throw _privateConstructorUsedError;
   DateTime get date => throw _privateConstructorUsedError;
   String get categoryId => throw _privateConstructorUsedError;
+  String get accountId => throw _privateConstructorUsedError;
   String? get description => throw _privateConstructorUsedError;
   String? get receiptUrl => throw _privateConstructorUsedError;
   List<String> get tags => throw _privateConstructorUsedError;
+  String get currencyCode => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
   $TransactionCopyWith<Transaction> get copyWith =>
@@ -44,9 +46,11 @@ abstract class $TransactionCopyWith<$Res> {
       TransactionType type,
       DateTime date,
       String categoryId,
+      String accountId,
       String? description,
       String? receiptUrl,
-      List<String> tags});
+      List<String> tags,
+      String currencyCode});
 }
 
 /// @nodoc
@@ -68,9 +72,11 @@ class _$TransactionCopyWithImpl<$Res, $Val extends Transaction>
     Object? type = null,
     Object? date = null,
     Object? categoryId = null,
+    Object? accountId = null,
     Object? description = freezed,
     Object? receiptUrl = freezed,
     Object? tags = null,
+    Object? currencyCode = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -97,6 +103,10 @@ class _$TransactionCopyWithImpl<$Res, $Val extends Transaction>
           ? _value.categoryId
           : categoryId // ignore: cast_nullable_to_non_nullable
               as String,
+      accountId: null == accountId
+          ? _value.accountId
+          : accountId // ignore: cast_nullable_to_non_nullable
+              as String,
       description: freezed == description
           ? _value.description
           : description // ignore: cast_nullable_to_non_nullable
@@ -109,6 +119,10 @@ class _$TransactionCopyWithImpl<$Res, $Val extends Transaction>
           ? _value.tags
           : tags // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      currencyCode: null == currencyCode
+          ? _value.currencyCode
+          : currencyCode // ignore: cast_nullable_to_non_nullable
+              as String,
     ) as $Val);
   }
 }
@@ -128,9 +142,11 @@ abstract class _$$TransactionImplCopyWith<$Res>
       TransactionType type,
       DateTime date,
       String categoryId,
+      String accountId,
       String? description,
       String? receiptUrl,
-      List<String> tags});
+      List<String> tags,
+      String currencyCode});
 }
 
 /// @nodoc
@@ -150,9 +166,11 @@ class __$$TransactionImplCopyWithImpl<$Res>
     Object? type = null,
     Object? date = null,
     Object? categoryId = null,
+    Object? accountId = null,
     Object? description = freezed,
     Object? receiptUrl = freezed,
     Object? tags = null,
+    Object? currencyCode = null,
   }) {
     return _then(_$TransactionImpl(
       id: null == id
@@ -179,6 +197,10 @@ class __$$TransactionImplCopyWithImpl<$Res>
           ? _value.categoryId
           : categoryId // ignore: cast_nullable_to_non_nullable
               as String,
+      accountId: null == accountId
+          ? _value.accountId
+          : accountId // ignore: cast_nullable_to_non_nullable
+              as String,
       description: freezed == description
           ? _value.description
           : description // ignore: cast_nullable_to_non_nullable
@@ -191,6 +213,10 @@ class __$$TransactionImplCopyWithImpl<$Res>
           ? _value._tags
           : tags // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      currencyCode: null == currencyCode
+          ? _value.currencyCode
+          : currencyCode // ignore: cast_nullable_to_non_nullable
+              as String,
     ));
   }
 }
@@ -205,9 +231,11 @@ class _$TransactionImpl extends _Transaction {
       required this.type,
       required this.date,
       required this.categoryId,
+      required this.accountId,
       this.description,
       this.receiptUrl,
-      final List<String> tags = const []})
+      final List<String> tags = const [],
+      this.currencyCode = 'USD'})
       : _tags = tags,
         super._();
 
@@ -224,6 +252,8 @@ class _$TransactionImpl extends _Transaction {
   @override
   final String categoryId;
   @override
+  final String accountId;
+  @override
   final String? description;
   @override
   final String? receiptUrl;
@@ -237,8 +267,12 @@ class _$TransactionImpl extends _Transaction {
   }
 
   @override
+  @JsonKey()
+  final String currencyCode;
+
+  @override
   String toString() {
-    return 'Transaction(id: $id, title: $title, amount: $amount, type: $type, date: $date, categoryId: $categoryId, description: $description, receiptUrl: $receiptUrl, tags: $tags)';
+    return 'Transaction(id: $id, title: $title, amount: $amount, type: $type, date: $date, categoryId: $categoryId, accountId: $accountId, description: $description, receiptUrl: $receiptUrl, tags: $tags, currencyCode: $currencyCode)';
   }
 
   @override
@@ -253,11 +287,15 @@ class _$TransactionImpl extends _Transaction {
             (identical(other.date, date) || other.date == date) &&
             (identical(other.categoryId, categoryId) ||
                 other.categoryId == categoryId) &&
+            (identical(other.accountId, accountId) ||
+                other.accountId == accountId) &&
             (identical(other.description, description) ||
                 other.description == description) &&
             (identical(other.receiptUrl, receiptUrl) ||
                 other.receiptUrl == receiptUrl) &&
-            const DeepCollectionEquality().equals(other._tags, _tags));
+            const DeepCollectionEquality().equals(other._tags, _tags) &&
+            (identical(other.currencyCode, currencyCode) ||
+                other.currencyCode == currencyCode));
   }
 
   @override
@@ -269,9 +307,11 @@ class _$TransactionImpl extends _Transaction {
       type,
       date,
       categoryId,
+      accountId,
       description,
       receiptUrl,
-      const DeepCollectionEquality().hash(_tags));
+      const DeepCollectionEquality().hash(_tags),
+      currencyCode);
 
   @JsonKey(ignore: true)
   @override
@@ -288,9 +328,11 @@ abstract class _Transaction extends Transaction {
       required final TransactionType type,
       required final DateTime date,
       required final String categoryId,
+      required final String accountId,
       final String? description,
       final String? receiptUrl,
-      final List<String> tags}) = _$TransactionImpl;
+      final List<String> tags,
+      final String currencyCode}) = _$TransactionImpl;
   const _Transaction._() : super._();
 
   @override
@@ -306,11 +348,15 @@ abstract class _Transaction extends Transaction {
   @override
   String get categoryId;
   @override
+  String get accountId;
+  @override
   String? get description;
   @override
   String? get receiptUrl;
   @override
   List<String> get tags;
+  @override
+  String get currencyCode;
   @override
   @JsonKey(ignore: true)
   _$$TransactionImplCopyWith<_$TransactionImpl> get copyWith =>

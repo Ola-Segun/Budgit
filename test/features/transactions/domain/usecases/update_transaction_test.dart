@@ -1,14 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
-import '../../../../../lib/core/error/failures.dart';
-import '../../../../../lib/core/error/result.dart';
-import '../../../../../lib/features/transactions/domain/entities/transaction.dart';
-import '../../../../../lib/features/transactions/domain/repositories/transaction_repository.dart';
-import '../../../../../lib/features/transactions/domain/usecases/update_transaction.dart';
+import 'package:budget_tracker/core/error/failures.dart';
+import 'package:budget_tracker/core/error/result.dart';
+import 'package:budget_tracker/features/transactions/domain/entities/transaction.dart';
+import 'package:budget_tracker/features/transactions/domain/repositories/transaction_repository.dart';
+import 'package:budget_tracker/features/transactions/domain/usecases/update_transaction.dart';
 
-// Mock classes
-class MockTransactionRepository extends Mock implements TransactionRepository {}
+@GenerateMocks([TransactionRepository])
+import 'update_transaction_test.mocks.dart';
 
 void main() {
   late UpdateTransaction useCase;
@@ -27,6 +28,7 @@ void main() {
       type: TransactionType.expense,
       date: DateTime(2025, 10, 2),
       categoryId: 'food',
+      accountId: 'account1',
     );
 
     final updatedTransaction = testTransaction.copyWith(

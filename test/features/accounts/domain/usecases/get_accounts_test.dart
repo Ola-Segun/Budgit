@@ -1,23 +1,28 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
-import '../../../../../lib/core/error/failures.dart';
-import '../../../../../lib/core/error/result.dart';
-import '../../../../../lib/features/accounts/domain/entities/account.dart';
-import '../../../../../lib/features/accounts/domain/repositories/account_repository.dart';
-import '../../../../../lib/features/accounts/domain/usecases/get_accounts.dart';
+import 'package:budget_tracker/core/error/failures.dart';
+import 'package:budget_tracker/core/error/result.dart';
+import 'package:budget_tracker/features/accounts/domain/entities/account.dart';
+import 'package:budget_tracker/features/accounts/domain/repositories/account_repository.dart';
+import 'package:budget_tracker/features/accounts/domain/usecases/get_accounts.dart';
 
-// Mock classes
-class MockAccountRepository extends Mock implements AccountRepository {}
+import 'get_accounts_test.mocks.dart';
 
+@GenerateMocks([AccountRepository])
 void main() {
-  late GetAccounts useCase;
-  late MockAccountRepository mockRepository;
+   late GetAccounts useCase;
+   late MockAccountRepository mockRepository;
 
-  setUp(() {
-    mockRepository = MockAccountRepository();
-    useCase = GetAccounts(mockRepository);
-  });
+   setUpAll(() {
+     provideDummy<Result<List<Account>>>(Result.error(Failure.unknown('Dummy error')));
+   });
+
+   setUp(() {
+     mockRepository = MockAccountRepository();
+     useCase = GetAccounts(mockRepository);
+   });
 
   group('GetAccounts Use Case', () {
     final testAccounts = [
@@ -95,20 +100,21 @@ void main() {
     });
 
     test('should handle unknown errors', () async {
-      // Arrange
-      when(mockRepository.getAll()).thenThrow(Exception('Unexpected error'));
+       // Arrange
+       when(mockRepository.getAll())
+           .thenAnswer((_) async => Result.error(Failure.unknown('Unexpected error')));
 
-      // Act
-      final result = await useCase();
+       // Act
+       final result = await useCase();
 
-      // Assert
-      expect(result, isA<Error<List<Account>>>());
-      result.when(
-        success: (_) => fail('Should not succeed'),
-        error: (failure) {
-          expect(failure, isA<UnknownFailure>());
-        },
-      );
-    });
+       // Assert
+       expect(result, isA<Error<List<Account>>>());
+       result.when(
+         success: (_) => fail('Should not succeed'),
+         error: (failure) {
+           expect(failure, isA<UnknownFailure>());
+         },
+       );
+     });
   });
 }

@@ -22,7 +22,7 @@ class _IncomeEntryScreenState extends ConsumerState<IncomeEntryScreen> {
   final _nameController = TextEditingController();
   final _amountController = TextEditingController();
   PayFrequency _selectedFrequency = PayFrequency.monthly;
-  bool _isAddingIncome = false;
+  final bool _isAddingIncome = false;
 
   final _currencyFormatter = CurrencyTextInputFormatter.currency(
     locale: 'en_US',
@@ -245,7 +245,7 @@ class _IncomeEntryScreenState extends ConsumerState<IncomeEntryScreen> {
                             Expanded(
                               flex: 2,
                               child: DropdownButtonFormField<PayFrequency>(
-                                value: _selectedFrequency,
+                                initialValue: _selectedFrequency,
                                 decoration: InputDecoration(
                                   labelText: 'Frequency',
                                   border: OutlineInputBorder(

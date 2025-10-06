@@ -14,7 +14,7 @@ class DeleteTransaction {
       // Validate transaction exists
       final existingResult = await _repository.getById(transactionId);
       if (existingResult.isError) {
-        return existingResult.map((_) => null); // Return error
+        return existingResult.map((_) {}); // Return error
       }
 
       if (existingResult.dataOrNull == null) {

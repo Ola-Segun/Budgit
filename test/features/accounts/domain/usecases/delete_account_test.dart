@@ -1,22 +1,31 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
-import '../../../../../lib/core/error/failures.dart';
-import '../../../../../lib/core/error/result.dart';
-import '../../../../../lib/features/accounts/domain/repositories/account_repository.dart';
-import '../../../../../lib/features/accounts/domain/usecases/delete_account.dart';
+import 'package:budget_tracker/core/error/failures.dart';
+import 'package:budget_tracker/core/error/result.dart';
+import 'package:budget_tracker/features/accounts/domain/repositories/account_repository.dart';
+import 'package:budget_tracker/features/accounts/domain/usecases/delete_account.dart';
 
-// Mock classes
-class MockAccountRepository extends Mock implements AccountRepository {}
+import 'delete_account_test.mocks.dart';
+
+@GenerateMocks([AccountRepository])
 
 void main() {
-  late DeleteAccount useCase;
-  late MockAccountRepository mockRepository;
+   late DeleteAccount useCase;
+   late MockAccountRepository mockRepository;
 
-  setUp(() {
-    mockRepository = MockAccountRepository();
-    useCase = DeleteAccount(mockRepository);
-  });
+   setUpAll(() {
+     provideDummy<Result<void>>(Result.error(Failure.unknown('Dummy error')));
+   });
+
+   setUp(() {
+     mockRepository = MockAccountRepository();
+     useCase = DeleteAccount(mockRepository);
+     // Stub delete for any string to return success by default
+     when(mockRepository.delete(any))
+         .thenAnswer((_) async => Result.success(null));
+   });
 
   group('DeleteAccount Use Case', () {
     const accountId = 'test-account-id';
@@ -53,22 +62,22 @@ void main() {
     });
 
     test('should handle unknown errors', () async {
-      // Arrange
-      when(mockRepository.delete(accountId))
-          .thenThrow(Exception('Unexpected error'));
+       // Arrange
+       when(mockRepository.delete(accountId))
+           .thenAnswer((_) async => Result.error(Failure.unknown('Unexpected error')));
 
-      // Act
-      final result = await useCase(accountId);
+       // Act
+       final result = await useCase(accountId);
 
-      // Assert
-      expect(result, isA<Error<void>>());
-      result.when(
-        success: (_) => fail('Should not succeed'),
-        error: (failure) {
-          expect(failure, isA<UnknownFailure>());
-        },
-      );
-    });
+       // Assert
+       expect(result, isA<Error<void>>());
+       result.when(
+         success: (_) => fail('Should not succeed'),
+         error: (failure) {
+           expect(failure, isA<UnknownFailure>());
+         },
+       );
+     });
 
     test('should handle empty account ID', () async {
       // Arrange

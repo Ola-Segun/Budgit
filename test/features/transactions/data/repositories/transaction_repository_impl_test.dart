@@ -1,14 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
-import '../../../../../lib/core/error/failures.dart';
-import '../../../../../lib/core/error/result.dart';
-import '../../../../../lib/features/transactions/data/datasources/transaction_hive_datasource.dart';
-import '../../../../../lib/features/transactions/data/repositories/transaction_repository_impl.dart';
-import '../../../../../lib/features/transactions/domain/entities/transaction.dart';
+import 'package:budget_tracker/core/error/failures.dart';
+import 'package:budget_tracker/core/error/result.dart';
+import 'package:budget_tracker/features/transactions/data/datasources/transaction_hive_datasource.dart';
+import 'package:budget_tracker/features/transactions/data/models/transaction_dto.dart';
+import 'package:budget_tracker/features/transactions/data/repositories/transaction_repository_impl.dart';
+import 'package:budget_tracker/features/transactions/domain/entities/transaction.dart';
 
-// Mock classes
-class MockTransactionHiveDataSource extends Mock implements TransactionHiveDataSource {}
+@GenerateMocks([TransactionHiveDataSource])
+import 'transaction_repository_impl_test.mocks.dart';
 
 void main() {
   late TransactionRepositoryImpl repository;
@@ -16,7 +18,7 @@ void main() {
 
   setUp(() {
     mockDataSource = MockTransactionHiveDataSource();
-    repository = TransactionRepositoryImpl(localDataSource: mockDataSource);
+    repository = TransactionRepositoryImpl(mockDataSource);
   });
 
   group('TransactionRepositoryImpl', () {
@@ -27,6 +29,7 @@ void main() {
       type: TransactionType.expense,
       date: DateTime(2025, 10, 2),
       categoryId: 'food',
+      accountId: 'account1',
     );
 
     group('getAll', () {
@@ -34,7 +37,7 @@ void main() {
         // Arrange
         final transactions = [testTransaction];
         when(mockDataSource.getAll())
-            .thenAnswer((_) async => transactions.map((t) => TransactionMapper.toDTO(t)).toList());
+            .thenAnswer((_) async => Result.success(transactions));
 
         // Act
         final result = await repository.getAll();
@@ -51,22 +54,23 @@ void main() {
         verify(mockDataSource.getAll()).called(1);
       });
 
-      test('should return cache failure when data source throws CacheException', () async {
-        // Arrange
-        when(mockDataSource.getAll()).thenThrow(CacheException('Database error'));
+      test('should return cache failure when data source fails', () async {
+         // Arrange
+         when(mockDataSource.getAll())
+             .thenAnswer((_) async => Result.error(Failure.cache('Database error')));
 
-        // Act
-        final result = await repository.getAll();
+         // Act
+         final result = await repository.getAll();
 
-        // Assert
-        expect(result, isA<Error<List<Transaction>>>());
-        result.when(
-          success: (_) => fail('Should not succeed'),
-          error: (failure) {
-            expect(failure, isA<CacheFailure>());
-          },
-        );
-      });
+         // Assert
+         expect(result, isA<Error<List<Transaction>>>());
+         result.when(
+           success: (_) => fail('Should not succeed'),
+           error: (failure) {
+             expect(failure, isA<CacheFailure>());
+           },
+         );
+       });
 
       test('should return unknown failure for unexpected errors', () async {
         // Arrange
@@ -88,79 +92,79 @@ void main() {
 
     group('add', () {
       test('should return transaction when data source succeeds', () async {
-        // Arrange
-        when(mockDataSource.insert(any as TransactionDTO))
-            .thenAnswer((_) async => Future.value());
+         // Arrange
+         when(mockDataSource.add(testTransaction))
+             .thenAnswer((_) async => Result.success(testTransaction));
 
-        // Act
-        final result = await repository.add(testTransaction);
+         // Act
+         final result = await repository.add(testTransaction);
 
-        // Assert
-        expect(result, isA<Success<Transaction>>());
-        result.when(
-          success: (transaction) {
-            expect(transaction.id, testTransaction.id);
-          },
-          error: (_) => fail('Should not fail'),
-        );
-        verify(mockDataSource.insert(any as TransactionDTO)).called(1);
-      });
+         // Assert
+         expect(result, isA<Success<Transaction>>());
+         result.when(
+           success: (transaction) {
+             expect(transaction.id, testTransaction.id);
+           },
+           error: (_) => fail('Should not fail'),
+         );
+         verify(mockDataSource.add(testTransaction)).called(1);
+       });
 
-      test('should return cache failure when data source throws CacheException', () async {
-        // Arrange
-        when(mockDataSource.insert(any as TransactionDTO))
-            .thenThrow(CacheException('Database error'));
+       test('should return cache failure when data source throws CacheException', () async {
+         // Arrange
+         when(mockDataSource.add(testTransaction))
+             .thenAnswer((_) async => Result.error(Failure.cache('Database error')));
 
-        // Act
-        final result = await repository.add(testTransaction);
+         // Act
+         final result = await repository.add(testTransaction);
 
-        // Assert
-        expect(result, isA<Error<Transaction>>());
-        result.when(
-          success: (_) => fail('Should not succeed'),
-          error: (failure) {
-            expect(failure, isA<CacheFailure>());
-          },
-        );
-      });
-    });
+         // Assert
+         expect(result, isA<Error<Transaction>>());
+         result.when(
+           success: (_) => fail('Should not succeed'),
+           error: (failure) {
+             expect(failure, isA<CacheFailure>());
+           },
+         );
+       });
+     });
 
     group('getById', () {
       test('should return transaction when found', () async {
-        // Arrange
-        when(mockDataSource.getById('test-id'))
-            .thenAnswer((_) async => TransactionMapper.toDTO(testTransaction));
+         // Arrange
+         when(mockDataSource.getById('test-id'))
+             .thenAnswer((_) async => Result.success(testTransaction));
 
-        // Act
-        final result = await repository.getById('test-id');
+         // Act
+         final result = await repository.getById('test-id');
 
-        // Assert
-        expect(result, isA<Success<Transaction>>());
-        result.when(
-          success: (transaction) {
-            expect(transaction.id, testTransaction.id);
-          },
-          error: (_) => fail('Should not fail'),
-        );
-      });
+         // Assert
+         expect(result, isA<Success<Transaction?>>());
+         result.when(
+           success: (transaction) {
+             expect(transaction!.id, testTransaction.id);
+           },
+           error: (_) => fail('Should not fail'),
+         );
+       });
 
-      test('should return cache failure when data source throws CacheException', () async {
-        // Arrange
-        when(mockDataSource.getById('test-id'))
-            .thenThrow(CacheException('Database error'));
+      test('should return cache failure when data source fails', () async {
+         // Arrange
+         when(mockDataSource.getById('test-id'))
+             .thenAnswer((_) async => Result.error(Failure.cache('Database error')));
 
-        // Act
-        final result = await repository.getById('test-id');
+         // Act
+         final result = await repository.getById('test-id');
 
-        // Assert
-        expect(result, isA<Error<Transaction>>());
-        result.when(
-          success: (_) => fail('Should not succeed'),
-          error: (failure) {
-            expect(failure, isA<CacheFailure>());
-          },
-        );
-      });
+         // Assert
+         expect(result, isA<Error<Transaction?>>());
+         result.when(
+           success: (_) => fail('Should not succeed'),
+           error: (failure) {
+             expect(failure, isA<CacheFailure>());
+           },
+         );
+       });
     });
   });
 }

@@ -5,6 +5,7 @@ import '../../../../core/di/providers.dart' as core_providers;
 import '../../domain/entities/transaction.dart';
 import '../../domain/usecases/add_transaction.dart';
 import '../../domain/usecases/delete_transaction.dart';
+import '../../domain/usecases/get_paginated_transactions.dart';
 import '../../domain/usecases/get_transactions.dart';
 import '../../domain/usecases/update_transaction.dart';
 import '../notifiers/transaction_notifier.dart';
@@ -35,16 +36,24 @@ final deleteTransactionProvider = Provider<DeleteTransaction>((ref) {
   return ref.read(core_providers.deleteTransactionProvider);
 });
 
+/// Provider for GetPaginatedTransactions use case
+final getPaginatedTransactionsProvider = Provider<GetPaginatedTransactions>((ref) {
+  final repository = ref.watch(core_providers.transactionRepositoryProvider);
+  return GetPaginatedTransactions(repository);
+});
+
 /// State notifier provider for transaction state management
 final transactionNotifierProvider =
     StateNotifierProvider<TransactionNotifier, AsyncValue<TransactionState>>((ref) {
   final getTransactions = ref.watch(getTransactionsProvider);
+  final getPaginatedTransactions = ref.watch(getPaginatedTransactionsProvider);
   final addTransaction = ref.watch(addTransactionProvider);
   final updateTransaction = ref.watch(updateTransactionProvider);
   final deleteTransaction = ref.watch(deleteTransactionProvider);
 
   return TransactionNotifier(
     getTransactions: getTransactions,
+    getPaginatedTransactions: getPaginatedTransactions,
     addTransaction: addTransaction,
     updateTransaction: updateTransaction,
     deleteTransaction: deleteTransaction,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_bottom_sheet.dart';
@@ -9,6 +10,8 @@ import '../providers/account_providers.dart';
 import '../widgets/account_card.dart';
 import '../widgets/add_edit_account_bottom_sheet.dart';
 import '../widgets/net_worth_card.dart';
+import '../widgets/bank_connection_card.dart';
+import 'account_detail_screen.dart';
 
 /// Screen for displaying accounts overview with net worth
 class AccountsOverviewScreen extends ConsumerWidget {
@@ -59,7 +62,11 @@ class AccountsOverviewScreen extends ConsumerWidget {
             totalAssets: state.totalAssets,
             totalLiabilities: state.totalLiabilities,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+
+          // Bank Connection Card
+          const BankConnectionCard(),
+          const SizedBox(height: 16),
 
           // Accounts by Type
           accountsByType.when(
@@ -102,10 +109,7 @@ class AccountsOverviewScreen extends ConsumerWidget {
             child: AccountCard(
               account: account,
               onTap: () {
-                // TODO: Navigate to account detail
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Account: ${account.name}')),
-                );
+                context.go('/accounts/${account.id}');
               },
             ),
           ),

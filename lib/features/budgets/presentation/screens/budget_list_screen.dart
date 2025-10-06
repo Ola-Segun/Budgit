@@ -318,7 +318,7 @@ class _BudgetFilterBottomSheetState extends State<BudgetFilterBottomSheet> {
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<BudgetType?>(
-            value: _selectedType,
+            initialValue: _selectedType,
             decoration: const InputDecoration(
               labelText: 'Select Type',
             ),

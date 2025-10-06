@@ -1,14 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
-import '../../../../../lib/core/error/failures.dart';
-import '../../../../../lib/core/error/result.dart';
-import '../../../../../lib/features/transactions/domain/entities/transaction.dart';
-import '../../../../../lib/features/transactions/domain/repositories/transaction_repository.dart';
-import '../../../../../lib/features/transactions/domain/usecases/get_transactions.dart';
+import 'package:budget_tracker/core/error/failures.dart';
+import 'package:budget_tracker/core/error/result.dart';
+import 'package:budget_tracker/features/transactions/domain/entities/transaction.dart';
+import 'package:budget_tracker/features/transactions/domain/repositories/transaction_repository.dart';
+import 'package:budget_tracker/features/transactions/domain/usecases/get_transactions.dart';
 
-// Mock classes
-class MockTransactionRepository extends Mock implements TransactionRepository {}
+@GenerateMocks([TransactionRepository])
+import 'get_transactions_test.mocks.dart';
 
 void main() {
   late GetTransactions useCase;
@@ -28,6 +29,7 @@ void main() {
         type: TransactionType.expense,
         date: DateTime(2025, 10, 1),
         categoryId: 'food',
+        accountId: 'account1',
       ),
       Transaction(
         id: '2',
@@ -36,6 +38,7 @@ void main() {
         type: TransactionType.income,
         date: DateTime(2025, 10, 2),
         categoryId: 'salary',
+        accountId: 'account2',
       ),
     ];
 

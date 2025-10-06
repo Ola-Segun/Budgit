@@ -23,15 +23,17 @@ class TransactionDtoAdapter extends TypeAdapter<TransactionDto> {
       ..type = fields[3] as String
       ..date = fields[4] as DateTime
       ..categoryId = fields[5] as String
-      ..description = fields[6] as String?
-      ..receiptUrl = fields[7] as String?
-      ..tags = (fields[8] as List?)?.cast<String>();
+      ..accountId = fields[6] as String
+      ..description = fields[7] as String?
+      ..receiptUrl = fields[8] as String?
+      ..tags = (fields[9] as List?)?.cast<String>()
+      ..currencyCode = fields[10] as String;
   }
 
   @override
   void write(BinaryWriter writer, TransactionDto obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -45,11 +47,15 @@ class TransactionDtoAdapter extends TypeAdapter<TransactionDto> {
       ..writeByte(5)
       ..write(obj.categoryId)
       ..writeByte(6)
-      ..write(obj.description)
+      ..write(obj.accountId)
       ..writeByte(7)
-      ..write(obj.receiptUrl)
+      ..write(obj.description)
       ..writeByte(8)
-      ..write(obj.tags);
+      ..write(obj.receiptUrl)
+      ..writeByte(9)
+      ..write(obj.tags)
+      ..writeByte(10)
+      ..write(obj.currencyCode);
   }
 
   @override

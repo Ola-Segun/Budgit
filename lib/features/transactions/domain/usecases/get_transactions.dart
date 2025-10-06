@@ -1,6 +1,7 @@
 import '../../../../core/error/failures.dart';
 import '../../../../core/error/result.dart';
 import '../entities/transaction.dart';
+import '../entities/transaction_filter.dart';
 import '../repositories/transaction_repository.dart';
 
 /// Use case for getting transactions with various filters
@@ -76,6 +77,32 @@ class GetTransactions {
       return await _repository.getTotalAmount(start, end, type: type);
     } catch (e) {
       return Result.error(Failure.unknown('Failed to get total amount: $e'));
+    }
+  }
+
+  /// Get paginated transactions
+  Future<Result<List<Transaction>>> getPaginated({
+    int limit = 20,
+    int offset = 0,
+    TransactionFilter? filter,
+  }) async {
+    try {
+      return await _repository.getPaginated(
+        limit: limit,
+        offset: offset,
+        filter: filter,
+      );
+    } catch (e) {
+      return Result.error(Failure.unknown('Failed to get paginated transactions: $e'));
+    }
+  }
+
+  /// Get filtered count
+  Future<Result<int>> getFilteredCount(TransactionFilter? filter) async {
+    try {
+      return await _repository.getFilteredCount(filter);
+    } catch (e) {
+      return Result.error(Failure.unknown('Failed to get filtered count: $e'));
     }
   }
 }

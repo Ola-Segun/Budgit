@@ -10,6 +10,7 @@ import '../../features/transactions/data/repositories/transaction_repository_imp
 import '../../features/transactions/data/repositories/transaction_category_repository_impl.dart';
 import '../../features/transactions/domain/repositories/transaction_repository.dart';
 import '../../features/transactions/domain/usecases/add_transaction.dart';
+import '../../features/transactions/domain/usecases/get_paginated_transactions.dart';
 import '../../features/transactions/domain/usecases/get_transactions.dart';
 import '../../features/transactions/domain/usecases/update_transaction.dart';
 import '../../features/transactions/domain/usecases/delete_transaction.dart';
@@ -33,7 +34,6 @@ import '../../features/insights/data/repositories/insight_repository_impl.dart';
 import '../../features/insights/domain/repositories/insight_repository.dart';
 import '../../features/insights/domain/usecases/get_insights.dart';
 import '../../features/insights/domain/usecases/calculate_financial_health_score.dart';
-import '../../features/onboarding/data/datasources/user_profile_hive_datasource.dart';
 import '../../features/onboarding/presentation/providers/onboarding_providers.dart' as onboarding_providers;
 import '../../features/accounts/data/datasources/account_hive_datasource.dart';
 import '../../features/accounts/data/repositories/account_repository_impl.dart';
@@ -43,6 +43,22 @@ import '../../features/accounts/domain/usecases/get_accounts.dart';
 import '../../features/accounts/domain/usecases/update_account.dart';
 import '../../features/accounts/domain/usecases/delete_account.dart';
 import '../../features/accounts/domain/usecases/get_account_balance.dart';
+import '../../features/bills/data/datasources/bill_hive_datasource.dart';
+import '../../features/bills/data/repositories/bill_repository_impl.dart';
+import '../../features/bills/domain/repositories/bill_repository.dart';
+import '../../features/bills/domain/usecases/calculate_bills_summary.dart';
+import '../../features/bills/domain/usecases/create_bill.dart';
+import '../../features/bills/domain/usecases/get_bills.dart';
+import '../../features/bills/domain/usecases/update_bill.dart';
+import '../../features/debt/data/datasources/debt_hive_datasource.dart';
+import '../../features/debt/data/repositories/debt_repository_impl.dart';
+import '../../features/debt/domain/repositories/debt_repository.dart';
+import '../../features/debt/domain/usecases/create_debt.dart';
+import '../../features/debt/domain/usecases/get_debts.dart';
+import '../../features/debt/domain/usecases/update_debt.dart';
+import '../../features/debt/domain/usecases/delete_debt.dart';
+import '../../features/settings/presentation/providers/settings_providers.dart' as settings_providers;
+import '../../features/notifications/presentation/providers/notification_providers.dart' as notification_providers;
 
 /// Core providers for dependency injection
 /// All app dependencies should be defined here
@@ -57,18 +73,8 @@ final routerProvider = Provider<GoRouter>((ref) {
   return AppRouter.router;
 });
 
-// Theme mode provider
-final themeModeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>((ref) {
-  return ThemeModeNotifier();
-});
-
-class ThemeModeNotifier extends StateNotifier<ThemeMode> {
-  ThemeModeNotifier() : super(ThemeMode.system);
-
-  void setLightMode() => state = ThemeMode.light;
-  void setDarkMode() => state = ThemeMode.dark;
-  void setSystemMode() => state = ThemeMode.system;
-}
+// Theme mode provider (now uses settings)
+final themeModeProvider = settings_providers.themeModeProvider;
 
 // Error logger provider
 final errorLoggerProvider = Provider<ErrorLogger>((ref) {
@@ -122,6 +128,10 @@ final updateTransactionProvider = Provider<UpdateTransaction>((ref) {
 
 final deleteTransactionProvider = Provider<DeleteTransaction>((ref) {
   return DeleteTransaction(ref.read(transactionRepositoryProvider));
+});
+
+final getPaginatedTransactionsProvider = Provider<GetPaginatedTransactions>((ref) {
+  return GetPaginatedTransactions(ref.read(transactionRepositoryProvider));
 });
 
 // Account data sources
@@ -191,6 +201,60 @@ final calculateBudgetStatusProvider = Provider<CalculateBudgetStatus>((ref) {
     ref.read(budgetRepositoryProvider),
     ref.read(transactionRepositoryProvider),
   );
+});
+
+// Bill data sources
+final billDataSourceProvider = Provider<BillHiveDataSource>((ref) {
+  return BillHiveDataSource();
+});
+
+// Bill repositories
+final billRepositoryProvider = Provider<BillRepository>((ref) {
+  return BillRepositoryImpl(ref.read(billDataSourceProvider));
+});
+
+// Bill use cases
+final createBillProvider = Provider<CreateBill>((ref) {
+  return CreateBill(ref.read(billRepositoryProvider));
+});
+
+final getBillsProvider = Provider<GetBills>((ref) {
+  return GetBills(ref.read(billRepositoryProvider));
+});
+
+final updateBillProvider = Provider<UpdateBill>((ref) {
+  return UpdateBill(ref.read(billRepositoryProvider));
+});
+
+final calculateBillsSummaryProvider = Provider<CalculateBillsSummary>((ref) {
+  return CalculateBillsSummary(ref.read(billRepositoryProvider));
+});
+
+// Debt data sources
+final debtDataSourceProvider = Provider<DebtHiveDataSource>((ref) {
+  return DebtHiveDataSourceImpl();
+});
+
+// Debt repositories
+final debtRepositoryProvider = Provider<DebtRepository>((ref) {
+  return DebtRepositoryImpl(ref.read(debtDataSourceProvider));
+});
+
+// Debt use cases
+final createDebtProvider = Provider<CreateDebt>((ref) {
+  return CreateDebt(ref.read(debtRepositoryProvider));
+});
+
+final getDebtsProvider = Provider<GetDebts>((ref) {
+  return GetDebts(ref.read(debtRepositoryProvider));
+});
+
+final updateDebtProvider = Provider<UpdateDebt>((ref) {
+  return UpdateDebt(ref.read(debtRepositoryProvider));
+});
+
+final deleteDebtProvider = Provider<DeleteDebt>((ref) {
+  return DeleteDebt(ref.read(debtRepositoryProvider));
 });
 
 // Goal data sources
@@ -285,19 +349,29 @@ final appInitializationProvider = FutureProvider<void>((ref) async {
   final categoryDataSource = ref.read(transactionCategoryDataSourceProvider);
   final accountDataSource = ref.read(accountDataSourceProvider);
   final budgetDataSource = ref.read(budgetDataSourceProvider);
+  final billDataSource = ref.read(billDataSourceProvider);
   final goalDataSource = ref.read(goalDataSourceProvider);
   final insightDataSource = ref.read(insightDataSourceProvider);
+  final settingsDataSource = ref.read(settings_providers.settingsDataSourceProvider);
+  final debtDataSource = ref.read(debtDataSourceProvider);
 
   await transactionDataSource.init();
   await categoryDataSource.init();
   await accountDataSource.init();
   await budgetDataSource.init();
+  await billDataSource.init();
   await goalDataSource.init();
   await insightDataSource.init();
+  await settingsDataSource.init();
+  await debtDataSource.init();
 
   // Initialize onboarding data source
   final userProfileDataSource = ref.read(onboarding_providers.userProfileDataSourceProvider);
   await userProfileDataSource.init();
+
+  // Initialize notification service
+  final notificationService = ref.read(notification_providers.notificationServiceProvider);
+  await notificationService.initialize();
 
   // Initialize other services here as needed
   ref.read(errorLoggerProvider).logInfo('App initialized successfully');

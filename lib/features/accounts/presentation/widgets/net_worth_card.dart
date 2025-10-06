@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_theme.dart';
 
 /// Card displaying net worth information
 class NetWorthCard extends StatelessWidget {

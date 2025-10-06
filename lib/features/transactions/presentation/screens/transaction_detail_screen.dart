@@ -365,7 +365,7 @@ class _EditTransactionFormState extends State<EditTransactionForm> {
 
             // Category Selection
             DropdownButtonFormField<String>(
-              value: _selectedCategoryId,
+              initialValue: _selectedCategoryId,
               decoration: const InputDecoration(
                 labelText: 'Category',
               ),

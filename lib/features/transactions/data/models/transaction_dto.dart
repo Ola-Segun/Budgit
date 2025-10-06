@@ -27,13 +27,19 @@ class TransactionDto extends HiveObject {
   late String categoryId;
 
   @HiveField(6)
-  String? description;
+  late String accountId;
 
   @HiveField(7)
-  String? receiptUrl;
+  String? description;
 
   @HiveField(8)
+  String? receiptUrl;
+
+  @HiveField(9)
   List<String>? tags;
+
+  @HiveField(10)
+  late String currencyCode;
 
   /// Default constructor
   TransactionDto();
@@ -46,9 +52,11 @@ class TransactionDto extends HiveObject {
     type = transaction.type.name; // Convert enum to string
     date = transaction.date;
     categoryId = transaction.categoryId;
+    accountId = transaction.accountId;
     description = transaction.description;
     receiptUrl = transaction.receiptUrl;
     tags = transaction.tags;
+    currencyCode = transaction.currencyCode;
   }
 
   /// Convert to domain entity
@@ -63,9 +71,11 @@ class TransactionDto extends HiveObject {
       ),
       date: date,
       categoryId: categoryId,
+      accountId: accountId,
       description: description,
       receiptUrl: receiptUrl,
       tags: tags ?? [],
+      currencyCode: currencyCode,
     );
   }
 }

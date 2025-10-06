@@ -117,7 +117,7 @@ class _CompletionScreenState extends ConsumerState<CompletionScreen> {
               Gap(AppSpacing.xxxl),
 
               // Action button
-              Container(
+              SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: _isCompleting ? null : _completeOnboarding,

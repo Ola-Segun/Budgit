@@ -1,55 +1,83 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_animations.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_bottom_sheet.dart';
 import '../../domain/entities/transaction.dart';
+import '../providers/transaction_providers.dart';
+import 'transaction_detail_bottom_sheet.dart';
 
 /// Widget for displaying a transaction in a list
-class TransactionTile extends StatelessWidget {
+class TransactionTile extends ConsumerWidget {
   const TransactionTile({
     super.key,
     required this.transaction,
-    this.onTap,
-    this.onDelete,
-    this.onEdit,
   });
 
   final Transaction transaction;
-  final VoidCallback? onTap;
-  final VoidCallback? onDelete;
-  final VoidCallback? onEdit;
 
   @override
-  Widget build(BuildContext context) {
-    return Dismissible(
-      key: Key(transaction.id),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        color: Theme.of(context).colorScheme.error,
-        child: const Icon(
-          Icons.delete,
-          color: Colors.white,
-        ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Slidable(
+      key: ValueKey(transaction.id),
+      endActionPane: ActionPane(
+        motion: const ScrollMotion(),
+        children: [
+          // Delete action (red)
+          SlidableAction(
+            onPressed: (_) => _confirmDelete(context, ref),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            foregroundColor: Colors.white,
+            icon: Icons.delete,
+            label: 'Delete',
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            autoClose: true,
+          ),
+          // Duplicate action (blue)
+          SlidableAction(
+            onPressed: (_) => _duplicateTransaction(context, ref),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Colors.white,
+            icon: Icons.copy,
+            label: 'Duplicate',
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            autoClose: true,
+          ),
+        ],
       ),
-      confirmDismiss: (direction) async {
-        if (direction == DismissDirection.endToStart) {
-          return await _showDeleteConfirmation(context);
-        }
-        return false;
-      },
-      onDismissed: (direction) {
-        if (direction == DismissDirection.endToStart) {
-          onDelete?.call();
-        }
-      },
+      startActionPane: ActionPane(
+        motion: const ScrollMotion(),
+        children: [
+          // Edit action (blue)
+          SlidableAction(
+            onPressed: (_) => _showEditSheet(context),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Colors.white,
+            icon: Icons.edit,
+            label: 'Edit',
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            autoClose: true,
+          ),
+          // Categorize action (green)
+          SlidableAction(
+            onPressed: (_) => _showCategorizeDialog(context, ref),
+            backgroundColor: Colors.green,
+            foregroundColor: Colors.white,
+            icon: Icons.category,
+            label: 'Categorize',
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            autoClose: true,
+          ),
+        ],
+      ),
       child: Card(
         margin: const EdgeInsets.only(bottom: 8),
         child: InkWell(
-          onTap: onTap,
+          onTap: () => _showDetailSheet(context),
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -99,7 +127,7 @@ class TransactionTile extends StatelessWidget {
                         ),
                       ],
 
-                      // Category and Date
+                      // Category, Account and Date
                       const SizedBox(height: 4),
                       Row(
                         children: [
@@ -108,6 +136,31 @@ class TransactionTile extends StatelessWidget {
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            width: 4,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Account indicator
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surfaceVariant.withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              transaction.accountId.isEmpty ? 'No Account' : 'Account ${transaction.accountId}',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    fontSize: 10,
+                                  ),
+                            ),
                           ),
                           const SizedBox(width: 8),
                           Container(
@@ -165,8 +218,28 @@ class TransactionTile extends StatelessWidget {
     ).pressEffect();
   }
 
-  Future<bool?> _showDeleteConfirmation(BuildContext context) async {
-    return showDialog<bool>(
+  void _showDetailSheet(BuildContext context) {
+    HapticFeedback.lightImpact();
+    AppBottomSheet.show(
+      context: context,
+      child: TransactionDetailBottomSheet(transaction: transaction),
+    );
+  }
+
+  void _showEditSheet(BuildContext context) {
+    HapticFeedback.lightImpact();
+    AppBottomSheet.show(
+      context: context,
+      child: TransactionDetailBottomSheet(
+        transaction: transaction,
+        startInEditMode: true,
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    HapticFeedback.mediumImpact();
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Transaction'),
@@ -188,6 +261,126 @@ class TransactionTile extends StatelessWidget {
         ],
       ),
     );
+
+    if (confirmed == true) {
+      final success = await ref
+          .read(transactionNotifierProvider.notifier)
+          .deleteTransaction(transaction.id);
+
+      if (success && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Transaction deleted')),
+        );
+      }
+    }
+  }
+
+  Future<void> _duplicateTransaction(BuildContext context, WidgetRef ref) async {
+    HapticFeedback.lightImpact();
+
+    // Create duplicate with new ID
+    final duplicateTransaction = transaction.copyWith(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: '${transaction.title} (Copy)',
+    );
+
+    final success = await ref
+        .read(transactionNotifierProvider.notifier)
+        .addTransaction(duplicateTransaction);
+
+    if (success && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Transaction duplicated')),
+      );
+    }
+  }
+
+  Future<void> _showCategorizeDialog(BuildContext context, WidgetRef ref) async {
+    HapticFeedback.lightImpact();
+
+    final categories = ref.read(transactionCategoriesProvider);
+    String? selectedCategoryId = transaction.categoryId;
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Change Category'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: categories.map((category) {
+                return RadioListTile<String>(
+                  title: Row(
+                    children: [
+                      Icon(
+                        _getIconFromCategoryId(category.id),
+                        size: 20,
+                        color: Color(category.color),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(category.name),
+                    ],
+                  ),
+                  value: category.id,
+                  groupValue: selectedCategoryId,
+                  onChanged: (value) {
+                    setState(() {
+                      selectedCategoryId = value;
+                    });
+                    Navigator.pop(context, value);
+                  },
+                );
+              }).toList(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result != null && result != transaction.categoryId) {
+      final updatedTransaction = transaction.copyWith(categoryId: result);
+      final success = await ref
+          .read(transactionNotifierProvider.notifier)
+          .updateTransaction(updatedTransaction);
+
+      if (success && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Category updated')),
+        );
+      }
+    }
+  }
+
+  IconData _getIconFromCategoryId(String categoryId) {
+    switch (categoryId) {
+      case 'food':
+        return Icons.restaurant;
+      case 'transport':
+        return Icons.directions_car;
+      case 'shopping':
+        return Icons.shopping_bag;
+      case 'entertainment':
+        return Icons.movie;
+      case 'utilities':
+        return Icons.bolt;
+      case 'healthcare':
+        return Icons.local_hospital;
+      case 'salary':
+        return Icons.work;
+      case 'freelance':
+        return Icons.computer;
+      case 'investment':
+        return Icons.trending_up;
+      default:
+        return Icons.category;
+    }
   }
 
   bool _isToday(DateTime date) {
