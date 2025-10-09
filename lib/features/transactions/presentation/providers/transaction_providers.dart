@@ -77,13 +77,13 @@ final filteredTransactionsProvider = Provider<AsyncValue<List<Transaction>>>((re
 });
 
 /// Provider for transaction statistics
-final transactionStatsProvider = Provider<AsyncValue<TransactionStats>>((ref) {
-  final transactionState = ref.watch(transactionNotifierProvider);
+final transactionStatsProvider = FutureProvider<TransactionStats>((ref) {
+  final getTransactions = ref.watch(getTransactionsProvider);
+  // Watch the notifier to trigger refetch on changes
+  final _ = ref.watch(transactionNotifierProvider);
 
-  return transactionState.when(
-    data: (state) {
-      final transactions = state.transactions;
-
+  return getTransactions().then((result) => result.when(
+    success: (transactions) {
       final totalIncome = transactions
           .where((t) => t.type == TransactionType.income)
           .fold<double>(0, (sum, t) => sum + t.amount);
@@ -111,9 +111,8 @@ final transactionStatsProvider = Provider<AsyncValue<TransactionStats>>((ref) {
         largestExpense: largestExpense,
       );
 
-      return AsyncValue.data(stats);
+      return stats;
     },
-    loading: () => const AsyncValue.loading(),
-    error: (error, stack) => AsyncValue.error(error, stack),
-  );
+    error: (failure) => throw Exception(failure.message),
+  ));
 });

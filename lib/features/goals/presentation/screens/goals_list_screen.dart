@@ -17,7 +17,6 @@ class GoalsListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final goalState = ref.watch(goalNotifierProvider);
     final stats = ref.watch(goalStatsProvider);
-    final activeGoals = ref.watch(activeGoalsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -30,7 +29,7 @@ class GoalsListScreen extends ConsumerWidget {
         ],
       ),
       body: goalState.when(
-        data: (state) => _buildDashboard(context, stats, activeGoals),
+        data: (state) => _buildDashboard(context, ref, stats, state),
         loading: () => const LoadingView(),
         error: (error, stack) => ErrorView(
           message: error.toString(),
@@ -42,8 +41,9 @@ class GoalsListScreen extends ConsumerWidget {
 
   Widget _buildDashboard(
     BuildContext context,
+    WidgetRef ref,
     AsyncValue<GoalStats> stats,
-    AsyncValue<List<Goal>> activeGoals,
+    GoalState state,
   ) {
     return RefreshIndicator(
       onRefresh: () async {
@@ -52,6 +52,9 @@ class GoalsListScreen extends ConsumerWidget {
       child: ListView(
         padding: AppTheme.screenPaddingAll,
         children: [
+          // View Toggle
+          _buildViewToggle(context, ref, state),
+
           // Statistics Cards
           stats.when(
             data: (stats) => _buildStatsCards(context, stats),
@@ -60,8 +63,8 @@ class GoalsListScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
 
-          // Active Goals
-          _buildActiveGoalsSection(context, activeGoals),
+          // Goals Section
+          _buildGoalsSection(context, state),
 
           // Quick Actions
           _buildQuickActions(context),
@@ -124,6 +127,49 @@ class GoalsListScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildViewToggle(BuildContext context, WidgetRef ref, GoalState state) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: SegmentedButton<bool>(
+        segments: const [
+          ButtonSegment<bool>(
+            value: false,
+            label: Text('Active Goals'),
+            icon: Icon(Icons.play_arrow),
+          ),
+          ButtonSegment<bool>(
+            value: true,
+            label: Text('All Goals'),
+            icon: Icon(Icons.list),
+          ),
+        ],
+        selected: {state.showAllGoals},
+        onSelectionChanged: (Set<bool> selected) {
+          final showAll = selected.first;
+          ref.read(goalNotifierProvider.notifier).setShowAllGoals(showAll);
+        },
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith<Color>(
+            (Set<WidgetState> states) {
+              if (states.contains(WidgetState.selected)) {
+                return Theme.of(context).colorScheme.primaryContainer;
+              }
+              return Theme.of(context).colorScheme.surface;
+            },
+          ),
+          foregroundColor: WidgetStateProperty.resolveWith<Color>(
+            (Set<WidgetState> states) {
+              if (states.contains(WidgetState.selected)) {
+                return Theme.of(context).colorScheme.onPrimaryContainer;
+              }
+              return Theme.of(context).colorScheme.onSurface;
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildStatsCard(
     BuildContext context,
     String title,
@@ -158,34 +204,37 @@ class GoalsListScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildActiveGoalsSection(BuildContext context, AsyncValue<List<Goal>> activeGoals) {
+  Widget _buildGoalsSection(BuildContext context, GoalState state) {
+    final sectionTitle = state.showAllGoals ? 'All Goals' : 'Active Goals';
+    final goals = state.filteredGoals;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Active Goals',
+          sectionTitle,
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
         ),
         const SizedBox(height: 16),
-        activeGoals.when(
-          data: (goals) {
-            if (goals.isEmpty) {
-              return _buildEmptyGoals(context);
-            }
-            return Column(
-              children: goals.map((goal) => _buildGoalCard(context, goal)).toList(),
-            );
-          },
-          loading: () => const CircularProgressIndicator(),
-          error: (error, stack) => Text('Error: $error'),
-        ),
+        if (goals.isEmpty) ...[
+          _buildEmptyGoals(context, state.showAllGoals),
+        ] else ...[
+          Column(
+            children: goals.map((goal) => _buildGoalCard(context, goal)).toList(),
+          ),
+        ],
       ],
     );
   }
 
-  Widget _buildEmptyGoals(BuildContext context) {
+  Widget _buildEmptyGoals(BuildContext context, bool showAllGoals) {
+    final title = showAllGoals ? 'No goals found' : 'No active goals';
+    final subtitle = showAllGoals
+        ? 'Create your first financial goal to start saving'
+        : 'Create your first financial goal to start saving, or view all goals to see completed ones';
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -198,12 +247,12 @@ class GoalsListScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'No active goals',
+              title,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
             Text(
-              'Create your first financial goal to start saving',
+              subtitle,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -321,33 +370,12 @@ class GoalsListScreen extends ConsumerWidget {
               ),
         ),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _buildQuickActionButton(
-                context,
-                'Add Goal',
-                Icons.add,
-                Colors.blue,
-                () => context.go('/goals/add'),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildQuickActionButton(
-                context,
-                'View All',
-                Icons.list,
-                Colors.green,
-                () {
-                  // Already on goals screen
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('All goals shown above')),
-                  );
-                },
-              ),
-            ),
-          ],
+        _buildQuickActionButton(
+          context,
+          'Add Goal',
+          Icons.add,
+          Colors.blue,
+          () => context.go('/goals/add'),
         ),
       ],
     );
@@ -360,17 +388,20 @@ class GoalsListScreen extends ConsumerWidget {
     Color color,
     VoidCallback onPressed,
   ) {
-    return ElevatedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, color: color),
-      label: Text(label),
-      style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        backgroundColor: color.withOpacity(0.1),
-        foregroundColor: color,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, color: color),
+        label: Text(label),
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          backgroundColor: color.withOpacity(0.1),
+          foregroundColor: color,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
     );

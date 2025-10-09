@@ -18,13 +18,15 @@ class GoalState with _$GoalState {
     String? searchQuery,
     GoalFilter? filter,
     Goal? selectedGoal,
+    @Default(false) bool showAllGoals,
   }) = _GoalState;
 
   const GoalState._();
 
   /// Get filtered goals based on search query and filter
   List<Goal> get filteredGoals {
-    var filtered = goals;
+    // First, filter by view mode (active only vs all goals)
+    var filtered = showAllGoals ? goals : activeGoals;
 
     // Apply search filter
     if (searchQuery != null && searchQuery!.isNotEmpty) {

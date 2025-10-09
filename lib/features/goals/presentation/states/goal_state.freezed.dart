@@ -25,6 +25,7 @@ mixin _$GoalState {
   String? get searchQuery => throw _privateConstructorUsedError;
   GoalFilter? get filter => throw _privateConstructorUsedError;
   Goal? get selectedGoal => throw _privateConstructorUsedError;
+  bool get showAllGoals => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
   $GoalStateCopyWith<GoalState> get copyWith =>
@@ -44,7 +45,8 @@ abstract class $GoalStateCopyWith<$Res> {
       String? error,
       String? searchQuery,
       GoalFilter? filter,
-      Goal? selectedGoal});
+      Goal? selectedGoal,
+      bool showAllGoals});
 
   $GoalFilterCopyWith<$Res>? get filter;
   $GoalCopyWith<$Res>? get selectedGoal;
@@ -71,6 +73,7 @@ class _$GoalStateCopyWithImpl<$Res, $Val extends GoalState>
     Object? searchQuery = freezed,
     Object? filter = freezed,
     Object? selectedGoal = freezed,
+    Object? showAllGoals = null,
   }) {
     return _then(_value.copyWith(
       goals: null == goals
@@ -105,6 +108,10 @@ class _$GoalStateCopyWithImpl<$Res, $Val extends GoalState>
           ? _value.selectedGoal
           : selectedGoal // ignore: cast_nullable_to_non_nullable
               as Goal?,
+      showAllGoals: null == showAllGoals
+          ? _value.showAllGoals
+          : showAllGoals // ignore: cast_nullable_to_non_nullable
+              as bool,
     ) as $Val);
   }
 
@@ -149,7 +156,8 @@ abstract class _$$GoalStateImplCopyWith<$Res>
       String? error,
       String? searchQuery,
       GoalFilter? filter,
-      Goal? selectedGoal});
+      Goal? selectedGoal,
+      bool showAllGoals});
 
   @override
   $GoalFilterCopyWith<$Res>? get filter;
@@ -176,6 +184,7 @@ class __$$GoalStateImplCopyWithImpl<$Res>
     Object? searchQuery = freezed,
     Object? filter = freezed,
     Object? selectedGoal = freezed,
+    Object? showAllGoals = null,
   }) {
     return _then(_$GoalStateImpl(
       goals: null == goals
@@ -210,6 +219,10 @@ class __$$GoalStateImplCopyWithImpl<$Res>
           ? _value.selectedGoal
           : selectedGoal // ignore: cast_nullable_to_non_nullable
               as Goal?,
+      showAllGoals: null == showAllGoals
+          ? _value.showAllGoals
+          : showAllGoals // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }
@@ -225,7 +238,8 @@ class _$GoalStateImpl extends _GoalState {
       this.error,
       this.searchQuery,
       this.filter,
-      this.selectedGoal})
+      this.selectedGoal,
+      this.showAllGoals = false})
       : _goals = goals,
         _goalProgress = goalProgress,
         _contributions = contributions,
@@ -269,10 +283,13 @@ class _$GoalStateImpl extends _GoalState {
   final GoalFilter? filter;
   @override
   final Goal? selectedGoal;
+  @override
+  @JsonKey()
+  final bool showAllGoals;
 
   @override
   String toString() {
-    return 'GoalState(goals: $goals, goalProgress: $goalProgress, contributions: $contributions, isLoading: $isLoading, error: $error, searchQuery: $searchQuery, filter: $filter, selectedGoal: $selectedGoal)';
+    return 'GoalState(goals: $goals, goalProgress: $goalProgress, contributions: $contributions, isLoading: $isLoading, error: $error, searchQuery: $searchQuery, filter: $filter, selectedGoal: $selectedGoal, showAllGoals: $showAllGoals)';
   }
 
   @override
@@ -292,7 +309,9 @@ class _$GoalStateImpl extends _GoalState {
                 other.searchQuery == searchQuery) &&
             (identical(other.filter, filter) || other.filter == filter) &&
             (identical(other.selectedGoal, selectedGoal) ||
-                other.selectedGoal == selectedGoal));
+                other.selectedGoal == selectedGoal) &&
+            (identical(other.showAllGoals, showAllGoals) ||
+                other.showAllGoals == showAllGoals));
   }
 
   @override
@@ -305,7 +324,8 @@ class _$GoalStateImpl extends _GoalState {
       error,
       searchQuery,
       filter,
-      selectedGoal);
+      selectedGoal,
+      showAllGoals);
 
   @JsonKey(ignore: true)
   @override
@@ -323,7 +343,8 @@ abstract class _GoalState extends GoalState {
       final String? error,
       final String? searchQuery,
       final GoalFilter? filter,
-      final Goal? selectedGoal}) = _$GoalStateImpl;
+      final Goal? selectedGoal,
+      final bool showAllGoals}) = _$GoalStateImpl;
   const _GoalState._() : super._();
 
   @override
@@ -342,6 +363,8 @@ abstract class _GoalState extends GoalState {
   GoalFilter? get filter;
   @override
   Goal? get selectedGoal;
+  @override
+  bool get showAllGoals;
   @override
   @JsonKey(ignore: true)
   _$$GoalStateImplCopyWith<_$GoalStateImpl> get copyWith =>

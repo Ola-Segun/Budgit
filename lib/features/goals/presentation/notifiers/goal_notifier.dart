@@ -233,6 +233,24 @@ class GoalNotifier extends StateNotifier<AsyncValue<GoalState>> {
     state = AsyncValue.data(currentState.copyWith(selectedGoal: goal));
   }
 
+  /// Toggle between showing active goals only and all goals
+  void toggleShowAllGoals() {
+    final currentState = state.value;
+    if (currentState == null) return;
+
+    state = AsyncValue.data(currentState.copyWith(
+      showAllGoals: !currentState.showAllGoals,
+    ));
+  }
+
+  /// Set show all goals mode
+  void setShowAllGoals(bool showAll) {
+    final currentState = state.value;
+    if (currentState == null) return;
+
+    state = AsyncValue.data(currentState.copyWith(showAllGoals: showAll));
+  }
+
   /// Clear error
   void clearError() {
     final currentState = state.value;
