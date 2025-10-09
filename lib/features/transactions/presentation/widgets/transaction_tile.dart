@@ -22,6 +22,10 @@ class TransactionTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    debugPrint('TransactionTile: Building tile for ${transaction.title}');
+    final screenWidth = MediaQuery.of(context).size.width;
+    debugPrint('TransactionTile: Screen width: $screenWidth');
+
     return Slidable(
       key: ValueKey(transaction.id),
       endActionPane: ActionPane(
@@ -74,148 +78,177 @@ class TransactionTile extends ConsumerWidget {
           ),
         ],
       ),
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 8),
-        child: InkWell(
-          onTap: () => _showDetailSheet(context),
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                // Category Icon
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: _getCategoryColor().withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                  ),
-                  child: Icon(
-                    _getCategoryIcon(),
-                    color: _getCategoryColor(),
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
+child: SizedBox(
+  width: double.infinity,
+  child: Card(
+    margin: const EdgeInsets.only(bottom: 8),
+    child: InkWell(
+      onTap: () => _showDetailSheet(context),
+      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Category Icon
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: _getCategoryColor().withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+              ),
+              child: Icon(
+                _getCategoryIcon(),
+                color: _getCategoryColor(),
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
 
-                // Transaction Details
-                Expanded(
-                  child: Column(
+            // Transaction Details - Expanded to take remaining space
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title and Amount Row
+                  Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Title
-                      Text(
-                        transaction.title,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      // Title - takes available space
+                      Expanded(
+                        child: Text(
+                          transaction.title,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
+                      const SizedBox(width: 12),
+                      // Amount - fixed width section
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            transaction.signedAmount,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: transaction.isIncome
+                                      ? Colors.green
+                                      : Theme.of(context).colorScheme.onSurface,
+                                ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          // Time (if today)
+                          if (_isToday(transaction.date)) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              DateFormat('HH:mm').format(transaction.date),
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                              maxLines: 1,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
 
-                      // Description (if available)
-                      if (transaction.description != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          transaction.description!,
+                  // Description (if available)
+                  if (transaction.description != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      transaction.description!,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+
+                  // Category, Account and Date
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      // Category name - flexible
+                      Flexible(
+                        flex: 2,
+                        child: Text(
+                          _getCategoryName(),
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                      ],
-
-                      // Category, Account and Date
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text(
-                            _getCategoryName(),
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            width: 4,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          // Account indicator
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.surfaceVariant.withValues(alpha: 0.5),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              transaction.accountId.isEmpty ? 'No Account' : 'Account ${transaction.accountId}',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                    fontSize: 10,
-                                  ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            width: 4,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            DateFormat('MMM dd').format(transaction.date),
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                ),
-                          ),
-                        ],
                       ),
-                    ],
-                  ),
-                ),
-
-                // Amount
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      transaction.signedAmount,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: transaction.isIncome
-                                ? Colors.green
-                                : Theme.of(context).colorScheme.onSurface,
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 4,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Account indicator - flexible
+                      Flexible(
+                        flex: 2,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(4),
                           ),
-                    ),
-
-                    // Time (if today)
-                    if (_isToday(transaction.date)) ...[
-                      const SizedBox(height: 2),
+                          child: Text(
+                            (transaction.accountId.isEmpty) ? 'No Account' : 'Account ${transaction.accountId}',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  fontSize: 10,
+                                ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 4,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Date - fixed content, no need for SizedBox
                       Text(
-                        DateFormat('HH:mm').format(transaction.date),
+                        DateFormat('MMM dd').format(transaction.date),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
-    ).pressEffect();
+    ),
+  ),
+).pressEffect(),
+  );
   }
 
   void _showDetailSheet(BuildContext context) {
@@ -268,9 +301,13 @@ class TransactionTile extends ConsumerWidget {
           .deleteTransaction(transaction.id);
 
       if (success && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Transaction deleted')),
-        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Transaction deleted')),
+            );
+          }
+        });
       }
     }
   }
@@ -289,9 +326,13 @@ class TransactionTile extends ConsumerWidget {
         .addTransaction(duplicateTransaction);
 
     if (success && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Transaction duplicated')),
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Transaction duplicated')),
+          );
+        }
+      });
     }
   }
 
@@ -306,32 +347,36 @@ class TransactionTile extends ConsumerWidget {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: const Text('Change Category'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: categories.map((category) {
-                return RadioListTile<String>(
-                  title: Row(
-                    children: [
-                      Icon(
-                        _getIconFromCategoryId(category.id),
-                        size: 20,
-                        color: Color(category.color),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(category.name),
-                    ],
-                  ),
-                  value: category.id,
-                  groupValue: selectedCategoryId,
-                  onChanged: (value) {
-                    setState(() {
-                      selectedCategoryId = value;
-                    });
-                    Navigator.pop(context, value);
-                  },
-                );
-              }).toList(),
+          content: RadioGroup<String>(
+            groupValue: selectedCategoryId,
+            onChanged: (value) {
+              setState(() {
+                selectedCategoryId = value;
+              });
+              Navigator.pop(context, value);
+            },
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: categories.map((category) {
+                  return ListTile(
+                    title: Row(
+                      children: [
+                        Icon(
+                          _getIconFromCategoryId(category.id),
+                          size: 20,
+                          color: Color(category.color),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(category.name),
+                      ],
+                    ),
+                    leading: Radio<String>(
+                      value: category.id,
+                    ),
+                  );
+                }).toList(),
+              ),
             ),
           ),
           actions: [
@@ -351,9 +396,13 @@ class TransactionTile extends ConsumerWidget {
           .updateTransaction(updatedTransaction);
 
       if (success && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Category updated')),
-        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Category updated')),
+            );
+          }
+        });
       }
     }
   }

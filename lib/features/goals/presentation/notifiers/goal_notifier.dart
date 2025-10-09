@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/goal.dart';
@@ -92,11 +94,13 @@ class GoalNotifier extends StateNotifier<AsyncValue<GoalState>> {
 
   /// Add a new goal
   Future<bool> addGoal(Goal goal) async {
+    debugPrint('GoalNotifier: Adding goal ${goal.title}');
     final currentState = state.value;
     if (currentState == null) return false;
 
     // Set loading state
     state = AsyncValue.data(currentState.copyWith(isLoading: true));
+    debugPrint('GoalNotifier: Set loading state, goals count: ${currentState.goals.length}');
 
     final result = await _createGoal(goal);
 
@@ -108,6 +112,7 @@ class GoalNotifier extends StateNotifier<AsyncValue<GoalState>> {
           goals: updatedGoals,
           isLoading: false,
         ));
+        debugPrint('GoalNotifier: Goal added successfully, new goals count: ${updatedGoals.length}');
         return true;
       },
       error: (failure) {
@@ -116,6 +121,7 @@ class GoalNotifier extends StateNotifier<AsyncValue<GoalState>> {
           isLoading: false,
           error: failure.message,
         ));
+        debugPrint('GoalNotifier: Failed to add goal: ${failure.message}');
         return false;
       },
     );

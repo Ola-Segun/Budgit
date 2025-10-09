@@ -81,7 +81,7 @@ class _ReceiptScanningScreenState extends ConsumerState<ReceiptScanningScreen> {
             onPressed: () => context.pop(),
             icon: const Icon(Icons.close, color: Colors.white, size: 28),
             style: IconButton.styleFrom(
-              backgroundColor: Colors.black.withOpacity(0.5),
+              backgroundColor: Colors.black.withValues(alpha: 0.5),
             ),
           ),
 
@@ -92,7 +92,7 @@ class _ReceiptScanningScreenState extends ConsumerState<ReceiptScanningScreen> {
             },
             icon: const Icon(Icons.flash_off, color: Colors.white),
             style: IconButton.styleFrom(
-              backgroundColor: Colors.black.withOpacity(0.5),
+              backgroundColor: Colors.black.withValues(alpha: 0.5),
             ),
           ),
         ],
@@ -111,7 +111,7 @@ class _ReceiptScanningScreenState extends ConsumerState<ReceiptScanningScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.7),
+              color: Colors.black.withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -166,8 +166,8 @@ class _ReceiptScanningScreenState extends ConsumerState<ReceiptScanningScreen> {
           height: 60,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.white.withOpacity(0.2),
-            border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+            color: Colors.white.withValues(alpha: 0.2),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
           ),
           child: IconButton(
             onPressed: onPressed,
@@ -192,7 +192,7 @@ class _ReceiptScanningScreenState extends ConsumerState<ReceiptScanningScreen> {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: Colors.white,
-            border: Border.all(color: Colors.white.withOpacity(0.3), width: 4),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 4),
           ),
           child: IconButton(
             onPressed: () {
@@ -212,7 +212,7 @@ class _ReceiptScanningScreenState extends ConsumerState<ReceiptScanningScreen> {
 
   Widget _buildProcessingOverlay() {
     return Container(
-      color: Colors.black.withOpacity(0.8),
+      color: Colors.black.withValues(alpha: 0.8),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -236,7 +236,7 @@ class _ReceiptScanningScreenState extends ConsumerState<ReceiptScanningScreen> {
 
   Widget _buildErrorOverlay(String error) {
     return Container(
-      color: Colors.black.withOpacity(0.8),
+      color: Colors.black.withValues(alpha: 0.8),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

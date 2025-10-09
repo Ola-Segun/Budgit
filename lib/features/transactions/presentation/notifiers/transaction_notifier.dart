@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/transaction.dart';
@@ -35,7 +35,6 @@ class TransactionNotifier extends StateNotifier<AsyncValue<TransactionState>> {
 
   /// Load all transactions (legacy method for backward compatibility)
   Future<void> loadTransactions() async {
-    debugPrint('TransactionNotifier: Loading transactions');
     state = const AsyncValue.loading();
 
     final result = await _getTransactions();
@@ -56,7 +55,6 @@ class TransactionNotifier extends StateNotifier<AsyncValue<TransactionState>> {
 
   /// Initialize with paginated transactions
   Future<void> initializeWithPagination() async {
-    debugPrint('TransactionNotifier: Initializing with pagination');
     state = const AsyncValue.loading();
 
     final result = await _getPaginatedTransactions(
@@ -134,8 +132,11 @@ class TransactionNotifier extends StateNotifier<AsyncValue<TransactionState>> {
 
   /// Add a new transaction
   Future<bool> addTransaction(Transaction transaction) async {
+    debugPrint('TransactionNotifier: Adding transaction - type: ${transaction.type}, amount: ${transaction.amount}');
     final currentState = state.value;
-    if (currentState == null) return false;
+    if (currentState == null) {
+      return false;
+    }
 
     // Set loading state
     state = AsyncValue.data(currentState.copyWith(isLoading: true));

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/account.dart';
 
 /// Widget for displaying account balance information
@@ -27,7 +26,7 @@ class AccountBalanceCard extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: Color(account.type.color).withOpacity(0.1),
+                    color: Color(account.type.color).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(

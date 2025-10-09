@@ -28,19 +28,52 @@ class InsightsDashboardScreen extends ConsumerWidget {
         data: (state) => _buildContent(context, state, ref),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(
-          child: Text('Error: $error'),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 48,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const Gap(16),
+              Text(
+                'Error loading insights',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const Gap(8),
+              Text(
+                error.toString(),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const Gap(24),
+              FilledButton.icon(
+                onPressed: () => ref.invalidate(insightNotifierProvider),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+              ),
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           // TODO: Navigate to create report screen
         },
+        tooltip: 'Create Report',
         child: const Icon(Icons.add),
       ),
     );
   }
 
   Widget _buildContent(BuildContext context, dynamic state, WidgetRef ref) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth >= 600;
+    final isDesktop = screenWidth >= 900;
+
     return RefreshIndicator(
       onRefresh: () async {
         await ref.read(insightNotifierProvider.notifier).refresh();
@@ -50,6 +83,7 @@ class InsightsDashboardScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header Section
             Text(
               'Financial Insights',
               style: AppTypography.headlineMedium.copyWith(
@@ -70,34 +104,101 @@ class InsightsDashboardScreen extends ConsumerWidget {
             const FinancialHealthScoreCard(),
             Gap(AppSpacing.lg),
 
-            // Analytics Grid
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    children: [
-                      const SpendingTrendsChart(),
-                      Gap(AppSpacing.lg),
-                      const WhatIfScenarioCard(),
-                    ],
-                  ),
-                ),
-                Gap(AppSpacing.lg),
-                Expanded(
-                  child: Column(
-                    children: [
-                      const CategoryAnalysisChart(),
-                      Gap(AppSpacing.lg),
-                      const ExpenseForecastCard(),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            // Analytics Section - Responsive Layout
+            if (isDesktop)
+              // Desktop: 2-column grid
+              _buildDesktopGrid()
+            else if (isTablet)
+              // Tablet: 2-column grid with responsive sizing
+              _buildTabletGrid()
+            else
+              // Mobile: Single column stack
+              _buildMobileStack(),
           ],
         ),
       ),
+    );
+  }
+
+  /// Mobile layout - vertical stack
+  Widget _buildMobileStack() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SpendingTrendsChart(),
+        Gap(AppSpacing.lg),
+        const CategoryAnalysisChart(),
+        Gap(AppSpacing.lg),
+        const WhatIfScenarioCard(),
+        Gap(AppSpacing.lg),
+        const ExpenseForecastCard(),
+      ],
+    );
+  }
+
+  /// Tablet layout - 2 columns with proper constraints
+  Widget _buildTabletGrid() {
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                children: [
+                  const SpendingTrendsChart(),
+                  Gap(AppSpacing.lg),
+                  const WhatIfScenarioCard(),
+                ],
+              ),
+            ),
+            Gap(AppSpacing.lg),
+            Expanded(
+              child: Column(
+                children: [
+                  const CategoryAnalysisChart(),
+                  Gap(AppSpacing.lg),
+                  const ExpenseForecastCard(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Desktop layout - 2 columns optimized for large screens
+  Widget _buildDesktopGrid() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Flexible(
+              flex: 1,
+              child: Column(
+                children: [
+                  const SpendingTrendsChart(),
+                  Gap(AppSpacing.lg),
+                  const WhatIfScenarioCard(),
+                ],
+              ),
+            ),
+            Gap(AppSpacing.lg),
+            Flexible(
+              flex: 1,
+              child: Column(
+                children: [
+                  const CategoryAnalysisChart(),
+                  Gap(AppSpacing.lg),
+                  const ExpenseForecastCard(),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

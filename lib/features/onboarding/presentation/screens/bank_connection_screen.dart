@@ -79,7 +79,7 @@ class _BankConnectionScreenState extends ConsumerState<BankConnectionScreen> {
                           width: AppSpacing.iconXxl,
                           height: AppSpacing.iconXxl,
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
+                            color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                           ),
                           child: Icon(
@@ -145,7 +145,7 @@ class _BankConnectionScreenState extends ConsumerState<BankConnectionScreen> {
                           width: AppSpacing.iconXxl,
                           height: AppSpacing.iconXxl,
                           decoration: BoxDecoration(
-                            color: AppColors.secondary.withOpacity(0.1),
+                            color: AppColors.secondary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                           ),
                           child: Icon(
@@ -194,9 +194,9 @@ class _BankConnectionScreenState extends ConsumerState<BankConnectionScreen> {
               Container(
                 padding: AppSpacing.cardPaddingAll,
                 decoration: BoxDecoration(
-                  color: AppColors.info.withOpacity(0.1),
+                  color: AppColors.info.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                  border: Border.all(color: AppColors.info.withOpacity(0.3)),
+                  border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [

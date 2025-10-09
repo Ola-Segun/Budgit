@@ -1,53 +1,50 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/di/providers.dart' as core_providers;
 import '../../domain/entities/bill.dart';
 import '../../domain/usecases/calculate_bills_summary.dart';
 import '../../domain/usecases/create_bill.dart';
+import '../../domain/usecases/delete_bill.dart';
 import '../../domain/usecases/get_bills.dart';
+import '../../domain/usecases/get_upcoming_bills.dart';
+import '../../domain/usecases/mark_bill_as_paid.dart';
 import '../../domain/usecases/update_bill.dart';
 import '../notifiers/bill_notifier.dart';
 import '../states/bill_state.dart';
 
 /// Provider for GetBills use case
 final getBillsProvider = Provider<GetBills>((ref) {
-  // TODO: Replace with actual DI when available
-  throw UnimplementedError('DI not implemented yet');
+  return ref.read(core_providers.getBillsProvider);
 });
 
 /// Provider for CreateBill use case
 final createBillProvider = Provider<CreateBill>((ref) {
-  // TODO: Replace with actual DI when available
-  throw UnimplementedError('DI not implemented yet');
+  return ref.read(core_providers.createBillProvider);
 });
 
 /// Provider for UpdateBill use case
 final updateBillProvider = Provider<UpdateBill>((ref) {
-  // TODO: Replace with actual DI when available
-  throw UnimplementedError('DI not implemented yet');
+  return ref.read(core_providers.updateBillProvider);
 });
 
 /// Provider for DeleteBill use case
 final deleteBillProvider = Provider<DeleteBill>((ref) {
-  // TODO: Replace with actual DI when available
-  throw UnimplementedError('DI not implemented yet');
+  return ref.read(core_providers.deleteBillProvider);
 });
 
 /// Provider for CalculateBillsSummary use case
 final calculateBillsSummaryProvider = Provider<CalculateBillsSummary>((ref) {
-  // TODO: Replace with actual DI when available
-  throw UnimplementedError('DI not implemented yet');
+  return ref.read(core_providers.calculateBillsSummaryProvider);
 });
 
 /// Provider for MarkBillAsPaid use case
 final markBillAsPaidProvider = Provider<MarkBillAsPaid>((ref) {
-  // TODO: Replace with actual DI when available
-  throw UnimplementedError('DI not implemented yet');
+  return ref.read(core_providers.markBillAsPaidProvider);
 });
 
 /// Provider for GetUpcomingBills use case
 final getUpcomingBillsProvider = Provider<GetUpcomingBills>((ref) {
-  // TODO: Replace with actual DI when available
-  throw UnimplementedError('DI not implemented yet');
+  return ref.read(core_providers.getUpcomingBillsProvider);
 });
 
 /// State notifier provider for bill state management
@@ -101,4 +98,14 @@ final overdueBillsCountProvider = Provider<int>((ref) {
 final totalMonthlyBillsProvider = Provider<double>((ref) {
   final summary = ref.watch(billsSummaryProvider);
   return summary?.totalMonthlyAmount ?? 0.0;
+});
+
+/// Provider for a single bill by ID
+final billProvider = FutureProvider.family<Bill?, String>((ref, billId) async {
+  final billState = ref.watch(billNotifierProvider);
+
+  return billState.maybeWhen(
+    loaded: (bills, summary) => bills.where((bill) => bill.id == billId).firstOrNull,
+    orElse: () => null,
+  );
 });

@@ -230,7 +230,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Theme.of(context).primaryColor.withOpacity(0.1),
+          color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(
@@ -431,7 +431,7 @@ class _QuickActionButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
-          color: Theme.of(context).primaryColor.withOpacity(0.1),
+          color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Column(
@@ -539,9 +539,21 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
   }
 
   void _submitFeedback() {
-    // TODO: Implement feedback submission
+    final feedback = _controller.text.trim();
+    if (feedback.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your feedback')),
+      );
+      return;
+    }
+
+    // In a real app, this would send feedback to a server
+    // For now, we'll just show a success message
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Thank you for your feedback!')),
+      SnackBar(
+        content: Text('Thank you for your ${_rating > 0 ? "$_rating-star " : ""}feedback!'),
+        duration: const Duration(seconds: 3),
+      ),
     );
     Navigator.pop(context);
   }
@@ -576,7 +588,7 @@ class _ReportIssueSheetState extends State<_ReportIssueSheet> {
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: _issueType,
+            initialValue: _issueType,
             decoration: const InputDecoration(
               labelText: 'Issue Type',
               border: OutlineInputBorder(),
@@ -622,9 +634,21 @@ class _ReportIssueSheetState extends State<_ReportIssueSheet> {
   }
 
   void _submitIssue() {
-    // TODO: Implement issue submission
+    final issue = _controller.text.trim();
+    if (issue.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please describe the issue')),
+      );
+      return;
+    }
+
+    // In a real app, this would send the issue report to a server
+    // For now, we'll just show a success message
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Issue reported successfully!')),
+      SnackBar(
+        content: Text('$_issueType submitted successfully!'),
+        duration: const Duration(seconds: 3),
+      ),
     );
     Navigator.pop(context);
   }

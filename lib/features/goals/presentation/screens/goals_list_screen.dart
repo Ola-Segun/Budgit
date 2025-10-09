@@ -175,7 +175,7 @@ class GoalsListScreen extends ConsumerWidget {
               return _buildEmptyGoals(context);
             }
             return Column(
-              children: goals.take(5).map((goal) => _buildGoalCard(context, goal)).toList(),
+              children: goals.map((goal) => _buildGoalCard(context, goal)).toList(),
             );
           },
           loading: () => const CircularProgressIndicator(),
@@ -219,88 +219,91 @@ class GoalsListScreen extends ConsumerWidget {
     final progressColor = goal.isOverdue ? Colors.red : Colors.green;
     final daysRemaining = goal.daysRemaining;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    goal.title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: goal.priority == GoalPriority.high
-                        ? Colors.red.withOpacity(0.1)
-                        : Colors.grey.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    goal.priority.displayName,
-                    style: TextStyle(
-                      color: goal.priority == GoalPriority.high ? Colors.red : Colors.grey,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+    return InkWell(
+      onTap: () => context.go('/goals/${goal.id}'),
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 8),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      goal.title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              goal.description,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '\$${goal.currentAmount.toStringAsFixed(0)} / \$${goal.targetAmount.toStringAsFixed(0)}',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: goal.priority == GoalPriority.high
+                          ? Colors.red.withOpacity(0.1)
+                          : Colors.grey.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      goal.priority.displayName,
+                      style: TextStyle(
+                        color: goal.priority == GoalPriority.high ? Colors.red : Colors.grey,
+                        fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
-                ),
-                Text(
-                  daysRemaining > 0
-                      ? '$daysRemaining days left'
-                      : goal.isOverdue
-                          ? 'Overdue'
-                          : 'Completed',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: goal.isOverdue ? Colors.red : Colors.grey[600],
-                      ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: goal.progressPercentage,
-              backgroundColor: Colors.grey[300],
-              valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${goal.progressText} complete',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
-            ),
-          ],
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                goal.description,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '\$${goal.currentAmount.toStringAsFixed(0)} / \$${goal.targetAmount.toStringAsFixed(0)}',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                  ),
+                  Text(
+                    daysRemaining > 0
+                        ? '$daysRemaining days left'
+                        : goal.isOverdue
+                            ? 'Overdue'
+                            : 'Completed',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: goal.isOverdue ? Colors.red : Colors.grey[600],
+                        ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              LinearProgressIndicator(
+                value: goal.progressPercentage,
+                backgroundColor: Colors.grey[300],
+                valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${goal.progressText} complete',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            ],
+          ),
         ),
       ),
     );

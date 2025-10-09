@@ -121,9 +121,9 @@ class _IncomeEntryScreenState extends ConsumerState<IncomeEntryScreen> {
                     Container(
                       padding: AppSpacing.cardPaddingAll,
                       decoration: BoxDecoration(
-                        color: AppColors.success.withOpacity(0.1),
+                        color: AppColors.success.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                        border: Border.all(color: AppColors.success.withOpacity(0.3)),
+                        border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [
@@ -310,7 +310,7 @@ class _IncomeEntryScreenState extends ConsumerState<IncomeEntryScreen> {
               color: Theme.of(context).scaffoldBackgroundColor,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 4,
                   offset: const Offset(0, -2),
                 ),

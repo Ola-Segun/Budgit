@@ -21,7 +21,7 @@ class CameraOverlay extends StatelessWidget {
           children: [
             // Semi-transparent overlay
             Container(
-              color: Colors.black.withOpacity(0.4),
+              color: Colors.black.withValues(alpha: 0.4),
             ),
 
             // Cut out the frame area
@@ -186,7 +186,7 @@ class _ScanningLineState extends State<ScanningLine> with SingleTickerProviderSt
               gradient: LinearGradient(
                 colors: [
                   Colors.transparent,
-                  Colors.white.withOpacity(0.8),
+                  Colors.white.withValues(alpha: 0.8),
                   Colors.transparent,
                 ],
               ),

@@ -29,6 +29,7 @@ class _AddEditAccountBottomSheetState extends State<AddEditAccountBottomSheet> {
   final _creditLimitController = TextEditingController();
   final _interestRateController = TextEditingController();
   final _minimumPaymentController = TextEditingController();
+  final _scrollController = ScrollController();
 
   AccountType _selectedType = AccountType.bankAccount;
   String _selectedCurrency = 'USD';
@@ -75,26 +76,40 @@ class _AddEditAccountBottomSheetState extends State<AddEditAccountBottomSheet> {
     _creditLimitController.dispose();
     _interestRateController.dispose();
     _minimumPaymentController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.account != null;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final availableHeight = screenHeight - keyboardHeight - 100; // 100 for safe area
 
     return Container(
-      padding: AppTheme.screenPaddingAll,
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.9,
+        maxHeight: availableHeight,
       ),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Header
-            Row(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Fixed Header
+          Container(
+            padding: const EdgeInsets.fromLTRB(24, 16, 16, 16),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                  width: 1,
+                ),
+              ),
+            ),
+            child: Row(
               children: [
                 Text(
                   isEditing ? 'Edit Account' : 'Add Account',
@@ -104,238 +119,286 @@ class _AddEditAccountBottomSheetState extends State<AddEditAccountBottomSheet> {
                 IconButton(
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.close),
+                  tooltip: 'Close',
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+          ),
 
-            // Account Type Selection
-            Text(
-              'Account Type',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            _buildAccountTypeGrid(),
-            const SizedBox(height: 24),
+          // Scrollable Content
+          Flexible(
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Account Type Selection
+                    Text(
+                      'Account Type',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildAccountTypeGrid(),
+                    const SizedBox(height: 24),
 
-            // Basic Information
-            Text(
-              'Basic Information',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-            const SizedBox(height: 16),
+                    // Basic Information
+                    Text(
+                      'Basic Information',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                    const SizedBox(height: 16),
 
-            // Account Name
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Account Name',
-                hintText: 'e.g., Main Checking',
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Account name is required';
-                }
-                return null;
-              },
-              autofocus: !isEditing,
-            ),
-            const SizedBox(height: 16),
+                    // Account Name
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Account Name',
+                        hintText: 'e.g., Main Checking',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Account name is required';
+                        }
+                        return null;
+                      },
+                      autofocus: !isEditing,
+                      textInputAction: TextInputAction.next,
+                    ),
+                    const SizedBox(height: 16),
 
-            // Balance
-            TextFormField(
-              controller: _balanceController,
-              decoration: InputDecoration(
-                labelText: 'Current Balance',
-                prefixText: _selectedCurrency == 'USD' ? '\$' :
-                           _selectedCurrency == 'EUR' ? '€' :
-                           _selectedCurrency == 'GBP' ? '£' :
-                           _selectedCurrency == 'JPY' ? '¥' : '\$',
-                hintText: '0.00',
-              ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^-?\d+\.?\d{0,2}')),
-              ],
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Balance is required';
-                }
-                final balance = double.tryParse(value);
-                if (balance == null) {
-                  return 'Please enter a valid number';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
+                    // Balance
+                    TextFormField(
+                      controller: _balanceController,
+                      decoration: InputDecoration(
+                        labelText: 'Current Balance',
+                        prefixText: _getCurrencySymbol(_selectedCurrency),
+                        hintText: '0.00',
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'^-?\d+\.?\d{0,2}')),
+                      ],
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Balance is required';
+                        }
+                        final balance = double.tryParse(value);
+                        if (balance == null) {
+                          return 'Please enter a valid number';
+                        }
+                        return null;
+                      },
+                      textInputAction: TextInputAction.next,
+                    ),
+                    const SizedBox(height: 16),
 
-            // Currency
-            DropdownButtonFormField<String>(
-              initialValue: _selectedCurrency,
-              decoration: const InputDecoration(
-                labelText: 'Currency',
-              ),
-              items: _currencies.map((currency) {
-                return DropdownMenuItem(
-                  value: currency,
-                  child: Text(currency),
-                );
-              }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _selectedCurrency = value;
-                  });
-                }
-              },
-            ),
-            const SizedBox(height: 16),
+                    // Currency
+                    DropdownButtonFormField<String>(
+                      value: _selectedCurrency,
+                      decoration: const InputDecoration(
+                        labelText: 'Currency',
+                      ),
+                      items: _currencies.map((currency) {
+                        return DropdownMenuItem(
+                          value: currency,
+                          child: Text(currency),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() {
+                            _selectedCurrency = value;
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
 
-            // Institution (optional)
-            TextFormField(
-              controller: _institutionController,
-              decoration: const InputDecoration(
-                labelText: 'Institution (optional)',
-                hintText: 'e.g., Bank of America',
-              ),
-            ),
-            const SizedBox(height: 16),
+                    // Institution (optional)
+                    TextFormField(
+                      controller: _institutionController,
+                      decoration: const InputDecoration(
+                        labelText: 'Institution (optional)',
+                        hintText: 'e.g., Bank of America',
+                      ),
+                      textInputAction: TextInputAction.next,
+                    ),
+                    const SizedBox(height: 16),
 
-            // Account Number (optional)
-            TextFormField(
-              controller: _accountNumberController,
-              decoration: const InputDecoration(
-                labelText: 'Account Number (optional)',
-                hintText: 'e.g., ****1234',
-              ),
-            ),
-            const SizedBox(height: 16),
+                    // Account Number (optional)
+                    TextFormField(
+                      controller: _accountNumberController,
+                      decoration: const InputDecoration(
+                        labelText: 'Account Number (optional)',
+                        hintText: 'e.g., ****1234',
+                      ),
+                      textInputAction: TextInputAction.next,
+                    ),
+                    const SizedBox(height: 16),
 
-            // Description (optional)
-            TextFormField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Description (optional)',
-                hintText: 'Additional notes about this account',
-              ),
-              maxLines: 2,
-            ),
+                    // Description (optional)
+                    TextFormField(
+                      controller: _descriptionController,
+                      decoration: const InputDecoration(
+                        labelText: 'Description (optional)',
+                        hintText: 'Additional notes about this account',
+                      ),
+                      maxLines: 2,
+                      textInputAction: TextInputAction.done,
+                    ),
 
-            // Type-specific fields
-            ..._buildTypeSpecificFields(),
+                    // Type-specific fields
+                    ..._buildTypeSpecificFields(),
 
-            const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-            // Active Status
-            SwitchListTile(
-              title: const Text('Account is Active'),
-              subtitle: const Text('Inactive accounts are hidden from calculations'),
-              value: _isActive,
-              onChanged: (value) {
-                setState(() {
-                  _isActive = value;
-                });
-              },
-            ),
+                    // Active Status
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: SwitchListTile(
+                        title: const Text('Account is Active'),
+                        subtitle: const Text('Inactive accounts are hidden from calculations'),
+                        value: _isActive,
+                        onChanged: (value) {
+                          setState(() {
+                            _isActive = value;
+                          });
+                        },
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                      ),
+                    ),
 
-            const SizedBox(height: 32),
+                    const SizedBox(height: 24),
 
-            // Action Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: _isSubmitting ? null : () => Navigator.pop(context),
-                    child: const Text('Cancel'),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: FilledButton(
-                    onPressed: _isSubmitting ? null : _submitAccount,
-                    child: _isSubmitting
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    // Action Buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _isSubmitting ? null : () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(0, 48),
                             ),
-                          )
-                        : Text(isEditing ? 'Update Account' : 'Add Account'),
-                  ),
+                            child: const Text('Cancel'),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: _isSubmitting ? null : _submitAccount,
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size(0, 48),
+                            ),
+                            child: _isSubmitting
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  )
+                                : Text(isEditing ? 'Update Account' : 'Add Account'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    
+                    // Extra padding for keyboard
+                    SizedBox(height: keyboardHeight > 0 ? 16 : 0),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildAccountTypeGrid() {
-    return GridView.count(
-      crossAxisCount: 3,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 8,
-      crossAxisSpacing: 8,
-      children: AccountType.values.map((type) {
-        final isSelected = _selectedType == type;
-        return InkWell(
-          onTap: () {
-            setState(() {
-              _selectedType = type;
-            });
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? Color(type.color).withOpacity(0.1)
-                  : Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
-              border: Border.all(
-                color: isSelected
-                    ? Color(type.color)
-                    : Theme.of(context).colorScheme.outline.withOpacity(0.3),
-                width: isSelected ? 2 : 1,
-              ),
+    final screenWidth = MediaQuery.of(context).size.width;
+    final crossAxisCount = screenWidth < 360 ? 2 : 3;
+    
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return GridView.count(
+          crossAxisCount: crossAxisCount,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
+          childAspectRatio: screenWidth < 360 ? 1.2 : 1.0,
+          children: AccountType.values.map((type) {
+            final isSelected = _selectedType == type;
+            return InkWell(
+              onTap: () {
+                setState(() {
+                  _selectedType = type;
+                });
+              },
               borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  _getIconData(type.icon),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
                   color: isSelected
-                      ? Color(type.color)
-                      : Theme.of(context).colorScheme.onSurfaceVariant,
-                  size: 24,
+                      ? Color(type.color).withValues(alpha: 0.1)
+                      : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                  border: Border.all(
+                    color: isSelected
+                        ? Color(type.color)
+                        : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+                    width: isSelected ? 2 : 1,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  type.displayName,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: isSelected
-                            ? Color(type.color)
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _getIconData(type.icon),
+                      color: isSelected
+                          ? Color(type.color)
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                      size: screenWidth < 360 ? 20 : 24,
+                    ),
+                    const SizedBox(height: 4),
+                    Flexible(
+                      child: Text(
+                        type.displayName,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: isSelected
+                                  ? Color(type.color)
+                                  : Theme.of(context).colorScheme.onSurfaceVariant,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                              fontSize: screenWidth < 360 ? 10 : 12,
+                            ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          }).toList(),
         );
-      }).toList(),
+      },
     );
   }
 
@@ -355,10 +418,7 @@ class _AddEditAccountBottomSheetState extends State<AddEditAccountBottomSheet> {
             controller: _creditLimitController,
             decoration: InputDecoration(
               labelText: 'Credit Limit',
-              prefixText: _selectedCurrency == 'USD' ? '\$' :
-                         _selectedCurrency == 'EUR' ? '€' :
-                         _selectedCurrency == 'GBP' ? '£' :
-                         _selectedCurrency == 'JPY' ? '¥' : '\$',
+              prefixText: _getCurrencySymbol(_selectedCurrency),
               hintText: '5000.00',
             ),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -378,22 +438,21 @@ class _AddEditAccountBottomSheetState extends State<AddEditAccountBottomSheet> {
               }
               return null;
             },
+            textInputAction: TextInputAction.next,
           ),
           const SizedBox(height: 16),
           TextFormField(
             controller: _minimumPaymentController,
             decoration: InputDecoration(
               labelText: 'Minimum Payment (optional)',
-              prefixText: _selectedCurrency == 'USD' ? '\$' :
-                         _selectedCurrency == 'EUR' ? '€' :
-                         _selectedCurrency == 'GBP' ? '£' :
-                         _selectedCurrency == 'JPY' ? '¥' : '\$',
+              prefixText: _getCurrencySymbol(_selectedCurrency),
               hintText: '25.00',
             ),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
             ],
+            textInputAction: TextInputAction.done,
           ),
         ];
 
@@ -427,27 +486,43 @@ class _AddEditAccountBottomSheetState extends State<AddEditAccountBottomSheet> {
               }
               return null;
             },
+            textInputAction: TextInputAction.next,
           ),
           const SizedBox(height: 16),
           TextFormField(
             controller: _minimumPaymentController,
             decoration: InputDecoration(
               labelText: 'Monthly Payment (optional)',
-              prefixText: _selectedCurrency == 'USD' ? '\$' :
-                         _selectedCurrency == 'EUR' ? '€' :
-                         _selectedCurrency == 'GBP' ? '£' :
-                         _selectedCurrency == 'JPY' ? '¥' : '\$',
+              prefixText: _getCurrencySymbol(_selectedCurrency),
               hintText: '150.00',
             ),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
             ],
+            textInputAction: TextInputAction.done,
           ),
         ];
 
       default:
         return [];
+    }
+  }
+
+  String _getCurrencySymbol(String currency) {
+    switch (currency) {
+      case 'USD':
+      case 'CAD':
+      case 'AUD':
+        return '\$';
+      case 'EUR':
+        return '€';
+      case 'GBP':
+        return '£';
+      case 'JPY':
+        return '¥';
+      default:
+        return '\$';
     }
   }
 

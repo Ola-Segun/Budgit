@@ -1,8 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_animations.dart';
 import '../../../../core/widgets/app_bottom_sheet.dart';
 import '../../../../core/widgets/error_view.dart';
@@ -54,6 +54,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
     final statsState = ref.watch(transactionStatsProvider);
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: const Text('Transactions'),
         actions: [
@@ -142,6 +143,10 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
     final groupedTransactions = state.transactionsByDate;
 
     if (groupedTransactions.isEmpty) {
+      // Check if we have transactions but they are filtered out
+      if (state.transactions.isNotEmpty && (state.searchQuery != null || state.filter != null)) {
+        return _buildNoMatchesState();
+      }
       return _buildEmptyState();
     }
 
@@ -150,7 +155,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
         await ref.read(transactionNotifierProvider.notifier).loadTransactions();
       },
       child: ListView.builder(
-        padding: AppTheme.screenPaddingAll,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         itemCount: _calculateItemCount(groupedTransactions, state),
         itemBuilder: (context, index) {
           return _buildListItem(context, index, groupedTransactions, statsState, state);
@@ -193,13 +198,50 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
     );
   }
 
+  Widget _buildNoMatchesState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.search_off,
+            size: 64,
+            color: Theme.of(context).colorScheme.outline,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No matching transactions',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Try adjusting your search or filters',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          OutlinedButton.icon(
+            onPressed: () {
+              ref.read(transactionNotifierProvider.notifier).clearFilter();
+              ref.read(transactionNotifierProvider.notifier).clearSearch();
+            },
+            icon: const Icon(Icons.clear),
+            label: const Text('Clear Filters'),
+          ).pressEffect(),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSkeletonLoading() {
     return RefreshIndicator(
       onRefresh: () async {
         await ref.read(transactionNotifierProvider.notifier).loadTransactions();
       },
       child: ListView(
-        padding: AppTheme.screenPaddingAll,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         children: [
           // Stats Card Skeleton
           const StatsCardSkeleton(),
@@ -228,7 +270,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
   }
 
   int _calculateItemCount(Map<DateTime, List<Transaction>> groupedTransactions, TransactionState state) {
-    int count = 3; // Filters bar, stats card, and spacing
+    int count = 2; // Filters bar and stats card
 
     // Add count for each date header + transactions + spacing
     for (final dayTransactions in groupedTransactions.values) {
@@ -257,7 +299,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
       return const Column(
         children: [
           TransactionFiltersBar(),
-          SizedBox(height: 16),
+          SizedBox(height: 18),
         ],
       );
     }
@@ -343,9 +385,13 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
 
           if (success && mounted) {
             Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Transaction added successfully')),
-            );
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Transaction added successfully')),
+                );
+              }
+            });
           }
         },
       ),
@@ -413,9 +459,13 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
           .deleteTransaction(transaction.id);
 
       if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Transaction deleted')),
-        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Transaction deleted')),
+            );
+          }
+        });
       }
     }
   }
@@ -463,241 +513,260 @@ class _TransactionFilterBottomSheetState extends State<TransactionFilterBottomSh
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('TransactionFilterBottomSheet: Building sheet');
+    final screenHeight = MediaQuery.of(context).size.height;
+    debugPrint('TransactionFilterBottomSheet: Screen height: $screenHeight');
+
     return Container(
       padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Filter Transactions',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 24),
-
-          // Transaction Type
-          Text(
-            'Transaction Type',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          SegmentedButton<TransactionType?>(
-            segments: const [
-              ButtonSegment(
-                value: null,
-                label: Text('All'),
-              ),
-              ButtonSegment(
-                value: TransactionType.income,
-                label: Text('Income'),
-              ),
-              ButtonSegment(
-                value: TransactionType.expense,
-                label: Text('Expense'),
-              ),
-            ],
-            selected: {_selectedType},
-            onSelectionChanged: (selected) {
-              setState(() {
-                _selectedType = selected.first;
-              });
-            },
-          ),
-
-          const SizedBox(height: 24),
-
-          // Account Filter
-          Text(
-            'Account',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<String?>(
-            initialValue: _selectedAccountId,
-            decoration: const InputDecoration(
-              labelText: 'Select Account',
+      constraints: BoxConstraints(
+        maxHeight: screenHeight * 0.8, // Limit to 80% of screen height
+      ),
+      child: SingleChildScrollView( // Make scrollable
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Filter Transactions',
+              style: Theme.of(context).textTheme.headlineSmall,
             ),
-            items: [
-              const DropdownMenuItem(
-                value: null,
-                child: Text('All Accounts'),
-              ),
-              // TODO: Add accounts from provider
-              // For now, placeholder
-            ],
-            onChanged: (value) {
-              setState(() {
-                _selectedAccountId = value;
-              });
-            },
-          ),
+            const SizedBox(height: 24),
 
-          const SizedBox(height: 24),
+            // Transaction Type
+            Text(
+              'Transaction Type',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            SegmentedButton<TransactionType?>(
+              segments: const [
+                ButtonSegment(
+                  value: null,
+                  label: Text('All'),
+                ),
+                ButtonSegment(
+                  value: TransactionType.income,
+                  label: Text('Income'),
+                ),
+                ButtonSegment(
+                  value: TransactionType.expense,
+                  label: Text('Expense'),
+                ),
+              ],
+              selected: {_selectedType},
+              onSelectionChanged: (selected) {
+                setState(() {
+                  _selectedType = selected.first;
+                });
+              },
+            ),
 
-          // Category Filter (Multi-select)
-          Text(
-            'Categories',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          InkWell(
-            onTap: () => _showCategoryMultiSelect(context),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                border: Border.all(color: Theme.of(context).colorScheme.outline),
-                borderRadius: BorderRadius.circular(8),
+            const SizedBox(height: 24),
+
+            // Account Filter
+            Text(
+              'Account',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String?>(
+              initialValue: _selectedAccountId,
+              decoration: const InputDecoration(
+                labelText: 'Select Account',
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _selectedCategoryIds.isEmpty
-                          ? 'All Categories'
-                          : '${_selectedCategoryIds.length} selected',
-                      style: Theme.of(context).textTheme.bodyLarge,
+              items: [
+                const DropdownMenuItem(
+                  value: null,
+                  child: Text('All Accounts'),
+                ),
+                const DropdownMenuItem(
+                  value: 'checking',
+                  child: Text('Checking Account'),
+                ),
+                const DropdownMenuItem(
+                  value: 'savings',
+                  child: Text('Savings Account'),
+                ),
+                const DropdownMenuItem(
+                  value: 'credit',
+                  child: Text('Credit Card'),
+                ),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _selectedAccountId = value;
+                });
+              },
+            ),
+
+            const SizedBox(height: 24),
+
+            // Category Filter (Multi-select)
+            Text(
+              'Categories',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: () => _showCategoryMultiSelect(context),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Theme.of(context).colorScheme.outline),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _selectedCategoryIds.isEmpty
+                            ? 'All Categories'
+                            : '${_selectedCategoryIds.length} selected',
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                    ),
+                    Icon(Icons.arrow_drop_down),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Date Range
+            Text(
+              'Date Range',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: _startDate ?? DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime.now(),
+                      );
+                      if (date != null) {
+                        setState(() {
+                          _startDate = date;
+                        });
+                      }
+                    },
+                    icon: const Icon(Icons.calendar_today),
+                    label: Text(
+                      _startDate != null
+                          ? DateFormat('MMM dd').format(_startDate!)
+                          : 'Start Date',
                     ),
                   ),
-                  Icon(Icons.arrow_drop_down),
-                ],
-              ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: _endDate ?? DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime.now(),
+                      );
+                      if (date != null) {
+                        setState(() {
+                          _endDate = date;
+                        });
+                      }
+                    },
+                    icon: const Icon(Icons.calendar_today),
+                    label: Text(
+                      _endDate != null
+                          ? DateFormat('MMM dd').format(_endDate!)
+                          : 'End Date',
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
 
-          const SizedBox(height: 24),
+            const SizedBox(height: 24),
 
-          // Date Range
-          Text(
-            'Date Range',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: _startDate ?? DateTime.now(),
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime.now(),
-                    );
-                    if (date != null) {
+            // Amount Range
+            Text(
+              'Amount Range',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    decoration: const InputDecoration(
+                      labelText: 'Min Amount',
+                      prefixText: '\$',
+                    ),
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
                       setState(() {
-                        _startDate = date;
+                        _minAmount = value.isEmpty ? null : double.tryParse(value);
                       });
-                    }
-                  },
-                  icon: const Icon(Icons.calendar_today),
-                  label: Text(
-                    _startDate != null
-                        ? DateFormat('MMM dd').format(_startDate!)
-                        : 'Start Date',
+                    },
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: _endDate ?? DateTime.now(),
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime.now(),
-                    );
-                    if (date != null) {
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextField(
+                    decoration: const InputDecoration(
+                      labelText: 'Max Amount',
+                      prefixText: '\$',
+                    ),
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
                       setState(() {
-                        _endDate = date;
+                        _maxAmount = value.isEmpty ? null : double.tryParse(value);
                       });
-                    }
-                  },
-                  icon: const Icon(Icons.calendar_today),
-                  label: Text(
-                    _endDate != null
-                        ? DateFormat('MMM dd').format(_endDate!)
-                        : 'End Date',
+                    },
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
 
-          const SizedBox(height: 24),
+            const SizedBox(height: 32),
 
-          // Amount Range
-          Text(
-            'Amount Range',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  decoration: const InputDecoration(
-                    labelText: 'Min Amount',
-                    prefixText: '\$',
+            // Action Buttons
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: widget.onClearFilter,
+                    child: const Text('Clear'),
                   ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    setState(() {
-                      _minAmount = value.isEmpty ? null : double.tryParse(value);
-                    });
-                  },
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: TextField(
-                  decoration: const InputDecoration(
-                    labelText: 'Max Amount',
-                    prefixText: '\$',
+                const SizedBox(width: 16),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () {
+                      final filter = TransactionFilter(
+                        transactionType: _selectedType,
+                        categoryIds: _selectedCategoryIds.isEmpty ? null : _selectedCategoryIds,
+                        accountId: _selectedAccountId,
+                        startDate: _startDate,
+                        endDate: _endDate,
+                        minAmount: _minAmount,
+                        maxAmount: _maxAmount,
+                      );
+                      widget.onApplyFilter(filter);
+                    },
+                    child: const Text('Apply'),
                   ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    setState(() {
-                      _maxAmount = value.isEmpty ? null : double.tryParse(value);
-                    });
-                  },
                 ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 32),
-
-          // Action Buttons
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: widget.onClearFilter,
-                  child: const Text('Clear'),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: FilledButton(
-                  onPressed: () {
-                    final filter = TransactionFilter(
-                      transactionType: _selectedType,
-                      categoryIds: _selectedCategoryIds.isEmpty ? null : _selectedCategoryIds,
-                      accountId: _selectedAccountId,
-                      startDate: _startDate,
-                      endDate: _endDate,
-                      minAmount: _minAmount,
-                      maxAmount: _maxAmount,
-                    );
-                    widget.onApplyFilter(filter);
-                  },
-                  child: const Text('Apply'),
-                ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

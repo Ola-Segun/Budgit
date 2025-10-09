@@ -8,17 +8,23 @@ import 'package:budget_tracker/features/transactions/domain/entities/transaction
 import 'package:budget_tracker/features/transactions/domain/repositories/transaction_repository.dart';
 import 'package:budget_tracker/features/transactions/domain/usecases/get_transactions.dart';
 
+import '../../../../test_setup.dart';
+
 @GenerateMocks([TransactionRepository])
 import 'get_transactions_test.mocks.dart';
 
 void main() {
-  late GetTransactions useCase;
-  late MockTransactionRepository mockRepository;
+   late GetTransactions useCase;
+   late MockTransactionRepository mockRepository;
 
-  setUp(() {
-    mockRepository = MockTransactionRepository();
-    useCase = GetTransactions(mockRepository);
-  });
+   setUpAll(() {
+     setupMockitoDummies();
+   });
+
+   setUp(() {
+     mockRepository = MockTransactionRepository();
+     useCase = GetTransactions(mockRepository);
+   });
 
   group('GetTransactions Use Case', () {
     final testTransactions = [
@@ -101,7 +107,7 @@ void main() {
 
       test('should handle unknown errors', () async {
         // Arrange
-        when(mockRepository.getAll()).thenThrow(Exception('Unexpected error'));
+        when(mockRepository.getAll()).thenAnswer((_) async => Result.error(Failure.unknown('Unexpected error')));
 
         // Act
         final result = await useCase();
@@ -137,7 +143,7 @@ void main() {
       test('should handle date range errors', () async {
         // Arrange
         when(mockRepository.getByDateRange(startDate, endDate))
-            .thenThrow(Exception('Date range error'));
+            .thenAnswer((_) async => Result.error(Failure.unknown('Date range error')));
 
         // Act
         final result = await useCase.getByDateRange(startDate, endDate);
@@ -239,7 +245,7 @@ void main() {
         // Assert
         expect(result, isA<Success<List<Transaction>>>());
         verify(mockRepository.getAll()).called(1);
-        verifyNever(mockRepository.search(any as String));
+        verifyNever(mockRepository.search(any));
       });
     });
 

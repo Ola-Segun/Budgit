@@ -5,21 +5,26 @@ import 'package:mockito/mockito.dart';
 import 'package:budget_tracker/core/error/failures.dart';
 import 'package:budget_tracker/core/error/result.dart';
 import 'package:budget_tracker/features/transactions/data/datasources/transaction_hive_datasource.dart';
-import 'package:budget_tracker/features/transactions/data/models/transaction_dto.dart';
 import 'package:budget_tracker/features/transactions/data/repositories/transaction_repository_impl.dart';
 import 'package:budget_tracker/features/transactions/domain/entities/transaction.dart';
+
+import '../../../../test_setup.dart';
 
 @GenerateMocks([TransactionHiveDataSource])
 import 'transaction_repository_impl_test.mocks.dart';
 
 void main() {
-  late TransactionRepositoryImpl repository;
-  late MockTransactionHiveDataSource mockDataSource;
+   late TransactionRepositoryImpl repository;
+   late MockTransactionHiveDataSource mockDataSource;
 
-  setUp(() {
-    mockDataSource = MockTransactionHiveDataSource();
-    repository = TransactionRepositoryImpl(mockDataSource);
-  });
+   setUpAll(() {
+     setupMockitoDummies();
+   });
+
+   setUp(() {
+     mockDataSource = MockTransactionHiveDataSource();
+     repository = TransactionRepositoryImpl(mockDataSource);
+   });
 
   group('TransactionRepositoryImpl', () {
     final testTransaction = Transaction(
@@ -74,7 +79,7 @@ void main() {
 
       test('should return unknown failure for unexpected errors', () async {
         // Arrange
-        when(mockDataSource.getAll()).thenThrow(Exception('Unexpected error'));
+        when(mockDataSource.getAll()).thenAnswer((_) async => Result.error(Failure.unknown('Unexpected error')));
 
         // Act
         final result = await repository.getAll();

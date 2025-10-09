@@ -11,7 +11,6 @@ import '../widgets/account_card.dart';
 import '../widgets/add_edit_account_bottom_sheet.dart';
 import '../widgets/net_worth_card.dart';
 import '../widgets/bank_connection_card.dart';
-import 'account_detail_screen.dart';
 
 /// Screen for displaying accounts overview with net worth
 class AccountsOverviewScreen extends ConsumerWidget {
@@ -109,7 +108,7 @@ class AccountsOverviewScreen extends ConsumerWidget {
             child: AccountCard(
               account: account,
               onTap: () {
-                context.go('/accounts/${account.id}');
+                context.go('/more/accounts/${account.id}');
               },
             ),
           ),

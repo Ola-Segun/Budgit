@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../dashboard/presentation/providers/dashboard_providers.dart';
 import '../../domain/entities/goal.dart';
 import '../providers/goal_providers.dart';
 
@@ -42,18 +43,6 @@ class _GoalCreationScreenState extends ConsumerState<GoalCreationScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create Goal'),
-        actions: [
-          TextButton(
-            onPressed: _isSubmitting ? null : _submitGoal,
-            child: _isSubmitting
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Save'),
-          ),
-        ],
       ),
       body: Form(
         key: _formKey,
@@ -137,7 +126,7 @@ class _GoalCreationScreenState extends ConsumerState<GoalCreationScreen> {
 
             // Category
             DropdownButtonFormField<GoalCategory>(
-              value: _selectedCategory,
+              initialValue: _selectedCategory,
               decoration: const InputDecoration(
                 labelText: 'Category',
               ),
@@ -165,7 +154,7 @@ class _GoalCreationScreenState extends ConsumerState<GoalCreationScreen> {
 
             // Priority
             DropdownButtonFormField<GoalPriority>(
-              value: _selectedPriority,
+              initialValue: _selectedPriority,
               decoration: const InputDecoration(
                 labelText: 'Priority',
               ),
@@ -213,6 +202,33 @@ class _GoalCreationScreenState extends ConsumerState<GoalCreationScreen> {
                 ),
               ),
             ),
+
+            const SizedBox(height: 32),
+
+            // Action Buttons
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _isSubmitting ? null : () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _isSubmitting ? null : _submitGoal,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Create Goal'),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -250,6 +266,8 @@ class _GoalCreationScreenState extends ConsumerState<GoalCreationScreen> {
           .addGoal(goal);
 
       if (success && mounted) {
+        // Invalidate dashboard to refresh data
+        ref.invalidate(dashboardDataProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Goal created successfully')),
         );

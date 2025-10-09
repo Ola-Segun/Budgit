@@ -31,9 +31,6 @@ class UserHiveDataSource {
         (user) => user.email == email,
         orElse: () => null as UserDto,
       );
-      if (dto == null) {
-        return const Result.success(null);
-      }
       return Result.success(dto.toDomain());
     } catch (e) {
       return Result.error(Failure.unknown('Failed to get user by email: $e'));

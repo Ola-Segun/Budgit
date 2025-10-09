@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/widgets/app_bottom_sheet.dart';
 import '../../domain/entities/goal_contribution.dart';
 
 /// Bottom sheet for adding contributions to a goal

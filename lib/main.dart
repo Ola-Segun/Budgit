@@ -99,8 +99,12 @@ class _ErrorBoundaryState extends State<_ErrorBoundary> {
 
       // Store error to show when widget is ready
       if (mounted) {
-        setState(() {
-          _pendingError = details.exception.toString();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            setState(() {
+              _pendingError = details.exception.toString();
+            });
+          }
         });
       }
     };
@@ -114,7 +118,11 @@ class _ErrorBoundaryState extends State<_ErrorBoundary> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _pendingError != null) {
           _showErrorDialog(_pendingError!);
-          _pendingError = null;
+          if (mounted) {
+            setState(() {
+              _pendingError = null;
+            });
+          }
         }
       });
     }

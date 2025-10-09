@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/di/providers.dart' as core_providers;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/widgets/error_view.dart';
-import '../../../../core/widgets/loading_view.dart';
 import '../../domain/entities/transaction.dart';
+import '../../domain/repositories/transaction_category_repository.dart';
+import '../../domain/usecases/add_category.dart';
+import '../../domain/usecases/delete_category.dart';
+import '../../domain/usecases/update_category.dart';
 import '../providers/transaction_providers.dart';
 
 /// Screen for managing transaction categories
@@ -127,11 +129,27 @@ class _CategoryManagementScreenState extends ConsumerState<CategoryManagementScr
     );
 
     if (confirmed == true) {
-      // Note: In a real app, this would call a use case to delete the category
-      // For now, we'll just show a message since categories are static
+      // Get the repository and create the use case
+      final repository = ref.read(core_providers.transactionCategoryRepositoryProvider) as TransactionCategoryRepository;
+      final deleteCategory = DeleteCategory(repository);
+
+      // Call the use case
+      final result = await deleteCategory(category.id);
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Category deletion not implemented yet')),
+        result.when(
+          success: (_) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Category deleted successfully')),
+            );
+            // Refresh the categories list
+            ref.invalidate(transactionCategoriesProvider);
+          },
+          error: (failure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to delete category: ${failure.message}')),
+            );
+          },
         );
       }
     }
@@ -164,14 +182,14 @@ class _CategoryManagementScreenState extends ConsumerState<CategoryManagementScr
 }
 
 /// Dialog for adding a new category
-class AddCategoryDialog extends StatefulWidget {
+class AddCategoryDialog extends ConsumerStatefulWidget {
   const AddCategoryDialog({super.key});
 
   @override
-  State<AddCategoryDialog> createState() => _AddCategoryDialogState();
+  ConsumerState<AddCategoryDialog> createState() => _AddCategoryDialogState();
 }
 
-class _AddCategoryDialogState extends State<AddCategoryDialog> {
+class _AddCategoryDialogState extends ConsumerState<AddCategoryDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   TransactionType _selectedType = TransactionType.expense;
@@ -350,17 +368,44 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
       return;
     }
 
-    // Note: In a real app, this would call a use case to add the category
-    // For now, we'll just show a message since categories are static
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Category addition not implemented yet')),
+    // Create the category
+    final category = TransactionCategory(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      name: _nameController.text.trim(),
+      type: _selectedType,
+      icon: _selectedIcon,
+      color: _selectedColor,
     );
+
+    // Get the repository and create the use case
+    final repository = ref.read(core_providers.transactionCategoryRepositoryProvider) as dynamic;
+    final addCategory = AddCategory(repository);
+
+    // Call the use case
+    addCategory(category).then((result) {
+      if (mounted) {
+        result.when(
+          success: (_) {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Category added successfully')),
+            );
+            // Refresh the categories list in the parent
+            ref.invalidate(transactionCategoriesProvider);
+          },
+          error: (failure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to add category: ${failure.message}')),
+            );
+          },
+        );
+      }
+    });
   }
 }
 
 /// Dialog for editing an existing category
-class EditCategoryDialog extends StatefulWidget {
+class EditCategoryDialog extends ConsumerStatefulWidget {
   const EditCategoryDialog({
     super.key,
     required this.category,
@@ -369,10 +414,10 @@ class EditCategoryDialog extends StatefulWidget {
   final TransactionCategory category;
 
   @override
-  State<EditCategoryDialog> createState() => _EditCategoryDialogState();
+  ConsumerState<EditCategoryDialog> createState() => _EditCategoryDialogState();
 }
 
-class _EditCategoryDialogState extends State<EditCategoryDialog> {
+class _EditCategoryDialogState extends ConsumerState<EditCategoryDialog> {
   late final TextEditingController _nameController;
   late TransactionType _selectedType;
   late String _selectedIcon;
@@ -546,11 +591,38 @@ class _EditCategoryDialogState extends State<EditCategoryDialog> {
   }
 
   void _updateCategory() {
-    // Note: In a real app, this would call a use case to update the category
-    // For now, we'll just show a message since categories are static
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Category update not implemented yet')),
+    // Create the updated category
+    final updatedCategory = TransactionCategory(
+      id: widget.category.id,
+      name: _nameController.text.trim(),
+      type: _selectedType,
+      icon: _selectedIcon,
+      color: _selectedColor,
     );
+
+    // Get the repository and create the use case
+    final repository = ref.read(core_providers.transactionCategoryRepositoryProvider) as dynamic;
+    final updateCategory = UpdateCategory(repository);
+
+    // Call the use case
+    updateCategory(updatedCategory).then((result) {
+      if (mounted) {
+        result.when(
+          success: (_) {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Category updated successfully')),
+            );
+            // Refresh the categories list in the parent
+            ref.invalidate(transactionCategoriesProvider);
+          },
+          error: (failure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to update category: ${failure.message}')),
+            );
+          },
+        );
+      }
+    });
   }
 }

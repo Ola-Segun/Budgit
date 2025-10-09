@@ -1,6 +1,5 @@
 import '../../../../core/error/failures.dart';
 import '../../../../core/error/result.dart';
-import '../entities/calendar_event.dart';
 import '../repositories/calendar_repository.dart';
 
 /// Use case for syncing bill reminders to calendar

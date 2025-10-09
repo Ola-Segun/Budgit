@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 
-import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/goal.dart';
 
 /// Card widget displaying goal progress with visual progress bar
@@ -31,7 +30,7 @@ class GoalProgressCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Color(goal.category.defaultColor).withOpacity(0.1),
+                    color: Color(goal.category.defaultColor).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -64,7 +63,7 @@ class GoalProgressCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
+                      color: Colors.green.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -79,7 +78,7 @@ class GoalProgressCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      color: Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -98,7 +97,7 @@ class GoalProgressCard extends StatelessWidget {
             LinearPercentIndicator(
               percent: progress.clamp(0.0, 1.0),
               lineHeight: 12,
-              backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               progressColor: isCompleted
                   ? Colors.green
                   : isOverdue

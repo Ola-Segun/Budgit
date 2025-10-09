@@ -295,11 +295,9 @@ abstract class _DashboardData extends DashboardData {
 
 /// @nodoc
 mixin _$FinancialSnapshot {
-  double get spentThisMonth => throw _privateConstructorUsedError;
-  double get budgetThisMonth => throw _privateConstructorUsedError;
-  double get remainingAmount => throw _privateConstructorUsedError;
-  double get progressPercentage => throw _privateConstructorUsedError;
-  BudgetHealthStatus get healthStatus => throw _privateConstructorUsedError;
+  double get incomeThisMonth => throw _privateConstructorUsedError;
+  double get expensesThisMonth => throw _privateConstructorUsedError;
+  double get balanceThisMonth => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
   $FinancialSnapshotCopyWith<FinancialSnapshot> get copyWith =>
@@ -313,11 +311,9 @@ abstract class $FinancialSnapshotCopyWith<$Res> {
       _$FinancialSnapshotCopyWithImpl<$Res, FinancialSnapshot>;
   @useResult
   $Res call(
-      {double spentThisMonth,
-      double budgetThisMonth,
-      double remainingAmount,
-      double progressPercentage,
-      BudgetHealthStatus healthStatus});
+      {double incomeThisMonth,
+      double expensesThisMonth,
+      double balanceThisMonth});
 }
 
 /// @nodoc
@@ -333,33 +329,23 @@ class _$FinancialSnapshotCopyWithImpl<$Res, $Val extends FinancialSnapshot>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? spentThisMonth = null,
-    Object? budgetThisMonth = null,
-    Object? remainingAmount = null,
-    Object? progressPercentage = null,
-    Object? healthStatus = null,
+    Object? incomeThisMonth = null,
+    Object? expensesThisMonth = null,
+    Object? balanceThisMonth = null,
   }) {
     return _then(_value.copyWith(
-      spentThisMonth: null == spentThisMonth
-          ? _value.spentThisMonth
-          : spentThisMonth // ignore: cast_nullable_to_non_nullable
+      incomeThisMonth: null == incomeThisMonth
+          ? _value.incomeThisMonth
+          : incomeThisMonth // ignore: cast_nullable_to_non_nullable
               as double,
-      budgetThisMonth: null == budgetThisMonth
-          ? _value.budgetThisMonth
-          : budgetThisMonth // ignore: cast_nullable_to_non_nullable
+      expensesThisMonth: null == expensesThisMonth
+          ? _value.expensesThisMonth
+          : expensesThisMonth // ignore: cast_nullable_to_non_nullable
               as double,
-      remainingAmount: null == remainingAmount
-          ? _value.remainingAmount
-          : remainingAmount // ignore: cast_nullable_to_non_nullable
+      balanceThisMonth: null == balanceThisMonth
+          ? _value.balanceThisMonth
+          : balanceThisMonth // ignore: cast_nullable_to_non_nullable
               as double,
-      progressPercentage: null == progressPercentage
-          ? _value.progressPercentage
-          : progressPercentage // ignore: cast_nullable_to_non_nullable
-              as double,
-      healthStatus: null == healthStatus
-          ? _value.healthStatus
-          : healthStatus // ignore: cast_nullable_to_non_nullable
-              as BudgetHealthStatus,
     ) as $Val);
   }
 }
@@ -373,11 +359,9 @@ abstract class _$$FinancialSnapshotImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {double spentThisMonth,
-      double budgetThisMonth,
-      double remainingAmount,
-      double progressPercentage,
-      BudgetHealthStatus healthStatus});
+      {double incomeThisMonth,
+      double expensesThisMonth,
+      double balanceThisMonth});
 }
 
 /// @nodoc
@@ -391,33 +375,23 @@ class __$$FinancialSnapshotImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? spentThisMonth = null,
-    Object? budgetThisMonth = null,
-    Object? remainingAmount = null,
-    Object? progressPercentage = null,
-    Object? healthStatus = null,
+    Object? incomeThisMonth = null,
+    Object? expensesThisMonth = null,
+    Object? balanceThisMonth = null,
   }) {
     return _then(_$FinancialSnapshotImpl(
-      spentThisMonth: null == spentThisMonth
-          ? _value.spentThisMonth
-          : spentThisMonth // ignore: cast_nullable_to_non_nullable
+      incomeThisMonth: null == incomeThisMonth
+          ? _value.incomeThisMonth
+          : incomeThisMonth // ignore: cast_nullable_to_non_nullable
               as double,
-      budgetThisMonth: null == budgetThisMonth
-          ? _value.budgetThisMonth
-          : budgetThisMonth // ignore: cast_nullable_to_non_nullable
+      expensesThisMonth: null == expensesThisMonth
+          ? _value.expensesThisMonth
+          : expensesThisMonth // ignore: cast_nullable_to_non_nullable
               as double,
-      remainingAmount: null == remainingAmount
-          ? _value.remainingAmount
-          : remainingAmount // ignore: cast_nullable_to_non_nullable
+      balanceThisMonth: null == balanceThisMonth
+          ? _value.balanceThisMonth
+          : balanceThisMonth // ignore: cast_nullable_to_non_nullable
               as double,
-      progressPercentage: null == progressPercentage
-          ? _value.progressPercentage
-          : progressPercentage // ignore: cast_nullable_to_non_nullable
-              as double,
-      healthStatus: null == healthStatus
-          ? _value.healthStatus
-          : healthStatus // ignore: cast_nullable_to_non_nullable
-              as BudgetHealthStatus,
     ));
   }
 }
@@ -426,27 +400,21 @@ class __$$FinancialSnapshotImplCopyWithImpl<$Res>
 
 class _$FinancialSnapshotImpl extends _FinancialSnapshot {
   const _$FinancialSnapshotImpl(
-      {required this.spentThisMonth,
-      required this.budgetThisMonth,
-      required this.remainingAmount,
-      required this.progressPercentage,
-      required this.healthStatus})
+      {required this.incomeThisMonth,
+      required this.expensesThisMonth,
+      required this.balanceThisMonth})
       : super._();
 
   @override
-  final double spentThisMonth;
+  final double incomeThisMonth;
   @override
-  final double budgetThisMonth;
+  final double expensesThisMonth;
   @override
-  final double remainingAmount;
-  @override
-  final double progressPercentage;
-  @override
-  final BudgetHealthStatus healthStatus;
+  final double balanceThisMonth;
 
   @override
   String toString() {
-    return 'FinancialSnapshot(spentThisMonth: $spentThisMonth, budgetThisMonth: $budgetThisMonth, remainingAmount: $remainingAmount, progressPercentage: $progressPercentage, healthStatus: $healthStatus)';
+    return 'FinancialSnapshot(incomeThisMonth: $incomeThisMonth, expensesThisMonth: $expensesThisMonth, balanceThisMonth: $balanceThisMonth)';
   }
 
   @override
@@ -454,21 +422,17 @@ class _$FinancialSnapshotImpl extends _FinancialSnapshot {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$FinancialSnapshotImpl &&
-            (identical(other.spentThisMonth, spentThisMonth) ||
-                other.spentThisMonth == spentThisMonth) &&
-            (identical(other.budgetThisMonth, budgetThisMonth) ||
-                other.budgetThisMonth == budgetThisMonth) &&
-            (identical(other.remainingAmount, remainingAmount) ||
-                other.remainingAmount == remainingAmount) &&
-            (identical(other.progressPercentage, progressPercentage) ||
-                other.progressPercentage == progressPercentage) &&
-            (identical(other.healthStatus, healthStatus) ||
-                other.healthStatus == healthStatus));
+            (identical(other.incomeThisMonth, incomeThisMonth) ||
+                other.incomeThisMonth == incomeThisMonth) &&
+            (identical(other.expensesThisMonth, expensesThisMonth) ||
+                other.expensesThisMonth == expensesThisMonth) &&
+            (identical(other.balanceThisMonth, balanceThisMonth) ||
+                other.balanceThisMonth == balanceThisMonth));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, spentThisMonth, budgetThisMonth,
-      remainingAmount, progressPercentage, healthStatus);
+  int get hashCode => Object.hash(
+      runtimeType, incomeThisMonth, expensesThisMonth, balanceThisMonth);
 
   @JsonKey(ignore: true)
   @override
@@ -480,24 +444,17 @@ class _$FinancialSnapshotImpl extends _FinancialSnapshot {
 
 abstract class _FinancialSnapshot extends FinancialSnapshot {
   const factory _FinancialSnapshot(
-          {required final double spentThisMonth,
-          required final double budgetThisMonth,
-          required final double remainingAmount,
-          required final double progressPercentage,
-          required final BudgetHealthStatus healthStatus}) =
-      _$FinancialSnapshotImpl;
+      {required final double incomeThisMonth,
+      required final double expensesThisMonth,
+      required final double balanceThisMonth}) = _$FinancialSnapshotImpl;
   const _FinancialSnapshot._() : super._();
 
   @override
-  double get spentThisMonth;
+  double get incomeThisMonth;
   @override
-  double get budgetThisMonth;
+  double get expensesThisMonth;
   @override
-  double get remainingAmount;
-  @override
-  double get progressPercentage;
-  @override
-  BudgetHealthStatus get healthStatus;
+  double get balanceThisMonth;
   @override
   @JsonKey(ignore: true)
   _$$FinancialSnapshotImplCopyWith<_$FinancialSnapshotImpl> get copyWith =>

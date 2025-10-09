@@ -73,9 +73,9 @@ class _BankConnectionScreenState extends ConsumerState<BankConnectionScreen> {
             Container(
               padding: AppSpacing.cardPaddingAll,
               decoration: BoxDecoration(
-                color: AppColors.info.withOpacity(0.1),
+                color: AppColors.info.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                border: Border.all(color: AppColors.info.withOpacity(0.3)),
+                border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [

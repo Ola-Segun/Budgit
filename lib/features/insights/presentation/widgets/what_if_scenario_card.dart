@@ -37,7 +37,7 @@ class _WhatIfScenarioCardState extends ConsumerState<WhatIfScenarioCard> {
                   width: AppSpacing.iconXxl,
                   height: AppSpacing.iconXxl,
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                   ),
                   child: Icon(
@@ -82,7 +82,7 @@ class _WhatIfScenarioCardState extends ConsumerState<WhatIfScenarioCard> {
             ),
             Gap(AppSpacing.sm),
             DropdownButtonFormField<ScenarioType>(
-              value: _selectedScenario,
+              initialValue: _selectedScenario,
               decoration: InputDecoration(
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
@@ -141,7 +141,7 @@ class _WhatIfScenarioCardState extends ConsumerState<WhatIfScenarioCard> {
             ),
             Gap(AppSpacing.sm),
             DropdownButtonFormField<int>(
-              value: _timeframeMonths,
+              initialValue: _timeframeMonths,
               decoration: InputDecoration(
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppSpacing.radiusMd),

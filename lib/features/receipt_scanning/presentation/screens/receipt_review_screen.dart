@@ -130,7 +130,7 @@ class _ReceiptReviewScreenState extends ConsumerState<ReceiptReviewScreen> {
 
             // Category field
             DropdownButtonFormField<String>(
-              value: _selectedCategory,
+              initialValue: _selectedCategory,
               decoration: const InputDecoration(
                 labelText: 'Category',
               ),

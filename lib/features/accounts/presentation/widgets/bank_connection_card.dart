@@ -30,7 +30,7 @@ class BankConnectionCard extends ConsumerWidget {
                 width: AppSpacing.iconXxl,
                 height: AppSpacing.iconXxl,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                 ),
                 child: Icon(

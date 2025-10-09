@@ -52,6 +52,12 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    // Debug logging for responsiveness investigation
+    final screenSize = MediaQuery.of(context).size;
+    final screenWidth = screenSize.width;
+    final screenHeight = screenSize.height;
+    debugPrint('AddTransactionBottomSheet: Screen size: ${screenWidth}x${screenHeight}');
+
     final buttonChild = _isSubmitting
         ? SizedBox(
             width: 20,
@@ -60,17 +66,22 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
           )
         : const Text('Add Transaction');
 
-    return Container(
-        padding: AppTheme.screenPaddingAll,
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.8,
-        ),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        debugPrint('AddTransactionBottomSheet: Available width: ${constraints.maxWidth}, height: ${constraints.maxHeight}');
+        return Container(
+            padding: AppTheme.screenPaddingAll,
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.9,
+              maxWidth: MediaQuery.of(context).size.width, // Ensure it doesn't exceed screen width
+            ),
+            child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
             // Header
             Row(
               children: [
@@ -88,25 +99,28 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
             const SizedBox(height: 24),
 
             // Transaction Type Toggle
-            SegmentedButton<TransactionType>(
-              segments: [
-                ButtonSegment(
-                  value: TransactionType.expense,
-                  label: Text('Expense'),
-                  icon: Icon(Icons.remove_circle_outline),
-                ),
-                ButtonSegment(
-                  value: TransactionType.income,
-                  label: Text('Income'),
-                  icon: Icon(Icons.add_circle_outline),
-                ),
-              ],
-              selected: {_selectedType},
-              onSelectionChanged: (selected) {
-                setState(() {
-                  _selectedType = selected.first;
-                });
-              },
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SegmentedButton<TransactionType>(
+                segments: [
+                  ButtonSegment(
+                    value: TransactionType.expense,
+                    label: Text('Expense'),
+                    icon: Icon(Icons.remove_circle_outline),
+                  ),
+                  ButtonSegment(
+                    value: TransactionType.income,
+                    label: Text('Income'),
+                    icon: Icon(Icons.add_circle_outline),
+                  ),
+                ],
+                selected: {_selectedType},
+                onSelectionChanged: (selected) {
+                  setState(() {
+                    _selectedType = selected.first;
+                  });
+                },
+              ),
             ),
             const SizedBox(height: 24),
 
@@ -137,30 +151,76 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
             const SizedBox(height: 16),
 
             // Category Selection
-            DropdownButtonFormField<String>(
-              initialValue: _selectedCategoryId,
-              decoration: const InputDecoration(
-                labelText: 'Category',
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: constraints.maxWidth - (AppTheme.screenPaddingAll.horizontal * 2),
               ),
-              items: _categories.map((category) {
-                return DropdownMenuItem(
-                  value: category['id'] as String,
-                  child: Row(
-                    children: [
-                      Icon(category['icon'] as IconData, size: 20),
-                      const SizedBox(width: 8),
-                      Text(category['name'] as String),
-                    ],
+              child: DropdownButtonFormField<String>(
+                initialValue: _selectedCategoryId,
+                decoration: const InputDecoration(
+                  labelText: 'Category',
+                ),
+                items: _categories.map((category) {
+                  return DropdownMenuItem(
+                    value: category['id'] as String,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(category['icon'] as IconData, size: 20),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            category['name'] as String,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _selectedCategoryId = value;
+                    });
+                  }
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Account Selection
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: constraints.maxWidth - (AppTheme.screenPaddingAll.horizontal * 2),
+              ),
+              child: DropdownButtonFormField<String>(
+                initialValue: _selectedAccountId,
+                decoration: const InputDecoration(
+                  labelText: 'Account',
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'checking',
+                    child: Text('Checking Account'),
                   ),
-                );
-              }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _selectedCategoryId = value;
-                  });
-                }
-              },
+                  DropdownMenuItem(
+                    value: 'savings',
+                    child: Text('Savings Account'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'credit',
+                    child: Text('Credit Card'),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _selectedAccountId = value;
+                    });
+                  }
+                },
+              ),
             ),
             const SizedBox(height: 16),
 
@@ -252,8 +312,11 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
           ],
         ),
       ),
+        ),
+      );
+      },
     );
-}
+  }
 
   Future<void> _scanReceipt() async {
     // Show receipt scanning dialog

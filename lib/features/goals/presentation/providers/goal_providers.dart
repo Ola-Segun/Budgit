@@ -1,8 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/di/providers.dart' as core_providers;
 import '../../domain/entities/goal.dart';
-import '../../domain/entities/goal_contribution.dart';
 import '../../domain/repositories/goal_repository.dart';
 import '../../domain/usecases/create_goal.dart';
 import '../../domain/usecases/delete_goal.dart';

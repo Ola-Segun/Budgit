@@ -1,7 +1,6 @@
 import '../../../../core/error/failures.dart';
 import '../../../../core/error/result.dart';
 import '../entities/expense_split.dart';
-import '../entities/shared_budget.dart';
 import '../repositories/expense_split_repository.dart';
 import '../repositories/shared_budget_repository.dart';
 

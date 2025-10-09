@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import '../../../../core/error/failures.dart';
 import '../../../../core/error/result.dart';
 import '../../../transactions/domain/entities/transaction.dart';
@@ -7,35 +9,13 @@ import '../repositories/budget_repository.dart';
 
 /// Use case for calculating budget status with spending data
 class CalculateBudgetStatus {
-  const CalculateBudgetStatus(this._budgetRepository, this._transactionRepository);
+  const CalculateBudgetStatus(this._transactionRepository);
 
-  final BudgetRepository _budgetRepository;
   final TransactionRepository _transactionRepository;
 
-  /// Execute the use case
-  Future<Result<BudgetStatus>> call(String budgetId) async {
+  /// Execute the use case with a budget object
+  Future<Result<BudgetStatus>> call(Budget budget) async {
     try {
-      // Validate budget ID
-      if (budgetId.trim().isEmpty) {
-        return Result.error(Failure.validation(
-          'Budget ID cannot be empty',
-          {'budgetId': 'ID is required'},
-        ));
-      }
-
-      // Get budget
-      final budgetResult = await _budgetRepository.getById(budgetId);
-      if (budgetResult.isError) {
-        return Result.error(budgetResult.failureOrNull!);
-      }
-
-      final budget = budgetResult.dataOrNull;
-      if (budget == null) {
-        return Result.error(Failure.validation(
-          'Budget not found',
-          {'budgetId': 'Budget does not exist'},
-        ));
-      }
 
       // Calculate spending for each category
       final categoryStatuses = <CategoryStatus>[];
@@ -91,24 +71,34 @@ class CalculateBudgetStatus {
     DateTime endDate,
   ) async {
     try {
+      log('CalculateBudgetStatus: Querying transactions for category: $categoryId, date range: $startDate to $endDate');
+
       final transactionsResult = await _transactionRepository.getByCategory(categoryId);
 
       if (transactionsResult.isError) {
+        log('CalculateBudgetStatus: Error getting transactions for category $categoryId: ${transactionsResult.failureOrNull}');
         return Result.error(transactionsResult.failureOrNull!);
       }
 
-      final transactions = transactionsResult.dataOrNull ?? [];
+      final allTransactions = transactionsResult.dataOrNull ?? [];
+      log('CalculateBudgetStatus: Found ${allTransactions.length} total transactions for category $categoryId');
 
       // Filter by date range and sum expenses
-      final spending = transactions
+      final filteredTransactions = allTransactions
           .where((transaction) =>
               transaction.date.isAfter(startDate.subtract(const Duration(days: 1))) &&
               transaction.date.isBefore(endDate.add(const Duration(days: 1))) &&
               transaction.type == TransactionType.expense)
-          .fold<double>(0.0, (sum, transaction) => sum + transaction.amount);
+          .toList();
+
+      log('CalculateBudgetStatus: Found ${filteredTransactions.length} expense transactions in date range for category $categoryId');
+
+      final spending = filteredTransactions.fold<double>(0.0, (sum, transaction) => sum + transaction.amount);
+      log('CalculateBudgetStatus: Total spending for category $categoryId: \$${spending.toStringAsFixed(2)}');
 
       return Result.success(spending);
     } catch (e) {
+      log('CalculateBudgetStatus: Exception getting category spending for $categoryId: $e');
       return Result.error(Failure.unknown('Failed to get category spending: $e'));
     }
   }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../dashboard/presentation/providers/dashboard_providers.dart';
 import '../../domain/entities/bill.dart';
 import '../providers/bill_providers.dart';
 
@@ -58,18 +59,6 @@ class _BillCreationScreenState extends ConsumerState<BillCreationScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Add Bill'),
-        actions: [
-          TextButton(
-            onPressed: _isSubmitting ? null : _submitBill,
-            child: _isSubmitting
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Save'),
-          ),
-        ],
       ),
       body: Form(
         key: _formKey,
@@ -254,6 +243,33 @@ class _BillCreationScreenState extends ConsumerState<BillCreationScreen> {
               maxLength: 500,
               maxLines: 3,
             ),
+
+            const SizedBox(height: 32),
+
+            // Action Buttons
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _isSubmitting ? null : () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _isSubmitting ? null : _submitBill,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Add Bill'),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -297,6 +313,8 @@ class _BillCreationScreenState extends ConsumerState<BillCreationScreen> {
           .createBill(bill);
 
       if (success && mounted) {
+        // Invalidate dashboard to refresh data
+        ref.invalidate(dashboardDataProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Bill added successfully')),
         );

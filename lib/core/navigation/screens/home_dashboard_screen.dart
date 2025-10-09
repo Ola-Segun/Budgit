@@ -30,7 +30,7 @@ class _DashboardHeader extends StatelessWidget {
         color: Theme.of(context).scaffoldBackgroundColor,
         border: Border(
           bottom: BorderSide(
-            color: Colors.grey.withOpacity(0.2),
+            color: Colors.grey.withValues(alpha: 0.2),
             width: 1,
           ),
         ),
@@ -50,12 +50,18 @@ class _DashboardHeader extends StatelessWidget {
             children: [
               IconButton(
                 icon: const Icon(Icons.settings_outlined),
-                onPressed: () => context.go('/settings'),
+                onPressed: () {
+                  debugPrint('HomeDashboard: Navigating to settings');
+                  context.go('/more/settings');
+                },
                 tooltip: 'Settings',
               ),
               IconButton(
                 icon: const Icon(Icons.notifications_outlined),
-                onPressed: () => context.go('/notifications'),
+                onPressed: () {
+                  debugPrint('HomeDashboard: Navigating to notifications');
+                  context.go('/more/notifications');
+                },
                 tooltip: 'Notifications',
               ),
             ],
@@ -72,11 +78,10 @@ class HomeDashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    debugPrint('HomeDashboardScreen: Building dashboard');
-
     final dashboardAsync = ref.watch(dashboardDataProvider);
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Column(
           children: [
@@ -84,43 +89,50 @@ class HomeDashboardScreen extends ConsumerWidget {
             _DashboardHeader(),
             // Main content
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: dashboardAsync.when(
-                  loading: () => _DashboardSkeleton(),
-                  error: (error, stack) => Center(
-                    child: Text('Error loading dashboard: $error'),
-                  ),
-                  data: (result) {
-                    final dashboardData = result.dataOrNull;
-                    if (dashboardData == null) {
-                      return const Center(child: Text('No dashboard data available'));
-                    }
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  debugPrint('HomeDashboardScreen: Expanded constraints - $constraints');
+                  return SingleChildScrollView(
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      width: constraints.maxWidth,
+                      child: dashboardAsync.when(
+                        loading: () => _DashboardSkeleton(),
+                        error: (error, stack) => Center(
+                          child: Text('Error loading dashboard: $error'),
+                        ),
+                        data: (dashboardData) {
+                          if (dashboardData == null) {
+                            return const Center(child: Text('No dashboard data available'));
+                          }
 
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Financial Snapshot Card
-                        _FinancialSnapshotCard(snapshot: dashboardData.financialSnapshot),
-                        const SizedBox(height: 24),
-                        // Quick Actions Bar
-                        _QuickActionsBar(),
-                        const SizedBox(height: 24),
-                        // Budget Overview
-                        _BudgetOverviewWidget(budgetOverview: dashboardData.budgetOverview),
-                        const SizedBox(height: 24),
-                        // Upcoming Bills Widget
-                        _UpcomingBillsWidget(upcomingBills: dashboardData.upcomingBills),
-                        const SizedBox(height: 24),
-                        // Recent Transactions
-                        _RecentTransactionsWidget(recentTransactions: dashboardData.recentTransactions),
-                        const SizedBox(height: 24),
-                        // Insights Card
-                        _InsightsCard(insights: dashboardData.insights),
-                      ],
-                    );
-                  },
-                ),
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Financial Snapshot Card
+                              _FinancialSnapshotCard(snapshot: dashboardData.financialSnapshot),
+                              const SizedBox(height: 24),
+                              // Quick Actions Bar
+                              _QuickActionsBar(),
+                              const SizedBox(height: 24),
+                              // Budget Overview
+                              _BudgetOverviewWidget(budgetOverview: dashboardData.budgetOverview),
+                              const SizedBox(height: 24),
+                              // Upcoming Bills Widget
+                              _UpcomingBillsWidget(upcomingBills: dashboardData.upcomingBills),
+                              const SizedBox(height: 24),
+                              // Recent Transactions
+                              _RecentTransactionsWidget(recentTransactions: dashboardData.recentTransactions),
+                              const SizedBox(height: 24),
+                              // Insights Card
+                              _InsightsCard(insights: dashboardData.insights),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -131,7 +143,7 @@ class HomeDashboardScreen extends ConsumerWidget {
   }
 }
 
-/// Financial snapshot card showing spent vs budget and remaining amount
+/// Financial snapshot card showing income vs expenses and balance
 class _FinancialSnapshotCard extends StatelessWidget {
   const _FinancialSnapshotCard({required this.snapshot});
 
@@ -139,7 +151,7 @@ class _FinancialSnapshotCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final progressColor = _getProgressColor(snapshot.healthStatus);
+    print('FinancialSnapshotCard: Building with income: ${snapshot.incomeThisMonth}, expenses: ${snapshot.expensesThisMonth}, balance: ${snapshot.balanceThisMonth}');
 
     return Card(
       child: Padding(
@@ -153,27 +165,32 @@ class _FinancialSnapshotCard extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _SnapshotItem(
-                  label: 'Spent',
-                  amount: '\$${snapshot.spentThisMonth.toStringAsFixed(2)}',
-                  color: Colors.red,
+                Expanded(
+                  child: _SnapshotItem(
+                    label: 'Income',
+                    amount: '\$${snapshot.incomeThisMonth.toStringAsFixed(2)}',
+                    color: Colors.green,
+                  ),
                 ),
-                _SnapshotItem(
-                  label: 'Budget',
-                  amount: '\$${snapshot.budgetThisMonth.toStringAsFixed(2)}',
-                  color: Colors.blue,
+                Expanded(
+                  child: _SnapshotItem(
+                    label: 'Expenses',
+                    amount: '\$${snapshot.expensesThisMonth.toStringAsFixed(2)}',
+                    color: Colors.red,
+                  ),
                 ),
-                _SnapshotItem(
-                  label: 'Remaining',
-                  amount: '\$${snapshot.remainingAmount.toStringAsFixed(2)}',
-                  color: Colors.green,
+                Expanded(
+                  child: _SnapshotItem(
+                    label: 'Balance',
+                    amount: '\$${snapshot.balanceThisMonth.toStringAsFixed(2)}',
+                    color: snapshot.balanceThisMonth >= 0 ? Colors.green : Colors.red,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: AppSpacing.sm),
-            // Visual progress bar
+            // Visual progress bar showing income vs expenses
             Container(
               height: 8,
               decoration: BoxDecoration(
@@ -182,23 +199,23 @@ class _FinancialSnapshotCard extends StatelessWidget {
               ),
               child: FractionallySizedBox(
                 alignment: Alignment.centerLeft,
-                widthFactor: snapshot.progress.clamp(0.0, 1.0),
+                widthFactor: snapshot.balancePercentage.clamp(0.0, 1.0),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: progressColor,
+                    color: snapshot.isPositive ? Colors.green : Colors.red,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
-            // Large bold remaining amount
+            // Large bold balance amount
             Center(
               child: Text(
-                '\$${snapshot.remainingAmount.toStringAsFixed(2)}',
+                '\$${snapshot.balanceThisMonth.toStringAsFixed(2)}',
                 style: AppTypography.displaySmall.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: snapshot.remainingAmount >= 0 ? Colors.green : Colors.red,
+                  color: snapshot.balanceThisMonth >= 0 ? Colors.green : Colors.red,
                 ),
               ),
             ),
@@ -206,19 +223,6 @@ class _FinancialSnapshotCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Color _getProgressColor(BudgetHealthStatus status) {
-    switch (status) {
-      case BudgetHealthStatus.healthy:
-        return Colors.green;
-      case BudgetHealthStatus.warning:
-        return Colors.yellow;
-      case BudgetHealthStatus.critical:
-        return Colors.orange;
-      case BudgetHealthStatus.overBudget:
-        return Colors.red;
-    }
   }
 }
 
@@ -280,7 +284,7 @@ class _QuickActionsBar extends StatelessWidget {
                 _QuickActionButton(
                   icon: Icons.account_balance_wallet,
                   label: 'View Accounts',
-                  onPressed: () => context.go('/accounts'),
+                  onPressed: () => context.go('/more/accounts'),
                 ),
                 _QuickActionButton(
                   icon: Icons.camera_alt,
@@ -319,7 +323,7 @@ class _QuickActionButton extends StatelessWidget {
             Container(
               padding: EdgeInsets.all(AppSpacing.sm),
               decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor.withOpacity(0.1),
+                color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -416,15 +420,19 @@ class _BudgetCategoryItem extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              category,
-              style: AppTypography.bodyMedium,
+            Expanded(
+              child: Text(
+                category,
+                style: AppTypography.bodyMedium,
+              ),
             ),
             Text(
               '\$${spent.toStringAsFixed(0)} / \$${budget.toStringAsFixed(0)}',
               style: AppTypography.bodyMedium.copyWith(
                 color: status == BudgetHealthStatus.overBudget ? Colors.red : Colors.grey[600],
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -474,7 +482,7 @@ class _UpcomingBillsWidget extends StatelessWidget {
                   style: AppTypography.titleLarge,
                 ),
                 TextButton(
-                  onPressed: () => context.go('/bills'),
+                  onPressed: () => context.go('/more/bills'),
                   child: const Text('View All Bills'),
                 ),
               ],
@@ -719,7 +727,7 @@ class _TransactionTile extends ConsumerWidget {
       ),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+          backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
           child: Icon(
             isExpense ? Icons.arrow_upward : Icons.arrow_downward,
             color: amountColor,
@@ -730,8 +738,10 @@ class _TransactionTile extends ConsumerWidget {
           style: AppTypography.bodyMedium,
         ),
         subtitle: Text(
-          '${transaction.categoryId} • ${DateFormat('HH:mm').format(transaction.date)}',
+          '${transaction.categoryId ?? 'Unknown'} • ${DateFormat('HH:mm').format(transaction.date)}',
           style: AppTypography.caption.copyWith(color: Colors.grey[600]),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         trailing: Text(
           '$amountPrefix\$${transaction.amount.abs().toStringAsFixed(2)}',
@@ -739,6 +749,8 @@ class _TransactionTile extends ConsumerWidget {
             color: amountColor,
             fontWeight: FontWeight.bold,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         onTap: () => context.go('/transactions/${transaction.id}'),
       ),
@@ -801,32 +813,36 @@ class _TransactionTile extends ConsumerWidget {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: const Text('Change Category'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: categories.map((category) {
-                return RadioListTile<String>(
-                  title: Row(
-                    children: [
-                      Icon(
-                        _getIconFromCategoryId(category.id),
-                        size: 20,
-                        color: Color(category.color),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(category.name),
-                    ],
-                  ),
-                  value: category.id,
-                  groupValue: selectedCategoryId,
-                  onChanged: (value) {
-                    setState(() {
-                      selectedCategoryId = value;
-                    });
-                    Navigator.pop(context, value);
-                  },
-                );
-              }).toList(),
+          content: RadioGroup<String>(
+            groupValue: selectedCategoryId,
+            onChanged: (value) {
+              setState(() {
+                selectedCategoryId = value;
+              });
+              Navigator.pop(context, value);
+            },
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: categories.map((category) {
+                  return ListTile(
+                    title: Row(
+                      children: [
+                        Icon(
+                          _getIconFromCategoryId(category.id),
+                          size: 20,
+                          color: Color(category.color),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(category.name),
+                      ],
+                    ),
+                    leading: Radio<String>(
+                      value: category.id,
+                    ),
+                  );
+                }).toList(),
+              ),
             ),
           ),
           actions: [
@@ -958,10 +974,10 @@ class _InsightsCardState extends State<_InsightsCard> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: _getInsightColor(currentInsight.type).withOpacity(0.1),
+                color: _getInsightColor(currentInsight.type).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: _getInsightColor(currentInsight.type).withOpacity(0.3),
+                  color: _getInsightColor(currentInsight.type).withValues(alpha: 0.3),
                   width: 1,
                 ),
               ),

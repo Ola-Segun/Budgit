@@ -31,7 +31,7 @@ class ExpenseForecastCard extends ConsumerWidget {
                   width: AppSpacing.iconXxl,
                   height: AppSpacing.iconXxl,
                   decoration: BoxDecoration(
-                    color: AppColors.warning.withOpacity(0.1),
+                    color: AppColors.warning.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                   ),
                   child: Icon(
@@ -82,7 +82,7 @@ class ExpenseForecastCard extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: _getTrendColor(forecast.overallTrend).withOpacity(0.1),
+                color: _getTrendColor(forecast.overallTrend).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
               ),
               child: Row(

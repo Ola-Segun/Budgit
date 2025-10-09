@@ -32,7 +32,7 @@ class FinancialHealthScoreCard extends ConsumerWidget {
                   width: AppSpacing.iconXxl,
                   height: AppSpacing.iconXxl,
                   decoration: BoxDecoration(
-                    color: _getScoreColor(healthScore.grade).withOpacity(0.1),
+                    color: _getScoreColor(healthScore.grade).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                   ),
                   child: Icon(
@@ -66,7 +66,7 @@ class FinancialHealthScoreCard extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: _getScoreColor(healthScore.grade).withOpacity(0.1),
+                    color: _getScoreColor(healthScore.grade).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                   ),
                   child: Text(

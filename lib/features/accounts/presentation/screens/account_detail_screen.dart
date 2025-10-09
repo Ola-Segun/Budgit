@@ -420,7 +420,7 @@ class _AccountDetailScreenState extends ConsumerState<AccountDetailScreen> {
           .deleteAccount(account.id);
 
       if (success && mounted) {
-        context.go('/accounts'); // Go back to accounts list
+        context.go('/more/accounts'); // Go back to accounts list
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Account deleted successfully')),
         );

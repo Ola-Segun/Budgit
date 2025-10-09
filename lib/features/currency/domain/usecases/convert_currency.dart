@@ -1,6 +1,5 @@
 import '../../../../core/error/failures.dart';
 import '../../../../core/error/result.dart';
-import '../entities/currency.dart';
 import '../repositories/currency_repository.dart';
 
 /// Use case for converting amounts between currencies

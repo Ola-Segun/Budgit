@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../domain/entities/settings.dart';
 
 /// Settings tile for theme mode selection
 class ThemeSettingsTile extends StatelessWidget {

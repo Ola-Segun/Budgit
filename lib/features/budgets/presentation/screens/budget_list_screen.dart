@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/widgets/app_bottom_sheet.dart';
 import '../../../../core/widgets/error_view.dart';
 import '../../../../core/widgets/loading_view.dart';
 import '../../domain/entities/budget.dart';
@@ -35,8 +34,11 @@ class _BudgetListScreenState extends ConsumerState<BudgetListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('BudgetListScreen: Building screen');
     final budgetState = ref.watch(budgetNotifierProvider);
     final statsState = ref.watch(budgetStatsProvider);
+    debugPrint('BudgetListScreen: budgetState = $budgetState');
+    debugPrint('BudgetListScreen: statsState = $statsState');
 
     return Scaffold(
       appBar: AppBar(
@@ -311,130 +313,141 @@ class _BudgetFilterBottomSheetState extends State<BudgetFilterBottomSheet> {
           ),
           const SizedBox(height: 24),
 
-          // Budget Type
-          Text(
-            'Budget Type',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<BudgetType?>(
-            initialValue: _selectedType,
-            decoration: const InputDecoration(
-              labelText: 'Select Type',
+          // Make the content scrollable
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Budget Type
+                  Text(
+                    'Budget Type',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<BudgetType?>(
+                    initialValue: _selectedType,
+                    decoration: const InputDecoration(
+                      labelText: 'Select Type',
+                    ),
+                    items: [
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text('All Types'),
+                      ),
+                      ...BudgetType.values.map((type) {
+                        return DropdownMenuItem(
+                          value: type,
+                          child: Text(type.displayName),
+                        );
+                      }),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedType = value;
+                      });
+                    },
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Active Status
+                  Text(
+                    'Status',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  SegmentedButton<bool?>(
+                    segments: const [
+                      ButtonSegment(
+                        value: null,
+                        label: Text('All'),
+                      ),
+                      ButtonSegment(
+                        value: true,
+                        label: Text('Active'),
+                      ),
+                      ButtonSegment(
+                        value: false,
+                        label: Text('Inactive'),
+                      ),
+                    ],
+                    selected: {_isActive},
+                    onSelectionChanged: (selected) {
+                      setState(() {
+                        _isActive = selected.first;
+                      });
+                    },
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Date Range
+                  Text(
+                    'Date Range',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final date = await showDatePicker(
+                              context: context,
+                              initialDate: _startDate ?? DateTime.now(),
+                              firstDate: DateTime(2000),
+                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                            );
+                            if (date != null) {
+                              setState(() {
+                                _startDate = date;
+                              });
+                            }
+                          },
+                          icon: const Icon(Icons.calendar_today),
+                          label: Text(
+                            _startDate != null
+                                ? DateFormat('MMM dd, yyyy').format(_startDate!)
+                                : 'Start Date',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final date = await showDatePicker(
+                              context: context,
+                              initialDate: _endDate ?? DateTime.now(),
+                              firstDate: DateTime(2000),
+                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                            );
+                            if (date != null) {
+                              setState(() {
+                                _endDate = date;
+                              });
+                            }
+                          },
+                          icon: const Icon(Icons.calendar_today),
+                          label: Text(
+                            _endDate != null
+                                ? DateFormat('MMM dd, yyyy').format(_endDate!)
+                                : 'End Date',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 32),
+                ],
+              ),
             ),
-            items: [
-              const DropdownMenuItem(
-                value: null,
-                child: Text('All Types'),
-              ),
-              ...BudgetType.values.map((type) {
-                return DropdownMenuItem(
-                  value: type,
-                  child: Text(type.displayName),
-                );
-              }),
-            ],
-            onChanged: (value) {
-              setState(() {
-                _selectedType = value;
-              });
-            },
           ),
 
-          const SizedBox(height: 24),
-
-          // Active Status
-          Text(
-            'Status',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          SegmentedButton<bool?>(
-            segments: const [
-              ButtonSegment(
-                value: null,
-                label: Text('All'),
-              ),
-              ButtonSegment(
-                value: true,
-                label: Text('Active'),
-              ),
-              ButtonSegment(
-                value: false,
-                label: Text('Inactive'),
-              ),
-            ],
-            selected: {_isActive},
-            onSelectionChanged: (selected) {
-              setState(() {
-                _isActive = selected.first;
-              });
-            },
-          ),
-
-          const SizedBox(height: 24),
-
-          // Date Range
-          Text(
-            'Date Range',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: _startDate ?? DateTime.now(),
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime.now().add(const Duration(days: 365)),
-                    );
-                    if (date != null) {
-                      setState(() {
-                        _startDate = date;
-                      });
-                    }
-                  },
-                  icon: const Icon(Icons.calendar_today),
-                  label: Text(
-                    _startDate != null
-                        ? DateFormat('MMM dd, yyyy').format(_startDate!)
-                        : 'Start Date',
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: _endDate ?? DateTime.now(),
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime.now().add(const Duration(days: 365)),
-                    );
-                    if (date != null) {
-                      setState(() {
-                        _endDate = date;
-                      });
-                    }
-                  },
-                  icon: const Icon(Icons.calendar_today),
-                  label: Text(
-                    _endDate != null
-                        ? DateFormat('MMM dd, yyyy').format(_endDate!)
-                        : 'End Date',
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 32),
-
-          // Action Buttons
+          // Action Buttons (fixed at bottom)
           Row(
             children: [
               Expanded(

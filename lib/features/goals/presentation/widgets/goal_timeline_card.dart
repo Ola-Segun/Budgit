@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/goal.dart';
 
 /// Card widget displaying goal timeline and deadline information
@@ -47,7 +46,7 @@ class GoalTimelineCard extends StatelessWidget {
             Container(
               height: 4,
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceVariant,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(2),
               ),
               child: FractionallySizedBox(
@@ -79,7 +78,7 @@ class GoalTimelineCard extends StatelessWidget {
                 Expanded(
                   child: Container(
                     height: 1,
-                    color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                    color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
                   ),
                 ),
                 _buildTimelineMarker(
@@ -138,12 +137,14 @@ class GoalTimelineCard extends StatelessWidget {
               ),
             ],
 
-            if (!isCompleted && goal.projectedCompletionDate != null) ...[
+            if (!isCompleted) ...[
               const SizedBox(height: 8),
               _buildStatusRow(
                 context,
                 'Projected Completion',
-                DateFormat('MMM dd, yyyy').format(goal.projectedCompletionDate!),
+                goal.projectedCompletionDate != null
+                    ? DateFormat('MMM dd, yyyy').format(goal.projectedCompletionDate!)
+                    : 'N/A',
                 Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ],

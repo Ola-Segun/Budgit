@@ -13,6 +13,13 @@ class SettingsHiveDataSource {
 
   /// Initialize the data source
   Future<void> init() async {
+    // Register adapter if not already registered
+    if (!Hive.isAdapterRegistered(100)) {
+      print('DEBUG: Registering SettingsDtoAdapter');
+      Hive.registerAdapter(SettingsDtoAdapter());
+    } else {
+      print('DEBUG: SettingsDtoAdapter already registered');
+    }
     _settingsBox = await Hive.openBox<SettingsDto>(_settingsBoxName);
   }
 

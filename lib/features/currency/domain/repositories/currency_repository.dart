@@ -1,6 +1,5 @@
 import '../../../../core/error/result.dart';
 import '../entities/currency.dart';
-import '../entities/currency.dart' as currency_entities;
 
 abstract class CurrencyRepository {
   /// Get all available currencies

@@ -2,7 +2,6 @@ import '../../../../core/error/failures.dart';
 import '../../../../core/error/result.dart';
 import '../../../bills/domain/entities/bill.dart';
 import '../../../bills/domain/repositories/bill_repository.dart';
-import '../../../settings/domain/entities/settings.dart';
 import '../../../settings/domain/repositories/settings_repository.dart';
 import '../entities/notification.dart';
 

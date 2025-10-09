@@ -1,8 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 
 import '../../../../core/error/failures.dart';
 import '../../../../core/error/result.dart';
 import '../../../../core/storage/hive_storage.dart';
+import '../../../transactions/domain/entities/transaction.dart';
+import '../../../transactions/domain/repositories/transaction_repository.dart';
 import '../models/bill_dto.dart';
 import '../../domain/entities/bill.dart';
 
@@ -14,40 +17,57 @@ class BillHiveDataSource {
 
   /// Initialize the data source
   Future<void> init() async {
-    // Wait for Hive to be initialized
-    await HiveStorage.init();
+    try {
+      debugPrint('BillHiveDataSource: Starting initialization...');
 
-    // Register adapters if not already registered
-    if (!Hive.isAdapterRegistered(6)) {
-      Hive.registerAdapter(BillDtoAdapter());
-    }
-    if (!Hive.isAdapterRegistered(7)) {
-      Hive.registerAdapter(BillPaymentDtoAdapter());
-    }
+      // Wait for Hive to be initialized
+      await HiveStorage.init();
+      debugPrint('BillHiveDataSource: Hive storage initialized');
 
-    // Handle box opening with proper type checking
-    if (!Hive.isBoxOpen(_boxName)) {
-      _box = await Hive.openBox<BillDto>(_boxName);
-    } else {
-      try {
-        _box = Hive.box<BillDto>(_boxName);
-      } catch (e) {
-        // If the box is already open with wrong type, close and reopen
-        if (e.toString().contains('Box<dynamic>')) {
-          await Hive.box(_boxName).close();
-          _box = await Hive.openBox<BillDto>(_boxName);
-        } else {
-          rethrow;
+      // Register adapters if not already registered
+      if (!Hive.isAdapterRegistered(6)) {
+        Hive.registerAdapter(BillDtoAdapter());
+        debugPrint('BillHiveDataSource: BillDtoAdapter registered');
+      }
+      if (!Hive.isAdapterRegistered(7)) {
+        Hive.registerAdapter(BillPaymentDtoAdapter());
+        debugPrint('BillHiveDataSource: BillPaymentDtoAdapter registered');
+      }
+
+      // Handle box opening with proper type checking
+      if (!Hive.isBoxOpen(_boxName)) {
+        debugPrint('BillHiveDataSource: Opening new box $_boxName');
+        _box = await Hive.openBox<BillDto>(_boxName);
+      } else {
+        debugPrint('BillHiveDataSource: Box $_boxName already open, getting reference');
+        try {
+          _box = Hive.box<BillDto>(_boxName);
+        } catch (e) {
+          // If the box is already open with wrong type, close and reopen
+          debugPrint('BillHiveDataSource: Box type mismatch, reopening: $e');
+          if (e.toString().contains('Box<dynamic>')) {
+            await Hive.box(_boxName).close();
+            _box = await Hive.openBox<BillDto>(_boxName);
+          } else {
+            rethrow;
+          }
         }
       }
+
+      debugPrint('BillHiveDataSource: Initialization completed successfully, _box is null: ${_box == null}');
+    } catch (e) {
+      debugPrint('BillHiveDataSource: Initialization failed: $e');
+      rethrow;
     }
   }
 
   /// Get all bills
   Future<Result<List<Bill>>> getAll() async {
     try {
+      // Initialize if not already done
       if (_box == null) {
-        return Result.error(Failure.cache('Data source not initialized'));
+        debugPrint('BillHiveDataSource: getAll called but _box is null - initializing data source');
+        await init();
       }
 
       final dtos = _box!.values.toList();
@@ -229,7 +249,7 @@ class BillHiveDataSource {
   }
 
   /// Mark bill as paid
-  Future<Result<Bill>> markAsPaid(String billId, BillPayment payment) async {
+  Future<Result<Bill>> markAsPaid(String billId, BillPayment payment, TransactionRepository transactionRepository) async {
     try {
       if (_box == null) {
         return Result.error(Failure.cache('Data source not initialized'));
@@ -258,6 +278,36 @@ class BillHiveDataSource {
       }
 
       await _box!.put(billId, dto);
+
+      // Create corresponding expense transaction
+      // Note: Transaction creation failure should not fail the bill payment
+      try {
+        final transaction = Transaction(
+          id: 'bill_${billId}_${payment.id}',
+          title: dto.name,
+          amount: payment.amount,
+          type: TransactionType.expense,
+          date: payment.paymentDate,
+          categoryId: 'utilities', // Use utilities category for bills
+          accountId: dto.accountId ?? 'default', // Use bill's account or default
+          description: 'Bill payment: ${dto.name}',
+        );
+
+        final transactionResult = await transactionRepository.add(transaction);
+        if (transactionResult.isSuccess) {
+          // Update payment with transaction ID for reference
+          final paymentIndex = dto.paymentHistory!.indexWhere((p) => p.id == payment.id);
+          if (paymentIndex != -1) {
+            dto.paymentHistory![paymentIndex].transactionId = transaction.id;
+            await _box!.put(billId, dto);
+          }
+        }
+        // If transaction creation fails, we still succeed with bill payment
+        // The transaction will be missing but bill is marked as paid
+      } catch (e) {
+        // Log error but don't fail the bill payment
+        // Transaction can be created manually later if needed
+      }
 
       return Result.success(dto.toDomain());
     } catch (e) {

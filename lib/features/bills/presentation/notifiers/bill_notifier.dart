@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/bill.dart';
 import '../../domain/usecases/calculate_bills_summary.dart';
 import '../../domain/usecases/create_bill.dart';
+import '../../domain/usecases/delete_bill.dart';
 import '../../domain/usecases/get_bills.dart';
+import '../../domain/usecases/get_upcoming_bills.dart';
+import '../../domain/usecases/mark_bill_as_paid.dart';
 import '../../domain/usecases/update_bill.dart';
 import '../states/bill_state.dart';
 
@@ -128,7 +131,7 @@ class BillNotifier extends StateNotifier<BillState> {
   Future<void> loadUpcomingBills({int days = 30}) async {
     state = const BillState.loading();
 
-    final result = await _getUpcomingBills(days: days);
+    final result = await _getUpcomingBills(daysAhead: days);
 
     result.when(
       success: (bills) {

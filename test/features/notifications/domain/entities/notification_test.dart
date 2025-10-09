@@ -137,7 +137,7 @@ void main() {
       // Assert
       expect(timeUntil, isNotNull);
       expect(timeUntil!.inHours, greaterThanOrEqualTo(1));
-      expect(timeUntil!.inHours, lessThanOrEqualTo(2));
+      expect(timeUntil.inHours, lessThanOrEqualTo(2));
       expect(noTime, isNull);
     });
 

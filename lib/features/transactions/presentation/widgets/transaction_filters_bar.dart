@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
-import '../../../../core/theme/app_spacing.dart';
 import '../../../accounts/domain/entities/account.dart';
 import '../../../accounts/presentation/providers/account_providers.dart';
 import '../../domain/entities/transaction.dart';
 import '../../domain/entities/transaction_filter.dart';
 import '../providers/transaction_providers.dart';
-import '../states/transaction_state.dart';
 
-/// Horizontal scrollable filters bar for transactions
+/// Responsive horizontal scrollable filters bar for transactions
 class TransactionFiltersBar extends ConsumerStatefulWidget {
   const TransactionFiltersBar({super.key});
 
@@ -33,40 +30,85 @@ class _TransactionFiltersBarState extends ConsumerState<TransactionFiltersBar> {
     final categories = ref.watch(transactionCategoriesProvider);
     final accounts = ref.watch(filteredAccountsProvider);
     final currentFilter = ref.watch(transactionNotifierProvider).value?.filter;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Use wrap layout for very small screens
+    if (screenWidth < 360) {
+      return _buildWrapLayout(categories, accounts, currentFilter);
+    }
 
     return Container(
-      height: 50,
+      width: double.infinity,
+      constraints: const BoxConstraints(minHeight: 50),
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ListView(
+      child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
+        child: IntrinsicHeight(
+          child: Row(
+            children: [
+              // Search
+              _buildSearchField(),
+              const SizedBox(width: 8),
+
+              // All Accounts
+              _buildAccountsDropdown(accounts),
+              const SizedBox(width: 8),
+
+              // Date Range
+              _buildDateRangePicker(),
+              const SizedBox(width: 8),
+
+              // Categories
+              _buildCategoriesFilter(categories),
+              const SizedBox(width: 8),
+
+              // Amount Range
+              _buildAmountRangeFilter(),
+              const SizedBox(width: 8),
+
+              // Clear Filters
+              if (currentFilter != null && currentFilter.isNotEmpty)
+                _buildClearFiltersButton(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Wrap layout for very small screens
+  Widget _buildWrapLayout(
+    List<TransactionCategory> categories,
+    AsyncValue<List<Account>> accounts,
+    TransactionFilter? currentFilter,
+  ) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
         children: [
           // Search
-          _buildSearchField(),
-
-          const SizedBox(width: 8),
+          SizedBox(
+            width: _isSearchExpanded ? double.infinity : 48,
+            child: _buildSearchField(),
+          ),
 
           // All Accounts
-          _buildAccountsDropdown(accounts),
-
-          const SizedBox(width: 8),
+          if (!_isSearchExpanded) _buildAccountsDropdown(accounts),
 
           // Date Range
-          _buildDateRangePicker(),
-
-          const SizedBox(width: 8),
+          if (!_isSearchExpanded) _buildDateRangePicker(),
 
           // Categories
-          _buildCategoriesFilter(categories),
-
-          const SizedBox(width: 8),
+          if (!_isSearchExpanded) _buildCategoriesFilter(categories),
 
           // Amount Range
-          _buildAmountRangeFilter(),
-
-          const SizedBox(width: 8),
+          if (!_isSearchExpanded) _buildAmountRangeFilter(),
 
           // Clear Filters
-          if (currentFilter != null && !currentFilter.isEmpty)
+          if (!_isSearchExpanded && currentFilter != null && currentFilter.isNotEmpty)
             _buildClearFiltersButton(),
         ],
       ),
@@ -74,71 +116,112 @@ class _TransactionFiltersBarState extends ConsumerState<TransactionFiltersBar> {
   }
 
   Widget _buildSearchField() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    
     if (_isSearchExpanded) {
+      // Calculate responsive width
+      final expandedWidth = screenWidth < 360 
+          ? screenWidth - 32 // Full width minus padding on small screens
+          : screenWidth < 400 
+              ? 160.0 
+              : screenWidth < 600 
+                  ? 200.0 
+                  : 250.0;
+      
       return SizedBox(
-        width: 200,
-        child: TextField(
-          controller: _searchController,
-          decoration: InputDecoration(
-            hintText: 'Search...',
-            prefixIcon: const Icon(Icons.search, size: 20),
-            suffixIcon: IconButton(
-              icon: const Icon(Icons.close, size: 20),
-              onPressed: () {
-                setState(() {
-                  _isSearchExpanded = false;
-                  _searchController.clear();
-                });
-                ref.read(transactionNotifierProvider.notifier).clearSearch();
-              },
+        width: expandedWidth,
+        height: 48,
+        child: Material(
+          child: TextField(
+            controller: _searchController,
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: 'Search...',
+              hintStyle: const TextStyle(fontSize: 14),
+              prefixIcon: const Icon(Icons.search, size: 18),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.close, size: 18),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () {
+                  setState(() {
+                    _isSearchExpanded = false;
+                    _searchController.clear();
+                  });
+                  ref.read(transactionNotifierProvider.notifier).clearSearch();
+                },
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              isDense: true,
             ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            style: const TextStyle(fontSize: 14),
+            onChanged: (query) {
+              ref.read(transactionNotifierProvider.notifier).searchTransactions(query);
+            },
           ),
-          onChanged: (query) {
-            ref.read(transactionNotifierProvider.notifier).searchTransactions(query);
-          },
         ),
       );
     } else {
-      return IconButton(
-        icon: const Icon(Icons.search),
-        onPressed: () {
-          setState(() {
-            _isSearchExpanded = true;
-          });
-        },
-        style: IconButton.styleFrom(
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          side: BorderSide(color: Theme.of(context).colorScheme.outline),
+      return SizedBox(
+        width: 48,
+        height: 48,
+        child: IconButton(
+          icon: const Icon(Icons.search, size: 20),
+          onPressed: () {
+            setState(() {
+              _isSearchExpanded = true;
+            });
+          },
+          style: IconButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            side: BorderSide(color: Theme.of(context).colorScheme.outline),
+            padding: EdgeInsets.zero,
+          ),
         ),
       );
     }
   }
 
   Widget _buildAccountsDropdown(AsyncValue<List<Account>> accounts) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final dropdownWidth = screenWidth < 360 
+        ? 100.0 
+        : screenWidth < 400 
+            ? 110.0 
+            : 130.0;
+    
     return accounts.when(
       data: (accountsList) => SizedBox(
-        width: 120,
+        width: dropdownWidth,
+        height: 48,
         child: DropdownButtonFormField<String?>(
           isDense: true,
+          isExpanded: true,
           decoration: InputDecoration(
             labelText: 'Account',
+            labelStyle: const TextStyle(fontSize: 12),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            isDense: true,
           ),
+          style: const TextStyle(fontSize: 12),
           items: [
             const DropdownMenuItem(
               value: null,
-              child: Text('All Accounts', style: TextStyle(fontSize: 12)),
+              child: Text('All', style: TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
             ),
             ...accountsList.map((account) => DropdownMenuItem(
               value: account.id,
-              child: Text(account.name, style: const TextStyle(fontSize: 12)),
+              child: Text(
+                account.name, 
+                style: const TextStyle(fontSize: 12),
+                overflow: TextOverflow.ellipsis,
+              ),
             )),
           ],
           onChanged: (value) {
@@ -149,57 +232,85 @@ class _TransactionFiltersBarState extends ConsumerState<TransactionFiltersBar> {
           },
         ),
       ),
-      loading: () => const SizedBox(width: 120, child: CircularProgressIndicator()),
-      error: (error, stack) => const SizedBox(width: 120, child: Icon(Icons.error)),
+      loading: () => SizedBox(
+        width: dropdownWidth, 
+        height: 48,
+        child: const Center(child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        )),
+      ),
+      error: (error, stack) => SizedBox(
+        width: dropdownWidth, 
+        height: 48,
+        child: const Icon(Icons.error, size: 20),
+      ),
     );
   }
 
   Widget _buildDateRangePicker() {
-    return OutlinedButton.icon(
-      onPressed: () => _showDateRangePicker(),
-      icon: const Icon(Icons.date_range, size: 16),
-      label: const Text('Date', style: TextStyle(fontSize: 12)),
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+    return SizedBox(
+      height: 48,
+      child: OutlinedButton.icon(
+        onPressed: () => _showDateRangePicker(),
+        icon: const Icon(Icons.date_range, size: 16),
+        label: const Text('Date', style: TextStyle(fontSize: 12)),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          minimumSize: const Size(0, 48),
+        ),
       ),
     );
   }
 
   Widget _buildCategoriesFilter(List<TransactionCategory> categories) {
-    return OutlinedButton.icon(
-      onPressed: () => _showCategoriesMultiSelect(categories),
-      icon: const Icon(Icons.category, size: 16),
-      label: const Text('Categories', style: TextStyle(fontSize: 12)),
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+    return SizedBox(
+      height: 48,
+      child: OutlinedButton.icon(
+        onPressed: () => _showCategoriesMultiSelect(categories),
+        icon: const Icon(Icons.category, size: 16),
+        label: const Text('Category', style: TextStyle(fontSize: 12)),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          minimumSize: const Size(0, 48),
+        ),
       ),
     );
   }
 
   Widget _buildAmountRangeFilter() {
-    return OutlinedButton.icon(
-      onPressed: () => _showAmountRangePicker(),
-      icon: const Icon(Icons.attach_money, size: 16),
-      label: const Text('Amount', style: TextStyle(fontSize: 12)),
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+    return SizedBox(
+      height: 48,
+      child: OutlinedButton.icon(
+        onPressed: () => _showAmountRangePicker(),
+        icon: const Icon(Icons.attach_money, size: 16),
+        label: const Text('Amount', style: TextStyle(fontSize: 12)),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          minimumSize: const Size(0, 48),
+        ),
       ),
     );
   }
 
   Widget _buildClearFiltersButton() {
-    return TextButton.icon(
-      onPressed: () {
-        ref.read(transactionNotifierProvider.notifier).clearFilter();
-        setState(() {
-          _isSearchExpanded = false;
-          _searchController.clear();
-        });
-      },
-      icon: const Icon(Icons.clear, size: 16),
-      label: const Text('Clear', style: TextStyle(fontSize: 12)),
-      style: TextButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+    return SizedBox(
+      height: 48,
+      child: TextButton.icon(
+        onPressed: () {
+          ref.read(transactionNotifierProvider.notifier).clearFilter();
+          setState(() {
+            _isSearchExpanded = false;
+            _searchController.clear();
+          });
+        },
+        icon: const Icon(Icons.clear, size: 16),
+        label: const Text('Clear', style: TextStyle(fontSize: 12)),
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          minimumSize: const Size(0, 48),
+        ),
       ),
     );
   }
@@ -215,7 +326,7 @@ class _TransactionFiltersBarState extends ConsumerState<TransactionFiltersBar> {
       ),
     );
 
-    if (picked != null) {
+    if (picked != null && mounted) {
       final currentFilter = ref.read(transactionNotifierProvider).value?.filter;
       final newFilter = currentFilter?.copyWith(
         startDate: picked.start,
@@ -227,20 +338,25 @@ class _TransactionFiltersBarState extends ConsumerState<TransactionFiltersBar> {
 
   void _showCategoriesMultiSelect(List<TransactionCategory> categories) {
     final currentFilter = ref.read(transactionNotifierProvider).value?.filter;
-    final selectedIds = currentFilter?.categoryIds ?? [];
+    final selectedIds = List<String>.from(currentFilter?.categoryIds ?? []);
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: const Text('Select Categories'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: categories.map((category) {
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: categories.length,
+              itemBuilder: (context, index) {
+                final category = categories[index];
                 final isSelected = selectedIds.contains(category.id);
                 return CheckboxListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                   title: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         _getIconFromString(category.icon),
@@ -248,7 +364,12 @@ class _TransactionFiltersBarState extends ConsumerState<TransactionFiltersBar> {
                         color: Color(category.color),
                       ),
                       const SizedBox(width: 8),
-                      Text(category.name),
+                      Expanded(
+                        child: Text(
+                          category.name,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ],
                   ),
                   value: isSelected,
@@ -262,7 +383,7 @@ class _TransactionFiltersBarState extends ConsumerState<TransactionFiltersBar> {
                     });
                   },
                 );
-              }).toList(),
+              },
             ),
           ),
           actions: [
@@ -297,24 +418,27 @@ class _TransactionFiltersBarState extends ConsumerState<TransactionFiltersBar> {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: const Text('Amount Range'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Min: \$${minAmount.toStringAsFixed(0)}'),
-              Slider(
-                value: minAmount,
-                min: 0,
-                max: 10000,
-                onChanged: (value) => setState(() => minAmount = value),
-              ),
-              Text('Max: \$${maxAmount.toStringAsFixed(0)}'),
-              Slider(
-                value: maxAmount,
-                min: 0,
-                max: 10000,
-                onChanged: (value) => setState(() => maxAmount = value),
-              ),
-            ],
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Min: \$${minAmount.toStringAsFixed(0)}'),
+                Slider(
+                  value: minAmount,
+                  min: 0,
+                  max: 10000,
+                  onChanged: (value) => setState(() => minAmount = value),
+                ),
+                const SizedBox(height: 16),
+                Text('Max: \$${maxAmount.toStringAsFixed(0)}'),
+                Slider(
+                  value: maxAmount,
+                  min: 0,
+                  max: 10000,
+                  onChanged: (value) => setState(() => maxAmount = value),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(

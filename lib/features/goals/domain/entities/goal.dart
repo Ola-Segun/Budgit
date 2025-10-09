@@ -59,8 +59,16 @@ class Goal with _$Goal {
     final daysRemaining = deadline.difference(DateTime.now()).inDays;
     if (daysRemaining <= 0) return null;
 
-    final dailyRate = currentAmount / (DateTime.now().difference(createdAt).inDays + 1);
+    final daysPassed = DateTime.now().difference(createdAt).inDays + 1;
+    final dailyRate = currentAmount / daysPassed;
+
+    // If no progress has been made (dailyRate <= 0), cannot project completion
+    if (dailyRate <= 0) return null;
+
     final projectedDays = remaining / dailyRate;
+
+    // Ensure projectedDays is finite and reasonable
+    if (!projectedDays.isFinite || projectedDays < 0) return null;
 
     return DateTime.now().add(Duration(days: projectedDays.round()));
   }

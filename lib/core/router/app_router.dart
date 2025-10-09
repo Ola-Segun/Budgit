@@ -10,6 +10,7 @@ import '../../features/budgets/presentation/screens/budget_creation_screen.dart'
 import '../../features/budgets/presentation/screens/budget_detail_screen.dart';
 import '../../features/bills/presentation/screens/bills_dashboard_screen.dart';
 import '../../features/bills/presentation/screens/bill_creation_screen.dart';
+import '../../features/bills/presentation/screens/bill_detail_screen.dart';
 import '../../features/goals/presentation/screens/goals_list_screen.dart';
 import '../../features/goals/presentation/screens/goal_creation_screen.dart';
 import '../../features/goals/presentation/screens/goal_detail_screen.dart';
@@ -23,6 +24,7 @@ import '../../features/accounts/presentation/screens/account_detail_screen.dart'
 import '../../features/accounts/presentation/screens/bank_connection_screen.dart';
 import '../../features/notifications/presentation/screens/notification_center_screen.dart';
 import '../../features/settings/presentation/screens/help_center_screen.dart';
+import '../../features/debt/presentation/screens/debt_dashboard_screen.dart';
 import '../widgets/app_bottom_sheet.dart';
 import '../navigation/main_navigation_scaffold.dart';
 import '../navigation/screens/home_dashboard_screen.dart';
@@ -32,6 +34,7 @@ import '../navigation/screens/more_menu_screen.dart';
 class AppRouter {
   static final GoRouter router = GoRouter(
     initialLocation: '/',
+    debugLogDiagnostics: true, // Enable debug logging
     routes: [
       ShellRoute(
         builder: (context, state, child) => MainNavigationScaffold(child: child),
@@ -138,7 +141,18 @@ class AppRouter {
                     path: 'add',
                     builder: (context, state) => const _AddBillScreen(),
                   ),
+                  GoRoute(
+                    path: ':id',
+                    builder: (context, state) {
+                      final id = state.pathParameters['id']!;
+                      return _BillDetailScreen(id: id);
+                    },
+                  ),
                 ],
+              ),
+              GoRoute(
+                path: 'debt',
+                builder: (context, state) => const _DebtScreen(),
               ),
               GoRoute(
                 path: 'insights',
@@ -259,6 +273,17 @@ class _AddBillScreen extends ConsumerWidget {
   }
 }
 
+class _BillDetailScreen extends StatelessWidget {
+  const _BillDetailScreen({required this.id});
+
+  final String id;
+
+  @override
+  Widget build(BuildContext context) {
+    return BillDetailScreen(billId: id);
+  }
+}
+
 class _InsightsScreen extends ConsumerWidget {
   const _InsightsScreen();
 
@@ -321,6 +346,15 @@ class _BankConnectionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const BankConnectionScreen();
+  }
+}
+
+class _DebtScreen extends ConsumerWidget {
+  const _DebtScreen();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return const DebtDashboardScreen();
   }
 }
 

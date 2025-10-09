@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/budget.dart';
@@ -47,7 +48,7 @@ class BudgetNotifier extends StateNotifier<AsyncValue<BudgetState>> {
         final budgetStatuses = <BudgetStatus>[];
 
         for (final budget in activeBudgets) {
-          final statusResult = await _calculateBudgetStatus(budget.id);
+          final statusResult = await _calculateBudgetStatus(budget);
           statusResult.when(
             success: (status) => budgetStatuses.add(status),
             error: (_) {}, // Skip failed status calculations
@@ -77,7 +78,7 @@ class BudgetNotifier extends StateNotifier<AsyncValue<BudgetState>> {
         final budgetStatuses = <BudgetStatus>[];
 
         for (final budget in activeBudgets) {
-          final statusResult = await _calculateBudgetStatus(budget.id);
+          final statusResult = await _calculateBudgetStatus(budget);
           statusResult.when(
             success: (status) => budgetStatuses.add(status),
             error: (_) {}, // Skip failed status calculations
@@ -191,7 +192,13 @@ class BudgetNotifier extends StateNotifier<AsyncValue<BudgetState>> {
 
   /// Get budget status for a specific budget
   Future<BudgetStatus?> getBudgetStatus(String budgetId) async {
-    final result = await _calculateBudgetStatus(budgetId);
+    // Get budget first
+    final budgets = state.value?.budgets ?? [];
+    final budget = budgets.where((b) => b.id == budgetId).firstOrNull;
+
+    if (budget == null) return null;
+
+    final result = await _calculateBudgetStatus(budget);
 
     return result.when(
       success: (status) => status,

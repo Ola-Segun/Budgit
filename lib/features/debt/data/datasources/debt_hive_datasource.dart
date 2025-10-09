@@ -1,6 +1,5 @@
 import 'package:hive/hive.dart';
 
-import '../../../../core/error/failures.dart';
 import '../models/debt_dto.dart';
 
 /// Hive data source for debt operations

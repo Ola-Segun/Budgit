@@ -1,8 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import '../../../../core/error/result.dart';
 import '../../../bills/domain/entities/bill.dart';
-import '../../../budgets/domain/entities/budget.dart';
 import '../../../insights/domain/entities/insight.dart';
 import '../../../transactions/domain/entities/transaction.dart';
 
@@ -23,24 +21,22 @@ class DashboardData with _$DashboardData {
   const DashboardData._();
 }
 
-/// Financial snapshot showing current month spending vs budget
+/// Financial snapshot showing current month income vs expenses
 @freezed
 class FinancialSnapshot with _$FinancialSnapshot {
   const factory FinancialSnapshot({
-    required double spentThisMonth,
-    required double budgetThisMonth,
-    required double remainingAmount,
-    required double progressPercentage,
-    required BudgetHealthStatus healthStatus,
+    required double incomeThisMonth,
+    required double expensesThisMonth,
+    required double balanceThisMonth,
   }) = _FinancialSnapshot;
 
   const FinancialSnapshot._();
 
-  /// Calculate remaining amount
-  double get remaining => budgetThisMonth - spentThisMonth;
+  /// Check if balance is positive (surplus)
+  bool get isPositive => balanceThisMonth >= 0;
 
-  /// Calculate progress percentage (0.0 to 1.0)
-  double get progress => progressPercentage.clamp(0.0, 1.0);
+  /// Calculate balance percentage relative to income
+  double get balancePercentage => incomeThisMonth > 0 ? (balanceThisMonth / incomeThisMonth) : 0.0;
 }
 
 /// Budget category overview for dashboard

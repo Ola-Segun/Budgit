@@ -2,13 +2,15 @@ import '../../../../core/error/failures.dart';
 import '../../../../core/error/result.dart';
 import '../../domain/entities/budget.dart';
 import '../../domain/repositories/budget_repository.dart';
+import '../../domain/usecases/calculate_budget_status.dart';
 import '../datasources/budget_hive_datasource.dart';
 
 /// Implementation of BudgetRepository using Hive data source
 class BudgetRepositoryImpl implements BudgetRepository {
-  const BudgetRepositoryImpl(this._dataSource);
+  const BudgetRepositoryImpl(this._dataSource, this._calculateBudgetStatus);
 
   final BudgetHiveDataSource _dataSource;
+  final CalculateBudgetStatus _calculateBudgetStatus;
 
   @override
   Future<Result<List<Budget>>> getAll() => _dataSource.getAll();
@@ -34,11 +36,8 @@ class BudgetRepositoryImpl implements BudgetRepository {
 
   @override
   Future<Result<BudgetStatus>> getBudgetStatus(String budgetId) async {
-    // This is a complex operation that requires transaction data
-    // For now, return a basic implementation
-    // In a full implementation, this would calculate spending vs budget
+    // Get budget first, then calculate status
     final budgetResult = await _dataSource.getById(budgetId);
-
     if (budgetResult.isError) {
       return Result.error(budgetResult.failureOrNull!);
     }
@@ -51,25 +50,8 @@ class BudgetRepositoryImpl implements BudgetRepository {
       ));
     }
 
-    // TODO: Calculate actual spending from transactions
-    // For now, return a placeholder status
-    final status = BudgetStatus(
-      budget: budget,
-      totalSpent: 0.0, // Would be calculated from transactions
-      totalBudget: budget.totalBudget,
-      categoryStatuses: budget.categories.map((category) {
-        return CategoryStatus(
-          categoryId: category.id,
-          spent: 0.0, // Would be calculated from transactions
-          budget: category.amount,
-          percentage: 0.0,
-          status: BudgetHealth.healthy,
-        );
-      }).toList(),
-      daysRemaining: budget.remainingDays,
-    );
-
-    return Result.success(status);
+    // Use the CalculateBudgetStatus use case for proper spending calculation
+    return _calculateBudgetStatus(budget);
   }
 
   @override

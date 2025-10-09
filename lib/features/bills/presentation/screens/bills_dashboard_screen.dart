@@ -8,6 +8,7 @@ import '../../../../core/widgets/error_view.dart';
 import '../../../../core/widgets/loading_view.dart';
 import '../../domain/entities/bill.dart';
 import '../providers/bill_providers.dart';
+import '../widgets/bill_card.dart';
 
 /// Dashboard screen for bills and subscriptions management
 class BillsDashboardScreen extends ConsumerWidget {
@@ -36,6 +37,7 @@ class BillsDashboardScreen extends ConsumerWidget {
         loading: () => const LoadingView(),
         loaded: (bills, loadedSummary) => _buildDashboard(
           context,
+          ref,
           loadedSummary,
           upcomingBills,
           overdueCount,
@@ -55,6 +57,7 @@ class BillsDashboardScreen extends ConsumerWidget {
 
   Widget _buildDashboard(
     BuildContext context,
+    WidgetRef ref,
     BillsSummary summary,
     List<BillStatus> upcomingBills,
     int overdueCount,
@@ -62,7 +65,7 @@ class BillsDashboardScreen extends ConsumerWidget {
   ) {
     return RefreshIndicator(
       onRefresh: () async {
-        // TODO: Implement refresh
+        await ref.read(billNotifierProvider.notifier).refresh();
       },
       child: ListView(
         padding: AppTheme.screenPaddingAll,
@@ -73,6 +76,10 @@ class BillsDashboardScreen extends ConsumerWidget {
 
           // Upcoming Bills
           _buildUpcomingBillsSection(context, upcomingBills),
+          const SizedBox(height: 24),
+
+          // All Bills
+          _buildAllBillsSection(context, ref),
 
           // Quick Actions
           _buildQuickActions(context),
@@ -193,6 +200,73 @@ class BillsDashboardScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildAllBillsSection(BuildContext context, WidgetRef ref) {
+    final billState = ref.watch(billNotifierProvider);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'All Bills',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        const SizedBox(height: 16),
+        billState.when(
+          initial: () => const SizedBox.shrink(),
+          loading: () => const CircularProgressIndicator(),
+          loaded: (bills, summary) {
+            if (bills.isEmpty) {
+              return _buildEmptyAllBills(context);
+            }
+            return Column(
+              children: bills.map((bill) => _buildAllBillCard(context, bill)).toList(),
+            );
+          },
+          error: (message, bills, summary) => Text('Error: $message'),
+          billLoaded: (bill, status) => const SizedBox.shrink(),
+          billSaved: (bill) => const SizedBox.shrink(),
+          billDeleted: () => const SizedBox.shrink(),
+          paymentMarked: (bill) => const SizedBox.shrink(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyAllBills(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            Icon(
+              Icons.receipt_long_outlined,
+              size: 48,
+              color: Theme.of(context).colorScheme.outline,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No bills yet',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Add your first bill to start tracking payments',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAllBillCard(BuildContext context, Bill bill) {
+    return BillCard(bill: bill);
+  }
+
   Widget _buildEmptyUpcomingBills(BuildContext context) {
     return Card(
       child: Padding(
@@ -230,7 +304,7 @@ class BillsDashboardScreen extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: color.withOpacity(0.1),
+          backgroundColor: color.withValues(alpha: 0.1),
           child: Icon(
             Icons.receipt,
             color: color,
@@ -243,7 +317,7 @@ class BillsDashboardScreen extends ConsumerWidget {
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
@@ -255,12 +329,7 @@ class BillsDashboardScreen extends ConsumerWidget {
             ),
           ),
         ),
-        onTap: () {
-          // TODO: Navigate to bill detail
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Bill detail for ${status.bill.name}')),
-          );
-        },
+        onTap: () => context.go('/more/bills/${status.bill.id}'),
       ),
     );
   }
@@ -323,7 +392,7 @@ class BillsDashboardScreen extends ConsumerWidget {
       label: Text(label),
       style: ElevatedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 16),
-        backgroundColor: color.withOpacity(0.1),
+        backgroundColor: color.withValues(alpha: 0.1),
         foregroundColor: color,
         elevation: 0,
         shape: RoundedRectangleBorder(

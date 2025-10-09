@@ -1,8 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/di/providers.dart' as core_providers;
-import '../../../budgets/domain/usecases/calculate_budget_status.dart';
-import '../../../settings/domain/repositories/settings_repository.dart';
 import '../../../settings/presentation/providers/settings_providers.dart' as settings_providers;
 import '../../domain/entities/notification.dart';
 import '../../domain/services/notification_service.dart';

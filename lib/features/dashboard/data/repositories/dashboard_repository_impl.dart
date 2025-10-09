@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../../core/error/failures.dart';
 import '../../../../core/error/result.dart';
@@ -10,7 +11,6 @@ import '../../../budgets/domain/usecases/calculate_budget_status.dart';
 import '../../../transactions/domain/entities/transaction.dart';
 import '../../../insights/domain/entities/insight.dart';
 import '../../../insights/domain/repositories/insight_repository.dart';
-import '../../../transactions/domain/entities/transaction.dart';
 import '../../../transactions/domain/repositories/transaction_repository.dart';
 import '../../domain/entities/dashboard_data.dart';
 import '../../domain/repositories/dashboard_repository.dart';
@@ -43,18 +43,36 @@ class DashboardRepositoryImpl implements DashboardRepository {
         getDashboardInsights(),
       ]);
 
-      // Check for errors
-      for (final result in results) {
-        if (result.isError) {
-          return Result.error(result.failureOrNull!);
-        }
-      }
+      // Provide default values for failed operations to make dashboard more resilient
+      final financialSnapshotResult = results[0].isSuccess
+          ? results[0] as Result<FinancialSnapshot>
+          : Result.success(FinancialSnapshot(
+              incomeThisMonth: 0.0,
+              expensesThisMonth: 0.0,
+              balanceThisMonth: 0.0,
+            ));
 
-      final financialSnapshot = results[0] as Result<FinancialSnapshot>;
-      final budgetOverview = results[1] as Result<List<BudgetCategoryOverview>>;
-      final upcomingBills = results[2] as Result<List<Bill>>;
-      final recentTransactions = results[3] as Result<List<Transaction>>;
-      final insights = results[4] as Result<List<Insight>>;
+      final budgetOverviewResult = results[1].isSuccess
+          ? results[1] as Result<List<BudgetCategoryOverview>>
+          : Result.success(<BudgetCategoryOverview>[]);
+
+      final upcomingBillsResult = results[2].isSuccess
+          ? results[2] as Result<List<Bill>>
+          : Result.success(<Bill>[]);
+
+      final recentTransactionsResult = results[3].isSuccess
+          ? results[3] as Result<List<Transaction>>
+          : Result.success(<Transaction>[]);
+
+      final insightsResult = results[4].isSuccess
+          ? results[4] as Result<List<Insight>>
+          : Result.success(<Insight>[]);
+
+      final financialSnapshot = financialSnapshotResult;
+      final budgetOverview = budgetOverviewResult;
+      final upcomingBills = upcomingBillsResult;
+      final recentTransactions = recentTransactionsResult;
+      final insights = insightsResult;
 
       final dashboardData = DashboardData(
         financialSnapshot: financialSnapshot.dataOrNull!,
@@ -91,37 +109,21 @@ class DashboardRepositoryImpl implements DashboardRepository {
 
       final transactions = transactionsResult.dataOrNull ?? [];
 
-      // Calculate total spent (expenses only)
-      final spentThisMonth = transactions
+      // Calculate total income and expenses
+      final expensesThisMonth = transactions
           .where((t) => t.type == TransactionType.expense)
           .fold<double>(0.0, (sum, t) => sum + t.amount);
 
-      // Get current budget (assuming there's a current budget)
-      final budgetsResult = await _budgetRepository.getAll();
-      if (budgetsResult.isError) {
-        return Result.error(budgetsResult.failureOrNull!);
-      }
+      final incomeThisMonth = transactions
+          .where((t) => t.type == TransactionType.income)
+          .fold<double>(0.0, (sum, t) => sum + t.amount);
 
-      final budgets = budgetsResult.dataOrNull ?? [];
-      final currentBudget = budgets.firstWhereOrNull(
-        (budget) => budget.startDate.isBefore(now) && budget.endDate.isAfter(now),
-      );
-
-      double budgetThisMonth = 0.0;
-      if (currentBudget != null) {
-        budgetThisMonth = currentBudget.totalBudget;
-      }
-
-      // Calculate progress and health status
-      final progressPercentage = budgetThisMonth > 0 ? (spentThisMonth / budgetThisMonth) : 0.0;
-      final healthStatus = _getBudgetHealthStatus(progressPercentage);
+      final balanceThisMonth = incomeThisMonth - expensesThisMonth;
 
       final snapshot = FinancialSnapshot(
-        spentThisMonth: spentThisMonth,
-        budgetThisMonth: budgetThisMonth,
-        remainingAmount: budgetThisMonth - spentThisMonth,
-        progressPercentage: progressPercentage,
-        healthStatus: healthStatus,
+        incomeThisMonth: incomeThisMonth,
+        expensesThisMonth: expensesThisMonth,
+        balanceThisMonth: balanceThisMonth,
       );
 
       return Result.success(snapshot);
@@ -148,7 +150,7 @@ class DashboardRepositoryImpl implements DashboardRepository {
       final currentBudget = budgets.first;
 
       // Calculate budget status
-      final statusResult = await _calculateBudgetStatus(currentBudget.id);
+      final statusResult = await _calculateBudgetStatus(currentBudget);
       if (statusResult.isError) {
         return Result.error(statusResult.failureOrNull!);
       }

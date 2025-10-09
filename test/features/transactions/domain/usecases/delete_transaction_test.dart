@@ -69,7 +69,7 @@ void main() {
         },
       );
       verify(mockRepository.getById(transactionId)).called(1);
-      verifyNever(mockRepository.delete(any as String));
+      verifyNever(mockRepository.delete(any));
     });
 
     test('should return validation error when getById fails', () async {
@@ -88,7 +88,7 @@ void main() {
           expect(failure, isA<ValidationFailure>());
         },
       );
-      verifyNever(mockRepository.delete(any as String));
+      verifyNever(mockRepository.delete(any));
     });
 
     test('should handle repository delete failure', () async {
@@ -114,7 +114,7 @@ void main() {
     test('should handle unknown errors', () async {
       // Arrange
       when(mockRepository.getById(transactionId))
-          .thenThrow(Exception('Unexpected error'));
+          .thenAnswer((_) async => Result.error(Failure.unknown('Unexpected error')));
 
       // Act
       final result = await useCase(transactionId);

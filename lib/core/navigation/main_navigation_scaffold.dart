@@ -11,11 +11,12 @@ class MainNavigationScaffold extends StatelessWidget {
 
   int _getCurrentIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
-    for (int i = 0; i < _routes.length; i++) {
-      if (location.startsWith(_routes[i])) {
-        return i;
-      }
-    }
+    // Check in order from most specific to least specific
+    if (location.startsWith('/more')) return 4;
+    if (location.startsWith('/goals')) return 3;
+    if (location.startsWith('/budgets')) return 2;
+    if (location.startsWith('/transactions')) return 1;
+    if (location.startsWith('/')) return 0;
     return 0; // Default to home
   }
 

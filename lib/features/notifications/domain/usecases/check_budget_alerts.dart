@@ -3,7 +3,6 @@ import '../../../../core/error/result.dart';
 import '../../../budgets/domain/entities/budget.dart';
 import '../../../budgets/domain/repositories/budget_repository.dart';
 import '../../../budgets/domain/usecases/calculate_budget_status.dart';
-import '../../../settings/domain/entities/settings.dart';
 import '../../../settings/domain/repositories/settings_repository.dart';
 import '../entities/notification.dart';
 
@@ -59,7 +58,7 @@ class CheckBudgetAlerts {
 
   Future<AppNotification?> _checkBudgetAlert(Budget budget, int threshold) async {
     // Calculate budget status to get spending data
-    final statusResult = await _calculateBudgetStatus(budget.id);
+    final statusResult = await _calculateBudgetStatus(budget);
     if (statusResult.isError) return null;
 
     final status = statusResult.dataOrNull!;

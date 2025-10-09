@@ -1,13 +1,16 @@
 import '../../../../core/error/failures.dart';
 import '../../../../core/error/result.dart';
+import '../../../transactions/domain/repositories/transaction_repository.dart';
 import '../../domain/entities/bill.dart';
 import '../../domain/repositories/bill_repository.dart';
 import '../datasources/bill_hive_datasource.dart';
 
 /// Implementation of BillRepository using Hive data source
 class BillRepositoryImpl implements BillRepository {
-  const BillRepositoryImpl(this._dataSource);
+  BillRepositoryImpl(this._transactionRepository)
+      : _dataSource = BillHiveDataSource();
 
+  final TransactionRepository _transactionRepository;
   final BillHiveDataSource _dataSource;
 
   @override
@@ -39,7 +42,7 @@ class BillRepositoryImpl implements BillRepository {
 
   @override
   Future<Result<Bill>> markAsPaid(String billId, BillPayment payment) =>
-      _dataSource.markAsPaid(billId, payment);
+      _dataSource.markAsPaid(billId, payment, _transactionRepository);
 
   @override
   Future<Result<Bill>> markAsUnpaid(String billId) => _dataSource.markAsUnpaid(billId);

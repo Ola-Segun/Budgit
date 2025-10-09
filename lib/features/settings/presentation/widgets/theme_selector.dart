@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../domain/entities/settings.dart';
 
 /// Widget for selecting theme mode
 class ThemeSelector extends StatelessWidget {

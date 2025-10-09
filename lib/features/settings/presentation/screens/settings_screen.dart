@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/settings.dart' as settings_entity;
@@ -290,7 +291,7 @@ class SettingsScreen extends ConsumerWidget {
       trailing: const Icon(Icons.chevron_right),
       onTap: () {
         // Navigate to accounts screen
-        Navigator.of(context).pushNamed('/accounts');
+        context.go('/more/accounts');
       },
     );
   }
@@ -395,7 +396,7 @@ class SettingsScreen extends ConsumerWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Get notified when you reach ${currentThreshold}% of your budget'),
+            Text('Get notified when you reach $currentThreshold% of your budget'),
             Slider(
               value: currentThreshold.toDouble(),
               min: 50,

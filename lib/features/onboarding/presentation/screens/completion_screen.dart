@@ -37,7 +37,7 @@ class _CompletionScreenState extends ConsumerState<CompletionScreen> {
                 width: 120,
                 height: 120,
                 decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.1),
+                  color: AppColors.success.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -153,9 +153,9 @@ class _CompletionScreenState extends ConsumerState<CompletionScreen> {
               Container(
                 padding: AppSpacing.cardPaddingAll,
                 decoration: BoxDecoration(
-                  color: AppColors.info.withOpacity(0.1),
+                  color: AppColors.info.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                  border: Border.all(color: AppColors.info.withOpacity(0.3)),
+                  border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
                 ),
                 child: Column(
                   children: [

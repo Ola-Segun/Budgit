@@ -83,7 +83,7 @@ class _BudgetTypeSelectionScreenState extends ConsumerState<BudgetTypeSelectionS
               color: Theme.of(context).scaffoldBackgroundColor,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 4,
                   offset: const Offset(0, -2),
                 ),
@@ -163,7 +163,7 @@ class BudgetTypeCard extends StatelessWidget {
                 width: AppSpacing.iconXxl,
                 height: AppSpacing.iconXxl,
                 decoration: BoxDecoration(
-                  color: isSelected ? AppColors.primary.withOpacity(0.1) : AppColors.surface,
+                  color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : AppColors.surface,
                   borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                 ),
                 child: Icon(

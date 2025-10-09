@@ -198,12 +198,12 @@ class _NotificationCenterScreenState extends ConsumerState<NotificationCenterScr
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      color: isUnread ? Theme.of(context).primaryColor.withOpacity(0.05) : null,
+      color: isUnread ? Theme.of(context).primaryColor.withValues(alpha: 0.05) : null,
       child: ListTile(
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: _getNotificationColor(notification.type).withOpacity(0.1),
+            color: _getNotificationColor(notification.type).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(

@@ -8,17 +8,23 @@ import 'package:budget_tracker/features/transactions/domain/entities/transaction
 import 'package:budget_tracker/features/transactions/domain/repositories/transaction_repository.dart';
 import 'package:budget_tracker/features/transactions/domain/usecases/update_transaction.dart';
 
+import '../../../../test_setup.dart';
+
 @GenerateMocks([TransactionRepository])
 import 'update_transaction_test.mocks.dart';
 
 void main() {
-  late UpdateTransaction useCase;
-  late MockTransactionRepository mockRepository;
+   late UpdateTransaction useCase;
+   late MockTransactionRepository mockRepository;
 
-  setUp(() {
-    mockRepository = MockTransactionRepository();
-    useCase = UpdateTransaction(mockRepository);
-  });
+   setUpAll(() {
+     setupMockitoDummies();
+   });
+
+   setUp(() {
+     mockRepository = MockTransactionRepository();
+     useCase = UpdateTransaction(mockRepository);
+   });
 
   group('UpdateTransaction Use Case', () {
     final testTransaction = Transaction(
@@ -120,7 +126,7 @@ void main() {
           expect(failure.message, contains('amount'));
         },
       );
-      verifyNever(mockRepository.update(any as Transaction));
+      verifyNever(mockRepository.update(any));
     });
 
     test('should return validation error for empty category', () async {
@@ -141,7 +147,7 @@ void main() {
           expect(failure.message, contains('category'));
         },
       );
-      verifyNever(mockRepository.update(any as Transaction));
+      verifyNever(mockRepository.update(any));
     });
 
     test('should return validation error for future date', () async {
@@ -163,7 +169,7 @@ void main() {
           expect(failure.message, contains('future'));
         },
       );
-      verifyNever(mockRepository.update(any as Transaction));
+      verifyNever(mockRepository.update(any));
     });
 
     test('should return error when transaction does not exist', () async {
@@ -228,7 +234,7 @@ void main() {
     test('should handle unknown errors', () async {
       // Arrange
       when(mockRepository.getById(testTransaction.id))
-          .thenThrow(Exception('Unexpected error'));
+          .thenAnswer((_) async => Result.error(Failure.unknown('Unexpected error')));
 
       // Act
       final result = await useCase(updatedTransaction);

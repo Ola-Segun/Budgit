@@ -66,10 +66,10 @@ class _BudgetSetupScreenState extends ConsumerState<BudgetSetupScreen> {
                   Container(
                     padding: AppSpacing.cardPaddingAll,
                     decoration: BoxDecoration(
-                      color: totalBudget <= totalIncome ? AppColors.success.withOpacity(0.1) : AppColors.warning.withOpacity(0.1),
+                      color: totalBudget <= totalIncome ? AppColors.success.withValues(alpha: 0.1) : AppColors.warning.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                       border: Border.all(
-                        color: totalBudget <= totalIncome ? AppColors.success.withOpacity(0.3) : AppColors.warning.withOpacity(0.3),
+                        color: totalBudget <= totalIncome ? AppColors.success.withValues(alpha: 0.3) : AppColors.warning.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Column(
@@ -190,7 +190,7 @@ class _BudgetSetupScreenState extends ConsumerState<BudgetSetupScreen> {
               color: Theme.of(context).scaffoldBackgroundColor,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 4,
                   offset: const Offset(0, -2),
                 ),

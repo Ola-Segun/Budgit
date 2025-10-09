@@ -28,7 +28,7 @@ class CategoryAnalysisChart extends ConsumerWidget {
                   width: AppSpacing.iconXxl,
                   height: AppSpacing.iconXxl,
                   decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.1),
+                    color: AppColors.success.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                   ),
                   child: Icon(

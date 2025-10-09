@@ -28,7 +28,7 @@ class SpendingTrendsChart extends ConsumerWidget {
                   width: AppSpacing.iconXxl,
                   height: AppSpacing.iconXxl,
                   decoration: BoxDecoration(
-                    color: AppColors.info.withOpacity(0.1),
+                    color: AppColors.info.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                   ),
                   child: Icon(

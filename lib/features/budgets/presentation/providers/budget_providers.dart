@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/di/providers.dart' as core_providers;
+import '../../../transactions/presentation/providers/transaction_providers.dart';
+import '../../../transactions/presentation/states/transaction_state.dart';
 import '../../domain/entities/budget.dart';
 import '../../domain/usecases/calculate_budget_status.dart';
 import '../../domain/usecases/create_budget.dart';
@@ -50,7 +52,7 @@ final budgetNotifierProvider =
   final deleteBudget = ref.watch(deleteBudgetProvider);
   final calculateBudgetStatus = ref.watch(calculateBudgetStatusProvider);
 
-  return BudgetNotifier(
+  final notifier = BudgetNotifier(
     getBudgets: getBudgets,
     getActiveBudgets: getActiveBudgets,
     createBudget: createBudget,
@@ -58,6 +60,21 @@ final budgetNotifierProvider =
     deleteBudget: deleteBudget,
     calculateBudgetStatus: calculateBudgetStatus,
   );
+
+  // Listen to transaction changes and refresh budget statuses
+  ref.listen<AsyncValue<TransactionState>>(
+    transactionNotifierProvider,
+    (previous, next) {
+      // Only refresh if we have budgets loaded and transaction state changed
+      if (next.value?.transactions.isNotEmpty == true) {
+        // Refresh budget statuses when transactions change
+        notifier.loadActiveBudgets();
+      }
+    },
+    fireImmediately: false,
+  );
+
+  return notifier;
 });
 
 /// Provider for filtered budgets
@@ -142,6 +159,45 @@ final budgetStatsProvider = Provider<AsyncValue<BudgetStats>>((ref) {
     loading: () => const AsyncValue.loading(),
     error: (error, stack) => AsyncValue.error(error, stack),
   );
+});
+
+/// Provider for individual budget by ID
+final budgetProvider = FutureProvider.family<Budget?, String>((ref, budgetId) async {
+  final getBudgets = ref.watch(getBudgetsProvider);
+  final result = await getBudgets();
+
+  return result.when(
+    success: (budgets) => budgets.where((budget) => budget.id == budgetId).firstOrNull,
+    error: (failure) => null,
+  );
+});
+
+/// Provider for budget status by ID
+final budgetStatusProvider = FutureProvider.family<BudgetStatus?, String>((ref, budgetId) async {
+  final calculateBudgetStatus = ref.watch(calculateBudgetStatusProvider);
+  final budgetAsync = ref.watch(budgetProvider(budgetId));
+
+  final budget = await budgetAsync.when(
+    data: (budget) => budget,
+    loading: () => null,
+    error: (_, __) => null,
+  );
+
+  if (budget == null) return null;
+
+  final result = await calculateBudgetStatus(budget);
+
+  return result.when(
+    success: (status) => status,
+    error: (failure) => null,
+  );
+});
+
+/// Provider for budget transactions
+final budgetTransactionsProvider = FutureProvider.family<List<dynamic>, String>((ref, budgetId) async {
+  // This would need to be implemented - for now return empty list
+  // In a real implementation, this would filter transactions by budget categories and date range
+  return [];
 });
 
 /// Budget statistics

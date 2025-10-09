@@ -10,6 +10,7 @@ import '../../../../core/widgets/loading_view.dart';
 import '../../domain/entities/goal.dart';
 import '../providers/goal_providers.dart';
 import '../widgets/add_contribution_bottom_sheet.dart';
+import '../widgets/edit_goal_bottom_sheet.dart';
 import '../widgets/goal_progress_card.dart';
 import '../widgets/goal_timeline_card.dart';
 
@@ -29,8 +30,19 @@ class GoalDetailScreen extends ConsumerStatefulWidget {
 class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
   @override
   Widget build(BuildContext context) {
-    final goalAsync = ref.watch(goalProvider(widget.goalId));
+    final goalStateAsync = ref.watch(goalNotifierProvider);
     final contributionsAsync = ref.watch(goalContributionsProvider(widget.goalId));
+
+    // Find the goal from the notifier state
+    final goalAsync = goalStateAsync.when(
+      data: (state) {
+        final matchingGoals = state.goals.where((g) => g.id == widget.goalId);
+        final Goal? goal = matchingGoals.isNotEmpty ? matchingGoals.first : null;
+        return AsyncValue<Goal?>.data(goal);
+      },
+      loading: () => const AsyncValue<Goal?>.loading(),
+      error: (error, stack) => AsyncValue<Goal?>.error(error, stack),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -92,8 +104,8 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddContributionSheet(context, ref),
-        child: const Icon(Icons.add),
         tooltip: 'Add Contribution',
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -200,7 +212,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                 children: goal.tags.map((tag) {
                   return Chip(
                     label: Text(tag),
-                    backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                    backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                   );
                 }).toList(),
               ),
@@ -312,8 +324,8 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: contribution.amount > 0
-                            ? Colors.green.withOpacity(0.1)
-                            : Colors.red.withOpacity(0.1),
+                            ? Colors.green.withValues(alpha: 0.1)
+                            : Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
@@ -398,9 +410,31 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
     WidgetRef ref,
     Goal goal,
   ) async {
-    // TODO: Implement edit goal functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Edit goal - Coming soon!')),
+    await AppBottomSheet.show(
+      context: context,
+      child: EditGoalBottomSheet(
+        goal: goal,
+        onSubmit: (updatedGoal) async {
+          final success = await ref
+              .read(goalNotifierProvider.notifier)
+              .updateGoal(updatedGoal);
+
+          if (success && mounted) {
+            ref.invalidate(goalProvider(widget.goalId));
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Goal updated successfully')),
+            );
+          } else if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Failed to update goal'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
+      ),
     );
   }
 

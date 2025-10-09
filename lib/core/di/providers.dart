@@ -48,7 +48,10 @@ import '../../features/bills/data/repositories/bill_repository_impl.dart';
 import '../../features/bills/domain/repositories/bill_repository.dart';
 import '../../features/bills/domain/usecases/calculate_bills_summary.dart';
 import '../../features/bills/domain/usecases/create_bill.dart';
+import '../../features/bills/domain/usecases/delete_bill.dart';
 import '../../features/bills/domain/usecases/get_bills.dart';
+import '../../features/bills/domain/usecases/get_upcoming_bills.dart';
+import '../../features/bills/domain/usecases/mark_bill_as_paid.dart';
 import '../../features/bills/domain/usecases/update_bill.dart';
 import '../../features/debt/data/datasources/debt_hive_datasource.dart';
 import '../../features/debt/data/repositories/debt_repository_impl.dart';
@@ -113,6 +116,23 @@ final transactionCategoryRepositoryProvider = Provider<TransactionCategoryReposi
   return TransactionCategoryRepositoryImpl(ref.read(transactionCategoryDataSourceProvider));
 });
 
+// Category use cases - TODO: Fix provider type issues
+// final addCategoryProvider = Provider<AddCategory>((ref) {
+//   return AddCategory(ref.read(transactionCategoryRepositoryProvider));
+// });
+
+// final getCategoriesProvider = Provider<GetCategories>((ref) {
+//   return GetCategories(ref.read(transactionCategoryRepositoryProvider));
+// });
+
+// final updateCategoryProvider = Provider<UpdateCategory>((ref) {
+//   return UpdateCategory(ref.read(transactionCategoryRepositoryProvider));
+// });
+
+// final deleteCategoryProvider = Provider<DeleteCategory>((ref) {
+//   return DeleteCategory(ref.read(transactionCategoryRepositoryProvider));
+// });
+
 // Transaction use cases
 final addTransactionProvider = Provider<AddTransaction>((ref) {
   return AddTransaction(ref.read(transactionRepositoryProvider));
@@ -172,7 +192,10 @@ final budgetDataSourceProvider = Provider<BudgetHiveDataSource>((ref) {
 
 // Budget repositories
 final budgetRepositoryProvider = Provider<BudgetRepository>((ref) {
-  return BudgetRepositoryImpl(ref.read(budgetDataSourceProvider));
+  return BudgetRepositoryImpl(
+    ref.read(budgetDataSourceProvider),
+    ref.read(calculateBudgetStatusProvider),
+  );
 });
 
 // Budget use cases
@@ -197,20 +220,26 @@ final deleteBudgetProvider = Provider<DeleteBudget>((ref) {
 });
 
 final calculateBudgetStatusProvider = Provider<CalculateBudgetStatus>((ref) {
-  return CalculateBudgetStatus(
-    ref.read(budgetRepositoryProvider),
-    ref.read(transactionRepositoryProvider),
-  );
+  return CalculateBudgetStatus(ref.read(transactionRepositoryProvider));
 });
 
 // Bill data sources
 final billDataSourceProvider = Provider<BillHiveDataSource>((ref) {
-  return BillHiveDataSource();
+  // Return the singleton instance that was initialized during app startup
+  if (_billDataSource == null) {
+    debugPrint('BillDataSourceProvider: ERROR - Singleton instance should have been created during initialization');
+    _billDataSource = BillHiveDataSource();
+  } else {
+    debugPrint('BillDataSourceProvider: Returning initialized singleton instance');
+  }
+  return _billDataSource!;
 });
+
+BillHiveDataSource? _billDataSource;
 
 // Bill repositories
 final billRepositoryProvider = Provider<BillRepository>((ref) {
-  return BillRepositoryImpl(ref.read(billDataSourceProvider));
+  return BillRepositoryImpl(ref.read(transactionRepositoryProvider));
 });
 
 // Bill use cases
@@ -228,6 +257,18 @@ final updateBillProvider = Provider<UpdateBill>((ref) {
 
 final calculateBillsSummaryProvider = Provider<CalculateBillsSummary>((ref) {
   return CalculateBillsSummary(ref.read(billRepositoryProvider));
+});
+
+final deleteBillProvider = Provider<DeleteBill>((ref) {
+  return DeleteBill(ref.read(billRepositoryProvider));
+});
+
+final markBillAsPaidProvider = Provider<MarkBillAsPaid>((ref) {
+  return MarkBillAsPaid(ref.read(billRepositoryProvider));
+});
+
+final getUpcomingBillsProvider = Provider<GetUpcomingBills>((ref) {
+  return GetUpcomingBills(ref.read(billRepositoryProvider));
 });
 
 // Debt data sources
@@ -344,12 +385,12 @@ final appInitializationProvider = FutureProvider<void>((ref) async {
   // Initialize storage
   await HiveStorage.init();
 
-  // Initialize data sources
+  // Initialize data sources (this also creates the singleton instances)
   final transactionDataSource = ref.read(transactionDataSourceProvider);
   final categoryDataSource = ref.read(transactionCategoryDataSourceProvider);
   final accountDataSource = ref.read(accountDataSourceProvider);
   final budgetDataSource = ref.read(budgetDataSourceProvider);
-  final billDataSource = ref.read(billDataSourceProvider);
+  final billDataSource = ref.read(billDataSourceProvider); // This creates the singleton
   final goalDataSource = ref.read(goalDataSourceProvider);
   final insightDataSource = ref.read(insightDataSourceProvider);
   final settingsDataSource = ref.read(settings_providers.settingsDataSourceProvider);
