@@ -4,8 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/error/failures.dart';
 import '../../../../core/widgets/app_bottom_sheet.dart';
+import '../../../../core/di/providers.dart' as core_providers;
+import '../../../accounts/domain/entities/account.dart';
+import '../../../accounts/presentation/providers/account_providers.dart';
 import '../../domain/entities/bill.dart';
+import '../../domain/usecases/validate_bill_account.dart';
 import '../providers/bill_providers.dart';
 
 /// Bottom sheet for recording bill payments
@@ -20,7 +25,8 @@ class PaymentRecordingBottomSheet extends ConsumerStatefulWidget {
   final VoidCallback onPaymentRecorded;
 
   @override
-  ConsumerState<PaymentRecordingBottomSheet> createState() => _PaymentRecordingBottomSheetState();
+  ConsumerState<PaymentRecordingBottomSheet> createState() =>
+      _PaymentRecordingBottomSheetState();
 
   static Future<void> show({
     required BuildContext context,
@@ -37,20 +43,25 @@ class PaymentRecordingBottomSheet extends ConsumerStatefulWidget {
   }
 }
 
-class _PaymentRecordingBottomSheetState extends ConsumerState<PaymentRecordingBottomSheet> {
+class _PaymentRecordingBottomSheetState
+    extends ConsumerState<PaymentRecordingBottomSheet> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
   final _notesController = TextEditingController();
 
   DateTime _paymentDate = DateTime.now();
   PaymentMethod _paymentMethod = PaymentMethod.other;
+  String? _selectedAccountId;
   bool _isLoading = false;
+  String? _balanceWarning;
 
   @override
   void initState() {
     super.initState();
     // Pre-fill amount with bill amount
     _amountController.text = widget.bill.amount.toStringAsFixed(2);
+    // Pre-select bill's default account if available
+    _selectedAccountId = widget.bill.accountId;
   }
 
   @override
@@ -58,6 +69,33 @@ class _PaymentRecordingBottomSheetState extends ConsumerState<PaymentRecordingBo
     _amountController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+  void _validateAccountBalance(List<Account> accounts) {
+    if (_selectedAccountId == null) {
+      setState(() => _balanceWarning = null);
+      return;
+    }
+
+    final selectedAccount = accounts.firstWhere(
+      (account) => account.id == _selectedAccountId,
+      orElse: () => accounts.first,
+    );
+
+    final amount = double.tryParse(_amountController.text) ?? 0.0;
+
+    if (amount <= 0) {
+      setState(() => _balanceWarning = null);
+      return;
+    }
+
+    if (selectedAccount.availableBalance < amount) {
+      final shortfall = amount - selectedAccount.availableBalance;
+      setState(() => _balanceWarning =
+          'Insufficient funds. This account is short by ${selectedAccount.currency} ${shortfall.toStringAsFixed(2)}.');
+    } else {
+      setState(() => _balanceWarning = null);
+    }
   }
 
   @override
@@ -103,7 +141,8 @@ class _PaymentRecordingBottomSheetState extends ConsumerState<PaymentRecordingBo
                 prefixText: '\$',
                 border: OutlineInputBorder(),
               ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
               ],
@@ -116,6 +155,222 @@ class _PaymentRecordingBottomSheetState extends ConsumerState<PaymentRecordingBo
                   return 'Please enter a valid amount';
                 }
                 return null;
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Account Selection
+            Consumer(
+              builder: (context, ref, child) {
+                final accountsAsync = ref.watch(filteredAccountsProvider);
+
+                return accountsAsync.when(
+                  data: (accounts) {
+                    if (accounts.isEmpty) {
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.errorContainer,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.warning,
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'No accounts available. Please create an account first.',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final selectedAccount = accounts.firstWhere(
+                      (account) => account.id == _selectedAccountId,
+                      orElse: () => accounts.first,
+                    );
+
+                    // Validate balance when account or amount changes
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _validateAccountBalance(accounts);
+                    });
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        DropdownButtonFormField<String>(
+                          value: _selectedAccountId,
+                          isExpanded: true, // CRITICAL: This fixes the overflow
+                          decoration: const InputDecoration(
+                            labelText: 'Payment Account',
+                            border: OutlineInputBorder(),
+                            helperText:
+                                'Select the account to deduct payment from',
+                          ),
+                          selectedItemBuilder: (BuildContext context) {
+                            // Custom builder for the selected value display
+                            return accounts.map((account) {
+                              return Row(
+                                children: [
+                                  Icon(
+                                    Icons.account_balance_wallet,
+                                    color: Color(account.type.color),
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      account.displayName,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w500),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }).toList();
+                          },
+                          items: accounts.map((account) {
+                            return DropdownMenuItem<String>(
+                              value: account.id,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.account_balance_wallet,
+                                    color: Color(account.type.color),
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          account.displayName,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w500),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
+                                        ),
+                                        Text(
+                                          account.formattedAvailableBalance,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() => _selectedAccountId = value);
+                          },
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please select an account';
+                            }
+                            return null;
+                          },
+                        ),
+                        if (_balanceWarning != null) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color:
+                                  Theme.of(context).colorScheme.errorContainer,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.warning,
+                                  color: Theme.of(context).colorScheme.error,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _balanceWarning!,
+                                    style: TextStyle(
+                                      color:
+                                          Theme.of(context).colorScheme.error,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        if (selectedAccount != null) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color:
+                                  Theme.of(context).colorScheme.surfaceVariant,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'After payment: ${selectedAccount.currency} ${(selectedAccount.availableBalance - (double.tryParse(_amountController.text) ?? 0)).toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    );
+                  },
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (error, stack) => Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.errorContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Error loading accounts: $error',
+                      style:
+                          TextStyle(color: Theme.of(context).colorScheme.error),
+                    ),
+                  ),
+                );
               },
             ),
             const SizedBox(height: 16),
@@ -220,6 +475,39 @@ class _PaymentRecordingBottomSheetState extends ConsumerState<PaymentRecordingBo
 
     try {
       final amount = double.parse(_amountController.text);
+
+      // Validate account before proceeding with payment
+      if (_selectedAccountId != null) {
+        final accountRepository =
+            ref.read(core_providers.accountRepositoryProvider);
+        final validateAccount = ValidateBillAccount(accountRepository);
+        final accountValidation =
+            await validateAccount.callForPayment(_selectedAccountId!, amount);
+
+        if (accountValidation.isError) {
+          final failure = accountValidation.failureOrNull!;
+
+          String errorMessage = failure.message;
+          if (failure is ValidationFailure) {
+            final errors = failure.errors;
+            if (errors.containsKey('accountId')) {
+              errorMessage = errors['accountId']!;
+            }
+          }
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(errorMessage),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+          return;
+        }
+      }
+
       final payment = BillPayment(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         amount: amount,
@@ -230,7 +518,8 @@ class _PaymentRecordingBottomSheetState extends ConsumerState<PaymentRecordingBo
 
       final success = await ref
           .read(billNotifierProvider.notifier)
-          .markBillAsPaid(widget.bill.id, payment);
+          .markBillAsPaid(widget.bill.id, payment,
+              accountId: _selectedAccountId);
 
       if (success && mounted) {
         widget.onPaymentRecorded();

@@ -5,7 +5,8 @@ import '../../../../core/error/failures.dart';
 import '../../../../core/error/result.dart';
 import '../../../../core/storage/hive_storage.dart';
 import '../../../transactions/domain/entities/transaction.dart';
-import '../../../transactions/domain/repositories/transaction_repository.dart';
+import '../../../transactions/domain/usecases/add_transaction.dart';
+import '../../../transactions/domain/usecases/delete_transaction.dart';
 import '../models/bill_dto.dart';
 import '../../domain/entities/bill.dart';
 
@@ -249,24 +250,50 @@ class BillHiveDataSource {
   }
 
   /// Mark bill as paid
-  Future<Result<Bill>> markAsPaid(String billId, BillPayment payment, TransactionRepository transactionRepository) async {
+  Future<Result<Bill>> markAsPaid(String billId, BillPayment payment, AddTransaction addTransaction, DeleteTransaction deleteTransaction, {String? accountId}) async {
+    if (_box == null) {
+      return Result.error(Failure.cache('Data source not initialized'));
+    }
+
+    final dto = _box!.get(billId);
+    if (dto == null) {
+      return Result.error(Failure.cache('Bill not found'));
+    }
+
+    // Create corresponding expense transaction using the proper usecase
+    // This ensures balance integrity and follows Account-Transaction-Relationship principles
+    final transaction = Transaction(
+      id: 'bill_${billId}_${payment.id}',
+      title: '${dto.name} Payment', // Required title field - matches test expectations
+      amount: payment.amount,
+      categoryId: dto.categoryId, // Use bill's actual category
+      date: payment.paymentDate,
+      type: TransactionType.expense,
+      accountId: accountId ?? dto.accountId, // Use provided account or bill's default account
+      description: 'Payment for ${dto.name}', // Optional description
+    );
+
+    // Step 1: Create transaction first (critical for balance integrity)
+    final transactionResult = await addTransaction(transaction);
+    if (transactionResult.isError) {
+      return Result.error(Failure.cache(
+        'Failed to create transaction for bill payment: ${transactionResult.failureOrNull?.message}'
+      ));
+    }
+
+    final createdTransaction = transactionResult.dataOrNull!;
+    Transaction? transactionToRollback;
+
     try {
-      if (_box == null) {
-        return Result.error(Failure.cache('Data source not initialized'));
-      }
-
-      final dto = _box!.get(billId);
-      if (dto == null) {
-        return Result.error(Failure.cache('Bill not found'));
-      }
-
-      // Update bill status
+      // Step 2: Update bill status (only after successful transaction creation)
       dto.isPaid = true;
       dto.lastPaidDate = payment.paymentDate;
 
-      // Add payment to history
+      // Add payment to history with transaction reference
       dto.paymentHistory ??= [];
-      dto.paymentHistory!.add(BillPaymentDto.fromDomain(payment));
+      final paymentDto = BillPaymentDto.fromDomain(payment);
+      paymentDto.transactionId = createdTransaction.id; // Set transaction ID directly
+      dto.paymentHistory!.add(paymentDto);
 
       // Update next due date for recurring bills
       if (dto.frequency != BillFrequency.custom.name) {
@@ -278,44 +305,26 @@ class BillHiveDataSource {
       }
 
       await _box!.put(billId, dto);
-
-      // Create corresponding expense transaction
-      // Transaction creation is critical for balance integrity - fail if it doesn't work
-      final transaction = Transaction(
-        id: 'bill_${billId}_${payment.id}',
-        title: 'Bill payment: ${dto.name}', // Required title field
-        amount: payment.amount,
-        categoryId: dto.categoryId, // Use bill's actual category
-        date: payment.paymentDate,
-        type: TransactionType.expense,
-        accountId: dto.accountId, // Use bill's account (can be null for income bills)
-        description: 'Payment for ${dto.name}', // Optional description
-      );
-
-      final transactionResult = await transactionRepository.add(transaction);
-      if (transactionResult.isSuccess) {
-        // Update payment with transaction ID for reference
-        final paymentIndex = dto.paymentHistory!.indexWhere((p) => p.id == payment.id);
-        if (paymentIndex != -1) {
-          dto.paymentHistory![paymentIndex].transactionId = transaction.id;
-          await _box!.put(billId, dto);
-        }
-      } else {
-        // Transaction creation failed - this is a critical error for balance integrity
-        // We should not mark the bill as paid if transaction creation fails
-        return Result.error(Failure.cache(
-          'Failed to create transaction for bill payment: ${transactionResult.failureOrNull?.message}'
-        ));
-      }
+      transactionToRollback = createdTransaction;
 
       return Result.success(dto.toDomain());
     } catch (e) {
-      return Result.error(Failure.cache('Failed to mark bill as paid: $e'));
+      // Step 3: Rollback transaction if bill update fails
+      if (transactionToRollback != null) {
+        try {
+          await deleteTransaction(transactionToRollback.id);
+        } catch (rollbackError) {
+          // Log rollback failure but don't mask original error
+          debugPrint('Failed to rollback transaction ${transactionToRollback.id}: $rollbackError');
+        }
+      }
+
+      return Result.error(Failure.cache('Failed to update bill status after transaction creation: $e'));
     }
   }
 
   /// Mark bill as unpaid
-  Future<Result<Bill>> markAsUnpaid(String billId, TransactionRepository transactionRepository) async {
+  Future<Result<Bill>> markAsUnpaid(String billId, DeleteTransaction deleteTransaction) async {
     try {
       if (_box == null) {
         return Result.error(Failure.cache('Data source not initialized'));
@@ -330,8 +339,9 @@ class BillHiveDataSource {
       if (dto.paymentHistory != null) {
         for (final payment in dto.paymentHistory!) {
           if (payment.transactionId != null) {
-            // Delete the associated transaction
-            await transactionRepository.delete(payment.transactionId!);
+            // Delete the associated transaction using the proper usecase
+            // This ensures balance rollback follows Account-Transaction-Relationship principles
+            await deleteTransaction(payment.transactionId!);
             // Clear the transaction ID reference
             payment.transactionId = null;
           }

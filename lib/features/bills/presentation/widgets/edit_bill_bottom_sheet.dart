@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../accounts/domain/entities/account.dart';
+import '../../../accounts/presentation/providers/account_providers.dart';
 import '../../domain/entities/bill.dart';
 
 /// Bottom sheet for editing an existing bill
@@ -32,6 +34,7 @@ class _EditBillBottomSheetState extends ConsumerState<EditBillBottomSheet> {
   late BillFrequency _selectedFrequency;
   late DateTime _selectedDueDate;
   late String _selectedCategoryId;
+  late String? _selectedAccountId;
   late bool _isAutoPay;
 
   bool _isSubmitting = false;
@@ -60,6 +63,7 @@ class _EditBillBottomSheetState extends ConsumerState<EditBillBottomSheet> {
     _selectedFrequency = widget.bill.frequency;
     _selectedDueDate = widget.bill.dueDate;
     _selectedCategoryId = widget.bill.categoryId;
+    _selectedAccountId = widget.bill.accountId;
     _isAutoPay = widget.bill.isAutoPay;
   }
 
@@ -76,7 +80,7 @@ class _EditBillBottomSheetState extends ConsumerState<EditBillBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return ConstrainedBox(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.9,
       ),
@@ -160,7 +164,7 @@ class _EditBillBottomSheetState extends ConsumerState<EditBillBottomSheet> {
 
                     // Category
                     DropdownButtonFormField<String>(
-                      value: _selectedCategoryId,
+                      initialValue: _selectedCategoryId,
                       decoration: const InputDecoration(
                         labelText: 'Category',
                       ),
@@ -186,9 +190,213 @@ class _EditBillBottomSheetState extends ConsumerState<EditBillBottomSheet> {
                     ),
                     const SizedBox(height: 16),
 
+                    // Account Selection
+// Replace the entire Account Selection Consumer widget in BOTH files with this:
+
+// Account Selection
+Consumer(
+  builder: (context, ref, child) {
+    final accountsAsync = ref.watch(filteredAccountsProvider);
+
+    return accountsAsync.when(
+      data: (accounts) {
+        if (accounts.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'No accounts available. You can still create the bill and assign an account later.',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // For BillCreationScreen only: Smart default selection
+        // (Skip this block in EditBillBottomSheet)
+        if (_selectedAccountId == null) {
+          final defaultAccount = accounts.firstWhere(
+            (account) => account.type == AccountType.bankAccount && account.isActive,
+            orElse: () => accounts.firstWhere(
+              (account) => account.isActive,
+              orElse: () => accounts.first,
+            ),
+          );
+          _selectedAccountId = defaultAccount.id;
+        }
+
+        // Validate selected account ID exists
+        if (_selectedAccountId != null && 
+            !accounts.any((account) => account.id == _selectedAccountId)) {
+          _selectedAccountId = null;
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DropdownButtonFormField<String>(
+              value: _selectedAccountId,
+              isExpanded: true, // CRITICAL: This fixes the overflow
+              decoration: const InputDecoration(
+                labelText: 'Default Account (Optional)',
+                border: OutlineInputBorder(),
+                helperText: 'Account to use for automatic payments',
+              ),
+              selectedItemBuilder: (BuildContext context) {
+                // Custom builder for the selected value display
+                return [
+                  const Text('No account selected'),
+                  ...accounts.map((account) {
+                    return Row(
+                      children: [
+                        Icon(
+                          Icons.account_balance_wallet,
+                          color: Color(account.type.color),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            account.displayName,
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
+                ];
+              },
+              items: [
+                // Add "No account" option
+                const DropdownMenuItem<String>(
+                  value: null,
+                  child: Text('No account selected'),
+                ),
+                // Add all accounts
+                ...accounts.map((account) {
+                  return DropdownMenuItem<String>(
+                    value: account.id,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.account_balance_wallet,
+                          color: Color(account.type.color),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                account.displayName,
+                                style: const TextStyle(fontWeight: FontWeight.w500),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                              Text(
+                                account.formattedAvailableBalance,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+              onChanged: (value) {
+                setState(() => _selectedAccountId = value);
+              },
+            ),
+            // Only show info message if an account is actually selected
+            if (_selectedAccountId != null) ...[
+              const SizedBox(height: 8),
+              Builder(
+                builder: (context) {
+                  // Find the selected account safely
+                  final selectedAccount = accounts.firstWhere(
+                    (account) => account.id == _selectedAccountId,
+                  );
+                  
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Payments will be deducted from ${selectedAccount.displayName}',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
+          ],
+        );
+      },
+      loading: () => const SizedBox(
+        height: 100,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, stack) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.errorContainer,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          'Error loading accounts: $error',
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
+      ),
+    );
+  },
+),
+                    const SizedBox(height: 16),
+
                     // Frequency
                     DropdownButtonFormField<BillFrequency>(
-                      value: _selectedFrequency,
+                      initialValue: _selectedFrequency,
                       decoration: const InputDecoration(
                         labelText: 'Frequency',
                       ),
@@ -339,6 +547,31 @@ class _EditBillBottomSheetState extends ConsumerState<EditBillBottomSheet> {
     setState(() => _isSubmitting = true);
 
     try {
+      // Validate selected account if one is chosen
+      if (_selectedAccountId != null) {
+        final accountsAsync = ref.read(filteredAccountsProvider);
+        final accounts = accountsAsync.maybeWhen(
+          data: (data) => data,
+          orElse: () => <Account>[],
+        );
+
+        final selectedAccount = accounts.firstWhere(
+          (account) => account.id == _selectedAccountId,
+        );
+
+        if (!selectedAccount.isActive) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Selected account is inactive. Please select a different account.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+      }
+
       final amount = double.parse(_amountController.text);
 
       final updatedBill = widget.bill.copyWith(
@@ -347,6 +580,7 @@ class _EditBillBottomSheetState extends ConsumerState<EditBillBottomSheet> {
         dueDate: _selectedDueDate,
         frequency: _selectedFrequency,
         categoryId: _selectedCategoryId,
+        accountId: _selectedAccountId,
         description: _descriptionController.text.trim().isNotEmpty
             ? _descriptionController.text.trim()
             : null,

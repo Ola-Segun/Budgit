@@ -31,7 +31,7 @@ abstract class BillRepository {
   Future<Result<void>> delete(String id);
 
   /// Mark bill as paid
-  Future<Result<Bill>> markAsPaid(String billId, BillPayment payment);
+  Future<Result<Bill>> markAsPaid(String billId, BillPayment payment, {String? accountId});
 
   /// Mark bill as unpaid
   Future<Result<Bill>> markAsUnpaid(String billId);
@@ -47,4 +47,8 @@ abstract class BillRepository {
 
   /// Update next due date for recurring bill
   Future<Result<Bill>> updateNextDueDate(String billId);
+
+  /// Reconcile bill payment data consistency
+  /// Ensures bill status matches associated transactions
+  Future<Result<void>> reconcileBillPayments(String billId);
 }

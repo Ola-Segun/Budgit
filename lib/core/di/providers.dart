@@ -54,6 +54,7 @@ import '../../features/bills/domain/usecases/get_bills.dart';
 import '../../features/bills/domain/usecases/get_upcoming_bills.dart';
 import '../../features/bills/domain/usecases/mark_bill_as_paid.dart';
 import '../../features/bills/domain/usecases/update_bill.dart';
+import '../../features/bills/domain/usecases/validate_bill_account.dart';
 import '../../features/debt/data/datasources/debt_hive_datasource.dart';
 import '../../features/debt/data/repositories/debt_repository_impl.dart';
 import '../../features/debt/domain/repositories/debt_repository.dart';
@@ -301,13 +302,17 @@ BillHiveDataSource? _billDataSource;
 final billRepositoryProvider = Provider<BillRepository>((ref) {
   return BillRepositoryImpl(
     ref.read(transactionRepositoryProvider),
-    ref.read(accountRepositoryProvider),
+    ref.read(addTransactionProvider),
+    ref.read(deleteTransactionProvider),
   );
 });
 
 // Bill use cases
 final createBillProvider = Provider<CreateBill>((ref) {
-  return CreateBill(ref.read(billRepositoryProvider));
+  return CreateBill(
+    ref.read(billRepositoryProvider),
+    ref.read(accountRepositoryProvider),
+  );
 });
 
 final getBillsProvider = Provider<GetBills>((ref) {
@@ -315,7 +320,10 @@ final getBillsProvider = Provider<GetBills>((ref) {
 });
 
 final updateBillProvider = Provider<UpdateBill>((ref) {
-  return UpdateBill(ref.read(billRepositoryProvider));
+  return UpdateBill(
+    ref.read(billRepositoryProvider),
+    ref.read(accountRepositoryProvider),
+  );
 });
 
 final calculateBillsSummaryProvider = Provider<CalculateBillsSummary>((ref) {
@@ -327,11 +335,18 @@ final deleteBillProvider = Provider<DeleteBill>((ref) {
 });
 
 final markBillAsPaidProvider = Provider<MarkBillAsPaid>((ref) {
-  return MarkBillAsPaid(ref.read(billRepositoryProvider));
+  return MarkBillAsPaid(
+    ref.read(billRepositoryProvider),
+    ref.read(accountRepositoryProvider),
+  );
 });
 
 final getUpcomingBillsProvider = Provider<GetUpcomingBills>((ref) {
   return GetUpcomingBills(ref.read(billRepositoryProvider));
+});
+
+final validateBillAccountProvider = Provider<ValidateBillAccount>((ref) {
+  return ValidateBillAccount(ref.read(accountRepositoryProvider));
 });
 
 // Debt data sources

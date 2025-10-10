@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_spacing.dart';
+import '../../../accounts/presentation/providers/account_providers.dart';
 import '../../domain/entities/bill.dart';
 import '../providers/bill_providers.dart';
 
@@ -20,6 +21,10 @@ class BillCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final accountAsync = bill.accountId != null
+        ? ref.watch(accountProvider(bill.accountId!))
+        : null;
+
     return Slidable(
       key: ValueKey(bill.id),
       endActionPane: ActionPane(
@@ -66,19 +71,46 @@ class BillCard extends ConsumerWidget {
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Status Icon
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: _getUrgencyColor().withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                        ),
-                        child: Icon(
-                          Icons.receipt,
-                          color: _getUrgencyColor(),
-                          size: 20,
-                        ),
+                      // Status Icon with Account Indicator
+                      Stack(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: _getUrgencyColor().withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                            ),
+                            child: Icon(
+                              Icons.receipt,
+                              color: _getUrgencyColor(),
+                              size: 20,
+                            ),
+                          ),
+                          // Account link indicator
+                          if (bill.accountId != null)
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: Colors.blue,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Theme.of(context).colorScheme.surface,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.account_balance_wallet,
+                                  size: 8,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       const SizedBox(width: 12),
 
@@ -119,6 +151,94 @@ class BillCard extends ConsumerWidget {
                                 ],
                               ],
                             ),
+
+                            // Account Information
+                            if (bill.accountId != null) ...[
+                              const SizedBox(height: 2),
+                              accountAsync?.when(
+                                data: (account) {
+                                  if (account == null) return const SizedBox.shrink();
+                                  return Row(
+                                    children: [
+                                      Icon(
+                                        Icons.account_balance_wallet,
+                                        size: 12,
+                                        color: Color(account.type.color),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Text(
+                                          '${account.displayName} • ${account.formattedAvailableBalance}',
+                                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                                loading: () => Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 12,
+                                      height: 12,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 1,
+                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                          Theme.of(context).colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Loading account...',
+                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                                error: (error, stack) => Row(
+                                  children: [
+                                    Icon(
+                                      Icons.error_outline,
+                                      size: 12,
+                                      color: Theme.of(context).colorScheme.error,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Account error',
+                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                            color: Theme.of(context).colorScheme.error,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ) ?? const SizedBox.shrink(),
+                            ] else ...[
+                              // No account linked indicator
+                              const SizedBox(height: 2),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.link_off,
+                                    size: 12,
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'No account linked',
+                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                          color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ],
 
                             // Description (if available)
                             if (bill.description != null && bill.description!.isNotEmpty) ...[

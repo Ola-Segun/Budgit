@@ -17,7 +17,10 @@ class Bill with _$Bill {
     required String categoryId,
     String? description,
     String? payee,
-    String? accountId,
+    // ═══ ACCOUNT RELATIONSHIP ═══
+    String? defaultAccountId,  // Primary account for payments
+    List<String>? allowedAccountIds,  // Alternative accounts for payments
+    String? accountId,  // Legacy field for backward compatibility
     @Default(false) bool isAutoPay,
     @Default(false) bool isPaid,
     DateTime? lastPaidDate,
@@ -27,6 +30,14 @@ class Bill with _$Bill {
     @Default(BillDifficulty.easy) BillDifficulty cancellationDifficulty,
     DateTime? lastPriceIncrease,
     @Default([]) List<BillPayment> paymentHistory,
+    // ═══ VARIABLE AMOUNT SUPPORT ═══
+    @Default(false) bool isVariableAmount,
+    double? minAmount,
+    double? maxAmount,
+    // ═══ CURRENCY SUPPORT ═══
+    String? currencyCode,
+    // ═══ RECURRING FLEXIBILITY ═══
+    @Default([]) List<RecurringPaymentRule> recurringPaymentRules,
   }) = _Bill;
 
   const Bill._();
@@ -80,6 +91,57 @@ class Bill with _$Bill {
   /// Check if bill has payment history
   bool get hasPaymentHistory => paymentHistory.isNotEmpty;
 
+  /// Get effective account ID (prioritizes defaultAccountId, falls back to accountId)
+  String? get effectiveAccountId => defaultAccountId ?? accountId;
+
+  /// Get all allowed account IDs (combines default and allowed accounts)
+  List<String> get allAllowedAccountIds {
+    final accounts = <String>[];
+    if (defaultAccountId != null) accounts.add(defaultAccountId!);
+    if (allowedAccountIds != null) accounts.addAll(allowedAccountIds!);
+    if (accountId != null && !accounts.contains(accountId!)) accounts.add(accountId!);
+    return accounts;
+  }
+
+  /// Check if account is allowed for this bill
+  bool isAccountAllowed(String accountId) {
+    return allAllowedAccountIds.contains(accountId);
+  }
+
+  /// Get payment amount for specific instance (considering variable amounts and recurring rules)
+  double getPaymentAmountForInstance(int instanceNumber) {
+    // Check recurring payment rules first
+    final rule = recurringPaymentRules
+        .where((rule) => rule.instanceNumber == instanceNumber && rule.isEnabled)
+        .firstOrNull;
+
+    if (rule != null && rule.amount != null) {
+      return rule.amount!;
+    }
+
+    // For variable amount bills, return current amount
+    if (isVariableAmount) {
+      return amount;
+    }
+
+    return amount;
+  }
+
+  /// Get account for specific instance (considering recurring rules)
+  String? getAccountForInstance(int instanceNumber) {
+    // Check recurring payment rules first
+    final rule = recurringPaymentRules
+        .where((rule) => rule.instanceNumber == instanceNumber && rule.isEnabled)
+        .firstOrNull;
+
+    if (rule != null && rule.accountId != null) {
+      return rule.accountId;
+    }
+
+    // Return default account
+    return effectiveAccountId;
+  }
+
   /// Validate bill data
   Result<Bill> validate() {
     if (name.trim().isEmpty) {
@@ -101,6 +163,41 @@ class Bill with _$Bill {
         'Category ID cannot be empty',
         {'categoryId': 'Category is required'},
       ));
+    }
+
+    // Validate variable amount constraints
+    if (isVariableAmount) {
+      if (minAmount != null && maxAmount != null && minAmount! >= maxAmount!) {
+        return Result.error(Failure.validation(
+          'Minimum amount must be less than maximum amount',
+          {'minAmount': 'Must be < maxAmount', 'maxAmount': 'Must be > minAmount'},
+        ));
+      }
+
+      if (minAmount != null && minAmount! <= 0) {
+        return Result.error(Failure.validation(
+          'Minimum amount must be positive',
+          {'minAmount': 'Must be > 0'},
+        ));
+      }
+
+      if (maxAmount != null && maxAmount! <= 0) {
+        return Result.error(Failure.validation(
+          'Maximum amount must be positive',
+          {'maxAmount': 'Must be > 0'},
+        ));
+      }
+    }
+
+    // Validate recurring payment rules
+    for (final rule in recurringPaymentRules) {
+      final ruleResult = rule.validate();
+      if (ruleResult.isError) {
+        return Result.error(Failure.validation(
+          'Invalid recurring payment rule: ${ruleResult.failureOrNull!.message}',
+          {'recurringPaymentRules': (ruleResult.failureOrNull as ValidationFailure?)?.errors ?? {}},
+        ));
+      }
     }
 
     return Result.success(this);
@@ -187,6 +284,40 @@ enum PaymentMethod {
   final String displayName;
 }
 
+/// Recurring payment rule for flexible payment patterns
+@freezed
+class RecurringPaymentRule with _$RecurringPaymentRule {
+  const factory RecurringPaymentRule({
+    required String id,
+    required int instanceNumber,  // Which occurrence (1st, 2nd, etc.)
+    String? accountId,  // Specific account for this instance
+    double? amount,  // Specific amount for this instance (overrides bill amount)
+    String? notes,
+    @Default(true) bool isEnabled,
+  }) = _RecurringPaymentRule;
+
+  const RecurringPaymentRule._();
+
+  /// Validate rule data
+  Result<RecurringPaymentRule> validate() {
+    if (instanceNumber < 1) {
+      return Result.error(Failure.validation(
+        'Instance number must be positive',
+        {'instanceNumber': 'Must be >= 1'},
+      ));
+    }
+
+    if (amount != null && amount! <= 0) {
+      return Result.error(Failure.validation(
+        'Amount must be positive if specified',
+        {'amount': 'Must be > 0'},
+      ));
+    }
+
+    return Result.success(this);
+  }
+}
+
 /// Bill cancellation difficulty
 enum BillDifficulty {
   easy('Easy'),
@@ -263,7 +394,10 @@ class Subscription with _$Subscription {
     required String categoryId,
     String? description,
     String? payee,
-    String? accountId,
+    // ═══ ACCOUNT RELATIONSHIP ═══
+    String? defaultAccountId,  // Primary account for payments
+    List<String>? allowedAccountIds,  // Alternative accounts for payments
+    String? accountId,  // Legacy field for backward compatibility
     @Default(false) bool isAutoPay,
     @Default(false) bool isPaid,
     DateTime? lastPaidDate,
@@ -273,6 +407,14 @@ class Subscription with _$Subscription {
     @Default(BillDifficulty.easy) BillDifficulty cancellationDifficulty,
     DateTime? lastPriceIncrease,
     @Default([]) List<BillPayment> paymentHistory,
+    // ═══ VARIABLE AMOUNT SUPPORT ═══
+    @Default(false) bool isVariableAmount,
+    double? minAmount,
+    double? maxAmount,
+    // ═══ CURRENCY SUPPORT ═══
+    String? currencyCode,
+    // ═══ RECURRING FLEXIBILITY ═══
+    @Default([]) List<RecurringPaymentRule> recurringPaymentRules,
     // Subscription-specific fields
     @Default(false) bool isCancelled,
     DateTime? cancellationDate,
@@ -295,6 +437,8 @@ class Subscription with _$Subscription {
       categoryId: categoryId,
       description: description,
       payee: payee,
+      defaultAccountId: defaultAccountId,
+      allowedAccountIds: allowedAccountIds,
       accountId: accountId,
       isAutoPay: isAutoPay,
       isPaid: isPaid,
@@ -305,6 +449,11 @@ class Subscription with _$Subscription {
       cancellationDifficulty: cancellationDifficulty,
       lastPriceIncrease: lastPriceIncrease,
       paymentHistory: paymentHistory,
+      isVariableAmount: isVariableAmount,
+      minAmount: minAmount,
+      maxAmount: maxAmount,
+      currencyCode: currencyCode,
+      recurringPaymentRules: recurringPaymentRules,
     );
   }
 
@@ -319,6 +468,8 @@ class Subscription with _$Subscription {
       categoryId: bill.categoryId,
       description: bill.description,
       payee: bill.payee,
+      defaultAccountId: bill.defaultAccountId,
+      allowedAccountIds: bill.allowedAccountIds,
       accountId: bill.accountId,
       isAutoPay: bill.isAutoPay,
       isPaid: bill.isPaid,
@@ -329,6 +480,11 @@ class Subscription with _$Subscription {
       cancellationDifficulty: bill.cancellationDifficulty,
       lastPriceIncrease: bill.lastPriceIncrease,
       paymentHistory: bill.paymentHistory,
+      isVariableAmount: bill.isVariableAmount,
+      minAmount: bill.minAmount,
+      maxAmount: bill.maxAmount,
+      currencyCode: bill.currencyCode,
+      recurringPaymentRules: bill.recurringPaymentRules,
     );
   }
 

@@ -1,18 +1,26 @@
+import 'dart:developer' as developer;
+
 import '../../../../core/error/failures.dart';
 import '../../../../core/error/result.dart';
-import '../../../accounts/domain/repositories/account_repository.dart';
+import '../../../transactions/domain/entities/transaction.dart';
 import '../../../transactions/domain/repositories/transaction_repository.dart';
+import '../../../transactions/domain/usecases/add_transaction.dart';
+import '../../../transactions/domain/usecases/delete_transaction.dart';
 import '../../domain/entities/bill.dart';
 import '../../domain/repositories/bill_repository.dart';
 import '../datasources/bill_hive_datasource.dart';
 
 /// Implementation of BillRepository using Hive data source
 class BillRepositoryImpl implements BillRepository {
-  BillRepositoryImpl(this._transactionRepository, this._accountRepository)
-      : _dataSource = BillHiveDataSource();
+  BillRepositoryImpl(
+    this._transactionRepository,
+    this._addTransaction,
+    this._deleteTransaction,
+  ) : _dataSource = BillHiveDataSource();
 
   final TransactionRepository _transactionRepository;
-  final AccountRepository _accountRepository;
+  final AddTransaction _addTransaction;
+  final DeleteTransaction _deleteTransaction;
   final BillHiveDataSource _dataSource;
 
   @override
@@ -43,8 +51,8 @@ class BillRepositoryImpl implements BillRepository {
   Future<Result<void>> delete(String id) => _dataSource.delete(id);
 
   @override
-  Future<Result<Bill>> markAsPaid(String billId, BillPayment payment) async {
-    // First validate account balance if account is specified
+  Future<Result<Bill>> markAsPaid(String billId, BillPayment payment, {String? accountId}) async {
+    // Get bill details first
     final billResult = await _dataSource.getById(billId);
     if (billResult.isError) {
       return Result.error(billResult.failureOrNull!);
@@ -55,44 +63,21 @@ class BillRepositoryImpl implements BillRepository {
       return Result.error(Failure.validation('Bill not found', {'billId': 'Bill does not exist'}));
     }
 
-    // Check account balance if bill has an associated account
-    if (bill.accountId != null) {
-      final accountResult = await _accountRepository.getById(bill.accountId!);
-      if (accountResult.isError) {
-        return Result.error(Failure.validation(
-          'Account not found for bill payment',
-          {'accountId': 'Invalid account associated with bill'}
-        ));
-      }
-
-      final account = accountResult.dataOrNull;
-      if (account != null) {
-        // Check if account has sufficient balance (using reconciled balance for accuracy, fallback to cached)
-        // For asset accounts, check if balance >= payment amount
-        // For liability accounts, they can always be "paid" (increases liability)
-        final balanceToCheck = account.reconciledBalance ?? account.cachedBalance ?? account.balance ?? 0.0;
-        final effectiveBalance = account.isAsset ? balanceToCheck : double.infinity;
-
-        if (effectiveBalance < payment.amount) {
-          return Result.error(Failure.validation(
-            'Insufficient account balance',
-            {
-              'accountId': account.id,
-              'required': payment.amount.toString(),
-              'available': balanceToCheck.toString(),
-              'accountType': account.type.name,
-            }
-          ));
-        }
-      }
+    // Determine which account to use for payment
+    final accountIdToUse = accountId ?? bill.accountId;
+    if (accountIdToUse == null) {
+      return Result.error(Failure.validation(
+        'No account specified for bill payment',
+        {'accountId': 'Account is required for bill payment'}
+      ));
     }
 
-    // Proceed with marking as paid
-    return _dataSource.markAsPaid(billId, payment, _transactionRepository);
+    // Proceed with marking as paid using the proper usecase pattern
+    return _dataSource.markAsPaid(billId, payment, _addTransaction, _deleteTransaction, accountId: accountId);
   }
 
   @override
-  Future<Result<Bill>> markAsUnpaid(String billId) => _dataSource.markAsUnpaid(billId, _transactionRepository);
+  Future<Result<Bill>> markAsUnpaid(String billId) => _dataSource.markAsUnpaid(billId, _deleteTransaction);
 
   @override
   Future<Result<BillStatus>> getBillStatus(String billId) async {
@@ -222,4 +207,130 @@ class BillRepositoryImpl implements BillRepository {
 
   @override
   Future<Result<Bill>> updateNextDueDate(String billId) => _dataSource.updateNextDueDate(billId);
+
+  @override
+  Future<Result<void>> reconcileBillPayments(String billId) async {
+    try {
+      // Get bill details
+      final billResult = await _dataSource.getById(billId);
+      if (billResult.isError) {
+        return Result.error(billResult.failureOrNull!);
+      }
+
+      final bill = billResult.dataOrNull;
+      if (bill == null) {
+        return Result.error(Failure.validation('Bill not found', {'billId': 'Bill does not exist'}));
+      }
+
+      bool reconciliationPerformed = false;
+      final issues = <String>[];
+
+      // Step 1: Check for payments without transaction IDs
+      for (final payment in bill.paymentHistory) {
+        if (payment.transactionId == null) {
+          // Payment missing transaction - this is a critical data integrity issue
+          issues.add('Payment ${payment.id} has no associated transaction');
+
+          // Attempt to recreate the missing transaction
+          try {
+            final recreatedTransaction = Transaction(
+              id: 'bill_${billId}_${payment.id}',
+              title: '${bill.name} Payment',
+              amount: payment.amount,
+              categoryId: bill.categoryId,
+              date: payment.paymentDate,
+              type: TransactionType.expense,
+              accountId: bill.effectiveAccountId,
+              description: 'Payment for ${bill.name}',
+            );
+
+            final addResult = await _addTransaction(recreatedTransaction);
+            if (addResult.isSuccess) {
+              // Update payment with transaction ID
+              final updatedPayment = payment.copyWith(transactionId: recreatedTransaction.id);
+              final updatedBill = bill.copyWith(
+                paymentHistory: bill.paymentHistory.map(
+                  (p) => p.id == payment.id ? updatedPayment : p
+                ).toList(),
+              );
+
+              await _dataSource.update(updatedBill);
+              reconciliationPerformed = true;
+              issues.add('Recreated transaction for payment ${payment.id}');
+            } else {
+              issues.add('Failed to recreate transaction for payment ${payment.id}: ${addResult.failureOrNull?.message}');
+            }
+          } catch (e) {
+            issues.add('Error recreating transaction for payment ${payment.id}: $e');
+          }
+        } else {
+          // Payment has transaction ID - verify transaction exists
+          final transactionResult = await _transactionRepository.getById(payment.transactionId!);
+          if (transactionResult.isError || transactionResult.dataOrNull == null) {
+            issues.add('Transaction ${payment.transactionId} for payment ${payment.id} is missing');
+
+            // Attempt to recreate the missing transaction
+            try {
+              final recreatedTransaction = Transaction(
+                id: payment.transactionId!, // Use the original ID
+                title: '${bill.name} Payment',
+                amount: payment.amount,
+                categoryId: bill.categoryId,
+                date: payment.paymentDate,
+                type: TransactionType.expense,
+                accountId: bill.effectiveAccountId,
+                description: 'Payment for ${bill.name}',
+              );
+
+              final addResult = await _addTransaction(recreatedTransaction);
+              if (addResult.isSuccess) {
+                reconciliationPerformed = true;
+                issues.add('Recreated missing transaction ${payment.transactionId}');
+              } else {
+                issues.add('Failed to recreate missing transaction ${payment.transactionId}: ${addResult.failureOrNull?.message}');
+              }
+            } catch (e) {
+              issues.add('Error recreating missing transaction ${payment.transactionId}: $e');
+            }
+          }
+        }
+      }
+
+      // Step 2: Verify bill payment status consistency
+      final hasPayments = bill.paymentHistory.isNotEmpty;
+      final totalPaid = bill.totalPaid;
+      final shouldBePaid = hasPayments && totalPaid >= bill.amount;
+
+      if (bill.isPaid != shouldBePaid) {
+        issues.add('Bill payment status inconsistent: isPaid=${bill.isPaid}, should be $shouldBePaid');
+
+        // Correct the payment status
+        final correctedBill = bill.copyWith(isPaid: shouldBePaid);
+        await _dataSource.update(correctedBill);
+        reconciliationPerformed = true;
+        issues.add('Corrected bill payment status to $shouldBePaid');
+      }
+
+      // Step 3: Check for orphaned transactions (transactions that reference this bill but bill doesn't know about them)
+      // This would require searching transactions by description or a bill reference field
+      // For now, we'll skip this as it would require additional indexing
+
+      // Log reconciliation results
+      if (reconciliationPerformed) {
+        developer.log(
+          'Bill $billId reconciliation completed. Issues found and addressed: ${issues.join("; ")}',
+          name: 'BillReconciliation'
+        );
+      } else if (issues.isNotEmpty) {
+        developer.log(
+          'Bill $billId reconciliation found issues but could not fully resolve: ${issues.join("; ")}',
+          name: 'BillReconciliation'
+        );
+      }
+
+      return Result.success(null);
+    } catch (e) {
+      return Result.error(Failure.unknown('Failed to reconcile bill payments: $e'));
+    }
+  }
 }

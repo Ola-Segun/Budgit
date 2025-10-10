@@ -4,8 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/error/failures.dart';
+import '../../../accounts/domain/entities/account.dart';
+import '../../../accounts/presentation/providers/account_providers.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart';
+import '../../../../core/di/providers.dart' as core_providers;
 import '../../domain/entities/bill.dart';
+import '../../domain/usecases/validate_bill_account.dart';
 import '../providers/bill_providers.dart';
 
 /// Screen for creating a new bill
@@ -28,6 +33,7 @@ class _BillCreationScreenState extends ConsumerState<BillCreationScreen> {
   BillFrequency _selectedFrequency = BillFrequency.monthly;
   DateTime _selectedDueDate = DateTime.now().add(const Duration(days: 30));
   String _selectedCategoryId = 'utilities'; // Default category
+  String? _selectedAccountId;
   bool _isAutoPay = false;
 
   bool _isSubmitting = false;
@@ -133,6 +139,210 @@ class _BillCreationScreenState extends ConsumerState<BillCreationScreen> {
                 }
               },
             ),
+            const SizedBox(height: 16),
+
+            // Account Selection
+// Replace the entire Account Selection Consumer widget in BOTH files with this:
+
+// Account Selection
+Consumer(
+  builder: (context, ref, child) {
+    final accountsAsync = ref.watch(filteredAccountsProvider);
+
+    return accountsAsync.when(
+      data: (accounts) {
+        if (accounts.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'No accounts available. You can still create the bill and assign an account later.',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // For BillCreationScreen only: Smart default selection
+        // (Skip this block in EditBillBottomSheet)
+        if (_selectedAccountId == null) {
+          final defaultAccount = accounts.firstWhere(
+            (account) => account.type == AccountType.bankAccount && account.isActive,
+            orElse: () => accounts.firstWhere(
+              (account) => account.isActive,
+              orElse: () => accounts.first,
+            ),
+          );
+          _selectedAccountId = defaultAccount.id;
+        }
+
+        // Validate selected account ID exists
+        if (_selectedAccountId != null && 
+            !accounts.any((account) => account.id == _selectedAccountId)) {
+          _selectedAccountId = null;
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DropdownButtonFormField<String>(
+              value: _selectedAccountId,
+              isExpanded: true, // CRITICAL: This fixes the overflow
+              decoration: const InputDecoration(
+                labelText: 'Default Account (Optional)',
+                border: OutlineInputBorder(),
+                helperText: 'Account to use for automatic payments',
+              ),
+              selectedItemBuilder: (BuildContext context) {
+                // Custom builder for the selected value display
+                return [
+                  const Text('No account selected'),
+                  ...accounts.map((account) {
+                    return Row(
+                      children: [
+                        Icon(
+                          Icons.account_balance_wallet,
+                          color: Color(account.type.color),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            account.displayName,
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
+                ];
+              },
+              items: [
+                // Add "No account" option
+                const DropdownMenuItem<String>(
+                  value: null,
+                  child: Text('No account selected'),
+                ),
+                // Add all accounts
+                ...accounts.map((account) {
+                  return DropdownMenuItem<String>(
+                    value: account.id,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.account_balance_wallet,
+                          color: Color(account.type.color),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                account.displayName,
+                                style: const TextStyle(fontWeight: FontWeight.w500),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                              Text(
+                                account.formattedAvailableBalance,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+              onChanged: (value) {
+                setState(() => _selectedAccountId = value);
+              },
+            ),
+            // Only show info message if an account is actually selected
+            if (_selectedAccountId != null) ...[
+              const SizedBox(height: 8),
+              Builder(
+                builder: (context) {
+                  // Find the selected account safely
+                  final selectedAccount = accounts.firstWhere(
+                    (account) => account.id == _selectedAccountId,
+                  );
+                  
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Payments will be deducted from ${selectedAccount.displayName}',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
+          ],
+        );
+      },
+      loading: () => const SizedBox(
+        height: 100,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, stack) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.errorContainer,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          'Error loading accounts: $error',
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
+      ),
+    );
+  },
+),
             const SizedBox(height: 16),
 
             // Frequency
@@ -284,6 +494,38 @@ class _BillCreationScreenState extends ConsumerState<BillCreationScreen> {
     setState(() => _isSubmitting = true);
 
     try {
+      final billAmount = double.parse(_amountController.text);
+
+      // Validate selected account if one is chosen
+      if (_selectedAccountId != null) {
+        final accountRepository = ref.read(core_providers.accountRepositoryProvider);
+        final validateAccount = ValidateBillAccount(accountRepository);
+        final accountValidation = await validateAccount(_selectedAccountId, billAmount);
+
+        if (accountValidation.isError) {
+          final failure = accountValidation.failureOrNull!;
+
+          String errorMessage = failure.message;
+          if (failure is ValidationFailure) {
+            final errors = failure.errors;
+            if (errors.containsKey('accountId')) {
+              errorMessage = errors['accountId']!;
+            }
+          }
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(errorMessage),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+          return;
+        }
+      }
+
       final amount = double.parse(_amountController.text);
 
       final bill = Bill(
@@ -293,6 +535,7 @@ class _BillCreationScreenState extends ConsumerState<BillCreationScreen> {
         dueDate: _selectedDueDate,
         frequency: _selectedFrequency,
         categoryId: _selectedCategoryId,
+        accountId: _selectedAccountId,
         description: _descriptionController.text.trim().isNotEmpty
             ? _descriptionController.text.trim()
             : null,

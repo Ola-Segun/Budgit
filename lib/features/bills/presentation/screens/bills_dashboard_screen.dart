@@ -6,16 +6,25 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/error_view.dart';
 import '../../../../core/widgets/loading_view.dart';
+import '../../../accounts/presentation/providers/account_providers.dart';
 import '../../domain/entities/bill.dart';
 import '../providers/bill_providers.dart';
 import '../widgets/bill_card.dart';
 
 /// Dashboard screen for bills and subscriptions management
-class BillsDashboardScreen extends ConsumerWidget {
+class BillsDashboardScreen extends ConsumerStatefulWidget {
   const BillsDashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BillsDashboardScreen> createState() => _BillsDashboardScreenState();
+}
+
+class _BillsDashboardScreenState extends ConsumerState<BillsDashboardScreen> {
+  String? _selectedAccountFilterId;
+  bool _showLinkedOnly = false;
+
+  @override
+  Widget build(BuildContext context) {
     final billState = ref.watch(billNotifierProvider);
     final summary = ref.watch(billsSummaryProvider);
     final upcomingBills = ref.watch(upcomingBillsProvider);
@@ -74,6 +83,10 @@ class BillsDashboardScreen extends ConsumerWidget {
           _buildSummaryCards(context, summary, overdueCount, totalMonthly),
           const SizedBox(height: 24),
 
+          // Account Filters
+          _buildAccountFilters(context),
+          const SizedBox(height: 16),
+
           // Upcoming Bills
           _buildUpcomingBillsSection(context, upcomingBills),
           const SizedBox(height: 24),
@@ -94,6 +107,13 @@ class BillsDashboardScreen extends ConsumerWidget {
     int overdueCount,
     double totalMonthly,
   ) {
+    final billState = ref.watch(billNotifierProvider);
+    final linkedBillsCount = billState.maybeWhen(
+      loaded: (bills, loadedSummary) => bills.where((bill) => bill.accountId != null).length,
+      orElse: () => 0,
+    );
+    final unlinkedBillsCount = summary.totalBills - linkedBillsCount;
+
     return Column(
       children: [
         Row(
@@ -143,6 +163,30 @@ class BillsDashboardScreen extends ConsumerWidget {
             ),
           ],
         ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _buildSummaryCard(
+                context,
+                'Linked to Accounts',
+                linkedBillsCount.toString(),
+                Icons.account_balance_wallet,
+                Colors.teal,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildSummaryCard(
+                context,
+                'Unlinked Bills',
+                unlinkedBillsCount.toString(),
+                Icons.link_off,
+                unlinkedBillsCount > 0 ? Colors.orange : Colors.grey,
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -181,7 +225,105 @@ class BillsDashboardScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildAccountFilters(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Filter by Account',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+        const SizedBox(height: 12),
+        Consumer(
+          builder: (context, ref, child) {
+            final accountsAsync = ref.watch(filteredAccountsProvider);
+            return accountsAsync.when(
+              data: (accounts) {
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    // All bills filter
+                    FilterChip(
+                      label: const Text('All Bills'),
+                      selected: _selectedAccountFilterId == null && !_showLinkedOnly,
+                      onSelected: (selected) {
+                        if (selected) {
+                          setState(() {
+                            _selectedAccountFilterId = null;
+                            _showLinkedOnly = false;
+                          });
+                        }
+                      },
+                    ),
+                    // Linked bills only filter
+                    FilterChip(
+                      label: const Text('Linked Only'),
+                      selected: _showLinkedOnly,
+                      onSelected: (selected) {
+                        setState(() {
+                          _showLinkedOnly = selected;
+                          if (!selected && _selectedAccountFilterId == null) {
+                            // If unselecting linked only and no account selected, stay on all
+                          }
+                        });
+                      },
+                    ),
+                    // Individual account filters
+                    ...accounts.map((account) {
+                      return FilterChip(
+                        avatar: Icon(
+                          Icons.account_balance_wallet,
+                          size: 16,
+                          color: Color(account.type.color),
+                        ),
+                        label: Text(account.displayName),
+                        selected: _selectedAccountFilterId == account.id,
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedAccountFilterId = selected ? account.id : null;
+                            _showLinkedOnly = false; // Clear linked only when selecting specific account
+                          });
+                        },
+                      );
+                    }),
+                  ],
+                );
+              },
+              loading: () => const SizedBox(
+                height: 40,
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (error, stack) => Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Error loading accounts: $error',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
   Widget _buildUpcomingBillsSection(BuildContext context, List<BillStatus> upcomingBills) {
+    final filteredUpcomingBills = upcomingBills.where((status) {
+      if (_showLinkedOnly) {
+        return status.bill.accountId != null;
+      } else if (_selectedAccountFilterId != null) {
+        return status.bill.accountId == _selectedAccountFilterId;
+      }
+      return true;
+    }).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -192,10 +334,10 @@ class BillsDashboardScreen extends ConsumerWidget {
               ),
         ),
         const SizedBox(height: 16),
-        if (upcomingBills.isEmpty)
+        if (filteredUpcomingBills.isEmpty)
           _buildEmptyUpcomingBills(context)
         else
-          ...upcomingBills.map((status) => _buildUpcomingBillCard(context, status)),
+          ...filteredUpcomingBills.map((status) => _buildUpcomingBillCard(context, status)),
       ],
     );
   }
@@ -206,7 +348,7 @@ class BillsDashboardScreen extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'All Bills',
+          _getFilteredBillsTitle(),
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -216,11 +358,12 @@ class BillsDashboardScreen extends ConsumerWidget {
           initial: () => const SizedBox.shrink(),
           loading: () => const CircularProgressIndicator(),
           loaded: (bills, summary) {
-            if (bills.isEmpty) {
-              return _buildEmptyAllBills(context);
+            final filteredBills = _filterBills(bills);
+            if (filteredBills.isEmpty) {
+              return _buildEmptyFilteredBills(context);
             }
             return Column(
-              children: bills.map((bill) => _buildAllBillCard(context, bill)).toList(),
+              children: filteredBills.map((bill) => _buildAllBillCard(context, bill)).toList(),
             );
           },
           error: (message, bills, summary) => Text('Error: $message'),
@@ -413,5 +556,79 @@ class BillsDashboardScreen extends ConsumerWidget {
       case BillUrgency.overdue:
         return Colors.red.shade900;
     }
+  }
+
+  String _getFilteredBillsTitle() {
+    if (_showLinkedOnly) {
+      return 'Bills with Linked Accounts';
+    } else if (_selectedAccountFilterId != null) {
+      return 'Bills for Selected Account';
+    } else {
+      return 'All Bills';
+    }
+  }
+
+  List<Bill> _filterBills(List<Bill> bills) {
+    if (_showLinkedOnly) {
+      return bills.where((bill) => bill.accountId != null).toList();
+    } else if (_selectedAccountFilterId != null) {
+      return bills.where((bill) => bill.accountId == _selectedAccountFilterId).toList();
+    } else {
+      return bills;
+    }
+  }
+
+  Widget _buildEmptyFilteredBills(BuildContext context) {
+    String message;
+    String subtitle;
+
+    if (_showLinkedOnly) {
+      message = 'No bills with linked accounts';
+      subtitle = 'Link accounts to your bills to see them here';
+    } else if (_selectedAccountFilterId != null) {
+      message = 'No bills for selected account';
+      subtitle = 'Create bills linked to this account or change the filter';
+    } else {
+      return _buildEmptyAllBills(context);
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            Icon(
+              Icons.filter_list_off_outlined,
+              size: 48,
+              color: Theme.of(context).colorScheme.outline,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton(
+              onPressed: () {
+                setState(() {
+                  _selectedAccountFilterId = null;
+                  _showLinkedOnly = false;
+                });
+              },
+              child: const Text('Show All Bills'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

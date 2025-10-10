@@ -23,8 +23,14 @@ mixin _$Bill {
   BillFrequency get frequency => throw _privateConstructorUsedError;
   String get categoryId => throw _privateConstructorUsedError;
   String? get description => throw _privateConstructorUsedError;
-  String? get payee => throw _privateConstructorUsedError;
-  String? get accountId => throw _privateConstructorUsedError;
+  String? get payee =>
+      throw _privateConstructorUsedError; // ═══ ACCOUNT RELATIONSHIP ═══
+  String? get defaultAccountId =>
+      throw _privateConstructorUsedError; // Primary account for payments
+  List<String>? get allowedAccountIds =>
+      throw _privateConstructorUsedError; // Alternative accounts for payments
+  String? get accountId =>
+      throw _privateConstructorUsedError; // Legacy field for backward compatibility
   bool get isAutoPay => throw _privateConstructorUsedError;
   bool get isPaid => throw _privateConstructorUsedError;
   DateTime? get lastPaidDate => throw _privateConstructorUsedError;
@@ -34,7 +40,16 @@ mixin _$Bill {
   BillDifficulty get cancellationDifficulty =>
       throw _privateConstructorUsedError;
   DateTime? get lastPriceIncrease => throw _privateConstructorUsedError;
-  List<BillPayment> get paymentHistory => throw _privateConstructorUsedError;
+  List<BillPayment> get paymentHistory =>
+      throw _privateConstructorUsedError; // ═══ VARIABLE AMOUNT SUPPORT ═══
+  bool get isVariableAmount => throw _privateConstructorUsedError;
+  double? get minAmount => throw _privateConstructorUsedError;
+  double? get maxAmount =>
+      throw _privateConstructorUsedError; // ═══ CURRENCY SUPPORT ═══
+  String? get currencyCode =>
+      throw _privateConstructorUsedError; // ═══ RECURRING FLEXIBILITY ═══
+  List<RecurringPaymentRule> get recurringPaymentRules =>
+      throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
   $BillCopyWith<Bill> get copyWith => throw _privateConstructorUsedError;
@@ -54,6 +69,8 @@ abstract class $BillCopyWith<$Res> {
       String categoryId,
       String? description,
       String? payee,
+      String? defaultAccountId,
+      List<String>? allowedAccountIds,
       String? accountId,
       bool isAutoPay,
       bool isPaid,
@@ -63,7 +80,12 @@ abstract class $BillCopyWith<$Res> {
       String? notes,
       BillDifficulty cancellationDifficulty,
       DateTime? lastPriceIncrease,
-      List<BillPayment> paymentHistory});
+      List<BillPayment> paymentHistory,
+      bool isVariableAmount,
+      double? minAmount,
+      double? maxAmount,
+      String? currencyCode,
+      List<RecurringPaymentRule> recurringPaymentRules});
 }
 
 /// @nodoc
@@ -87,6 +109,8 @@ class _$BillCopyWithImpl<$Res, $Val extends Bill>
     Object? categoryId = null,
     Object? description = freezed,
     Object? payee = freezed,
+    Object? defaultAccountId = freezed,
+    Object? allowedAccountIds = freezed,
     Object? accountId = freezed,
     Object? isAutoPay = null,
     Object? isPaid = null,
@@ -97,6 +121,11 @@ class _$BillCopyWithImpl<$Res, $Val extends Bill>
     Object? cancellationDifficulty = null,
     Object? lastPriceIncrease = freezed,
     Object? paymentHistory = null,
+    Object? isVariableAmount = null,
+    Object? minAmount = freezed,
+    Object? maxAmount = freezed,
+    Object? currencyCode = freezed,
+    Object? recurringPaymentRules = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -131,6 +160,14 @@ class _$BillCopyWithImpl<$Res, $Val extends Bill>
           ? _value.payee
           : payee // ignore: cast_nullable_to_non_nullable
               as String?,
+      defaultAccountId: freezed == defaultAccountId
+          ? _value.defaultAccountId
+          : defaultAccountId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      allowedAccountIds: freezed == allowedAccountIds
+          ? _value.allowedAccountIds
+          : allowedAccountIds // ignore: cast_nullable_to_non_nullable
+              as List<String>?,
       accountId: freezed == accountId
           ? _value.accountId
           : accountId // ignore: cast_nullable_to_non_nullable
@@ -171,6 +208,26 @@ class _$BillCopyWithImpl<$Res, $Val extends Bill>
           ? _value.paymentHistory
           : paymentHistory // ignore: cast_nullable_to_non_nullable
               as List<BillPayment>,
+      isVariableAmount: null == isVariableAmount
+          ? _value.isVariableAmount
+          : isVariableAmount // ignore: cast_nullable_to_non_nullable
+              as bool,
+      minAmount: freezed == minAmount
+          ? _value.minAmount
+          : minAmount // ignore: cast_nullable_to_non_nullable
+              as double?,
+      maxAmount: freezed == maxAmount
+          ? _value.maxAmount
+          : maxAmount // ignore: cast_nullable_to_non_nullable
+              as double?,
+      currencyCode: freezed == currencyCode
+          ? _value.currencyCode
+          : currencyCode // ignore: cast_nullable_to_non_nullable
+              as String?,
+      recurringPaymentRules: null == recurringPaymentRules
+          ? _value.recurringPaymentRules
+          : recurringPaymentRules // ignore: cast_nullable_to_non_nullable
+              as List<RecurringPaymentRule>,
     ) as $Val);
   }
 }
@@ -191,6 +248,8 @@ abstract class _$$BillImplCopyWith<$Res> implements $BillCopyWith<$Res> {
       String categoryId,
       String? description,
       String? payee,
+      String? defaultAccountId,
+      List<String>? allowedAccountIds,
       String? accountId,
       bool isAutoPay,
       bool isPaid,
@@ -200,7 +259,12 @@ abstract class _$$BillImplCopyWith<$Res> implements $BillCopyWith<$Res> {
       String? notes,
       BillDifficulty cancellationDifficulty,
       DateTime? lastPriceIncrease,
-      List<BillPayment> paymentHistory});
+      List<BillPayment> paymentHistory,
+      bool isVariableAmount,
+      double? minAmount,
+      double? maxAmount,
+      String? currencyCode,
+      List<RecurringPaymentRule> recurringPaymentRules});
 }
 
 /// @nodoc
@@ -221,6 +285,8 @@ class __$$BillImplCopyWithImpl<$Res>
     Object? categoryId = null,
     Object? description = freezed,
     Object? payee = freezed,
+    Object? defaultAccountId = freezed,
+    Object? allowedAccountIds = freezed,
     Object? accountId = freezed,
     Object? isAutoPay = null,
     Object? isPaid = null,
@@ -231,6 +297,11 @@ class __$$BillImplCopyWithImpl<$Res>
     Object? cancellationDifficulty = null,
     Object? lastPriceIncrease = freezed,
     Object? paymentHistory = null,
+    Object? isVariableAmount = null,
+    Object? minAmount = freezed,
+    Object? maxAmount = freezed,
+    Object? currencyCode = freezed,
+    Object? recurringPaymentRules = null,
   }) {
     return _then(_$BillImpl(
       id: null == id
@@ -265,6 +336,14 @@ class __$$BillImplCopyWithImpl<$Res>
           ? _value.payee
           : payee // ignore: cast_nullable_to_non_nullable
               as String?,
+      defaultAccountId: freezed == defaultAccountId
+          ? _value.defaultAccountId
+          : defaultAccountId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      allowedAccountIds: freezed == allowedAccountIds
+          ? _value._allowedAccountIds
+          : allowedAccountIds // ignore: cast_nullable_to_non_nullable
+              as List<String>?,
       accountId: freezed == accountId
           ? _value.accountId
           : accountId // ignore: cast_nullable_to_non_nullable
@@ -305,6 +384,26 @@ class __$$BillImplCopyWithImpl<$Res>
           ? _value._paymentHistory
           : paymentHistory // ignore: cast_nullable_to_non_nullable
               as List<BillPayment>,
+      isVariableAmount: null == isVariableAmount
+          ? _value.isVariableAmount
+          : isVariableAmount // ignore: cast_nullable_to_non_nullable
+              as bool,
+      minAmount: freezed == minAmount
+          ? _value.minAmount
+          : minAmount // ignore: cast_nullable_to_non_nullable
+              as double?,
+      maxAmount: freezed == maxAmount
+          ? _value.maxAmount
+          : maxAmount // ignore: cast_nullable_to_non_nullable
+              as double?,
+      currencyCode: freezed == currencyCode
+          ? _value.currencyCode
+          : currencyCode // ignore: cast_nullable_to_non_nullable
+              as String?,
+      recurringPaymentRules: null == recurringPaymentRules
+          ? _value._recurringPaymentRules
+          : recurringPaymentRules // ignore: cast_nullable_to_non_nullable
+              as List<RecurringPaymentRule>,
     ));
   }
 }
@@ -321,6 +420,8 @@ class _$BillImpl extends _Bill {
       required this.categoryId,
       this.description,
       this.payee,
+      this.defaultAccountId,
+      final List<String>? allowedAccountIds,
       this.accountId,
       this.isAutoPay = false,
       this.isPaid = false,
@@ -330,8 +431,15 @@ class _$BillImpl extends _Bill {
       this.notes,
       this.cancellationDifficulty = BillDifficulty.easy,
       this.lastPriceIncrease,
-      final List<BillPayment> paymentHistory = const []})
-      : _paymentHistory = paymentHistory,
+      final List<BillPayment> paymentHistory = const [],
+      this.isVariableAmount = false,
+      this.minAmount,
+      this.maxAmount,
+      this.currencyCode,
+      final List<RecurringPaymentRule> recurringPaymentRules = const []})
+      : _allowedAccountIds = allowedAccountIds,
+        _paymentHistory = paymentHistory,
+        _recurringPaymentRules = recurringPaymentRules,
         super._();
 
   @override
@@ -350,8 +458,26 @@ class _$BillImpl extends _Bill {
   final String? description;
   @override
   final String? payee;
+// ═══ ACCOUNT RELATIONSHIP ═══
+  @override
+  final String? defaultAccountId;
+// Primary account for payments
+  final List<String>? _allowedAccountIds;
+// Primary account for payments
+  @override
+  List<String>? get allowedAccountIds {
+    final value = _allowedAccountIds;
+    if (value == null) return null;
+    if (_allowedAccountIds is EqualUnmodifiableListView)
+      return _allowedAccountIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(value);
+  }
+
+// Alternative accounts for payments
   @override
   final String? accountId;
+// Legacy field for backward compatibility
   @override
   @JsonKey()
   final bool isAutoPay;
@@ -380,9 +506,32 @@ class _$BillImpl extends _Bill {
     return EqualUnmodifiableListView(_paymentHistory);
   }
 
+// ═══ VARIABLE AMOUNT SUPPORT ═══
+  @override
+  @JsonKey()
+  final bool isVariableAmount;
+  @override
+  final double? minAmount;
+  @override
+  final double? maxAmount;
+// ═══ CURRENCY SUPPORT ═══
+  @override
+  final String? currencyCode;
+// ═══ RECURRING FLEXIBILITY ═══
+  final List<RecurringPaymentRule> _recurringPaymentRules;
+// ═══ RECURRING FLEXIBILITY ═══
+  @override
+  @JsonKey()
+  List<RecurringPaymentRule> get recurringPaymentRules {
+    if (_recurringPaymentRules is EqualUnmodifiableListView)
+      return _recurringPaymentRules;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_recurringPaymentRules);
+  }
+
   @override
   String toString() {
-    return 'Bill(id: $id, name: $name, amount: $amount, dueDate: $dueDate, frequency: $frequency, categoryId: $categoryId, description: $description, payee: $payee, accountId: $accountId, isAutoPay: $isAutoPay, isPaid: $isPaid, lastPaidDate: $lastPaidDate, nextDueDate: $nextDueDate, website: $website, notes: $notes, cancellationDifficulty: $cancellationDifficulty, lastPriceIncrease: $lastPriceIncrease, paymentHistory: $paymentHistory)';
+    return 'Bill(id: $id, name: $name, amount: $amount, dueDate: $dueDate, frequency: $frequency, categoryId: $categoryId, description: $description, payee: $payee, defaultAccountId: $defaultAccountId, allowedAccountIds: $allowedAccountIds, accountId: $accountId, isAutoPay: $isAutoPay, isPaid: $isPaid, lastPaidDate: $lastPaidDate, nextDueDate: $nextDueDate, website: $website, notes: $notes, cancellationDifficulty: $cancellationDifficulty, lastPriceIncrease: $lastPriceIncrease, paymentHistory: $paymentHistory, isVariableAmount: $isVariableAmount, minAmount: $minAmount, maxAmount: $maxAmount, currencyCode: $currencyCode, recurringPaymentRules: $recurringPaymentRules)';
   }
 
   @override
@@ -401,6 +550,10 @@ class _$BillImpl extends _Bill {
             (identical(other.description, description) ||
                 other.description == description) &&
             (identical(other.payee, payee) || other.payee == payee) &&
+            (identical(other.defaultAccountId, defaultAccountId) ||
+                other.defaultAccountId == defaultAccountId) &&
+            const DeepCollectionEquality()
+                .equals(other._allowedAccountIds, _allowedAccountIds) &&
             (identical(other.accountId, accountId) ||
                 other.accountId == accountId) &&
             (identical(other.isAutoPay, isAutoPay) ||
@@ -417,30 +570,48 @@ class _$BillImpl extends _Bill {
             (identical(other.lastPriceIncrease, lastPriceIncrease) ||
                 other.lastPriceIncrease == lastPriceIncrease) &&
             const DeepCollectionEquality()
-                .equals(other._paymentHistory, _paymentHistory));
+                .equals(other._paymentHistory, _paymentHistory) &&
+            (identical(other.isVariableAmount, isVariableAmount) ||
+                other.isVariableAmount == isVariableAmount) &&
+            (identical(other.minAmount, minAmount) ||
+                other.minAmount == minAmount) &&
+            (identical(other.maxAmount, maxAmount) ||
+                other.maxAmount == maxAmount) &&
+            (identical(other.currencyCode, currencyCode) ||
+                other.currencyCode == currencyCode) &&
+            const DeepCollectionEquality()
+                .equals(other._recurringPaymentRules, _recurringPaymentRules));
   }
 
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      name,
-      amount,
-      dueDate,
-      frequency,
-      categoryId,
-      description,
-      payee,
-      accountId,
-      isAutoPay,
-      isPaid,
-      lastPaidDate,
-      nextDueDate,
-      website,
-      notes,
-      cancellationDifficulty,
-      lastPriceIncrease,
-      const DeepCollectionEquality().hash(_paymentHistory));
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        name,
+        amount,
+        dueDate,
+        frequency,
+        categoryId,
+        description,
+        payee,
+        defaultAccountId,
+        const DeepCollectionEquality().hash(_allowedAccountIds),
+        accountId,
+        isAutoPay,
+        isPaid,
+        lastPaidDate,
+        nextDueDate,
+        website,
+        notes,
+        cancellationDifficulty,
+        lastPriceIncrease,
+        const DeepCollectionEquality().hash(_paymentHistory),
+        isVariableAmount,
+        minAmount,
+        maxAmount,
+        currencyCode,
+        const DeepCollectionEquality().hash(_recurringPaymentRules)
+      ]);
 
   @JsonKey(ignore: true)
   @override
@@ -459,6 +630,8 @@ abstract class _Bill extends Bill {
       required final String categoryId,
       final String? description,
       final String? payee,
+      final String? defaultAccountId,
+      final List<String>? allowedAccountIds,
       final String? accountId,
       final bool isAutoPay,
       final bool isPaid,
@@ -468,7 +641,12 @@ abstract class _Bill extends Bill {
       final String? notes,
       final BillDifficulty cancellationDifficulty,
       final DateTime? lastPriceIncrease,
-      final List<BillPayment> paymentHistory}) = _$BillImpl;
+      final List<BillPayment> paymentHistory,
+      final bool isVariableAmount,
+      final double? minAmount,
+      final double? maxAmount,
+      final String? currencyCode,
+      final List<RecurringPaymentRule> recurringPaymentRules}) = _$BillImpl;
   const _Bill._() : super._();
 
   @override
@@ -487,9 +665,13 @@ abstract class _Bill extends Bill {
   String? get description;
   @override
   String? get payee;
-  @override
+  @override // ═══ ACCOUNT RELATIONSHIP ═══
+  String? get defaultAccountId;
+  @override // Primary account for payments
+  List<String>? get allowedAccountIds;
+  @override // Alternative accounts for payments
   String? get accountId;
-  @override
+  @override // Legacy field for backward compatibility
   bool get isAutoPay;
   @override
   bool get isPaid;
@@ -507,6 +689,16 @@ abstract class _Bill extends Bill {
   DateTime? get lastPriceIncrease;
   @override
   List<BillPayment> get paymentHistory;
+  @override // ═══ VARIABLE AMOUNT SUPPORT ═══
+  bool get isVariableAmount;
+  @override
+  double? get minAmount;
+  @override
+  double? get maxAmount;
+  @override // ═══ CURRENCY SUPPORT ═══
+  String? get currencyCode;
+  @override // ═══ RECURRING FLEXIBILITY ═══
+  List<RecurringPaymentRule> get recurringPaymentRules;
   @override
   @JsonKey(ignore: true)
   _$$BillImplCopyWith<_$BillImpl> get copyWith =>
@@ -738,6 +930,243 @@ abstract class _BillPayment extends BillPayment {
   @JsonKey(ignore: true)
   _$$BillPaymentImplCopyWith<_$BillPaymentImpl> get copyWith =>
       throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+mixin _$RecurringPaymentRule {
+  String get id => throw _privateConstructorUsedError;
+  int get instanceNumber =>
+      throw _privateConstructorUsedError; // Which occurrence (1st, 2nd, etc.)
+  String? get accountId =>
+      throw _privateConstructorUsedError; // Specific account for this instance
+  double? get amount =>
+      throw _privateConstructorUsedError; // Specific amount for this instance (overrides bill amount)
+  String? get notes => throw _privateConstructorUsedError;
+  bool get isEnabled => throw _privateConstructorUsedError;
+
+  @JsonKey(ignore: true)
+  $RecurringPaymentRuleCopyWith<RecurringPaymentRule> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $RecurringPaymentRuleCopyWith<$Res> {
+  factory $RecurringPaymentRuleCopyWith(RecurringPaymentRule value,
+          $Res Function(RecurringPaymentRule) then) =
+      _$RecurringPaymentRuleCopyWithImpl<$Res, RecurringPaymentRule>;
+  @useResult
+  $Res call(
+      {String id,
+      int instanceNumber,
+      String? accountId,
+      double? amount,
+      String? notes,
+      bool isEnabled});
+}
+
+/// @nodoc
+class _$RecurringPaymentRuleCopyWithImpl<$Res,
+        $Val extends RecurringPaymentRule>
+    implements $RecurringPaymentRuleCopyWith<$Res> {
+  _$RecurringPaymentRuleCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? instanceNumber = null,
+    Object? accountId = freezed,
+    Object? amount = freezed,
+    Object? notes = freezed,
+    Object? isEnabled = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      instanceNumber: null == instanceNumber
+          ? _value.instanceNumber
+          : instanceNumber // ignore: cast_nullable_to_non_nullable
+              as int,
+      accountId: freezed == accountId
+          ? _value.accountId
+          : accountId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      amount: freezed == amount
+          ? _value.amount
+          : amount // ignore: cast_nullable_to_non_nullable
+              as double?,
+      notes: freezed == notes
+          ? _value.notes
+          : notes // ignore: cast_nullable_to_non_nullable
+              as String?,
+      isEnabled: null == isEnabled
+          ? _value.isEnabled
+          : isEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$RecurringPaymentRuleImplCopyWith<$Res>
+    implements $RecurringPaymentRuleCopyWith<$Res> {
+  factory _$$RecurringPaymentRuleImplCopyWith(_$RecurringPaymentRuleImpl value,
+          $Res Function(_$RecurringPaymentRuleImpl) then) =
+      __$$RecurringPaymentRuleImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      int instanceNumber,
+      String? accountId,
+      double? amount,
+      String? notes,
+      bool isEnabled});
+}
+
+/// @nodoc
+class __$$RecurringPaymentRuleImplCopyWithImpl<$Res>
+    extends _$RecurringPaymentRuleCopyWithImpl<$Res, _$RecurringPaymentRuleImpl>
+    implements _$$RecurringPaymentRuleImplCopyWith<$Res> {
+  __$$RecurringPaymentRuleImplCopyWithImpl(_$RecurringPaymentRuleImpl _value,
+      $Res Function(_$RecurringPaymentRuleImpl) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? instanceNumber = null,
+    Object? accountId = freezed,
+    Object? amount = freezed,
+    Object? notes = freezed,
+    Object? isEnabled = null,
+  }) {
+    return _then(_$RecurringPaymentRuleImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      instanceNumber: null == instanceNumber
+          ? _value.instanceNumber
+          : instanceNumber // ignore: cast_nullable_to_non_nullable
+              as int,
+      accountId: freezed == accountId
+          ? _value.accountId
+          : accountId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      amount: freezed == amount
+          ? _value.amount
+          : amount // ignore: cast_nullable_to_non_nullable
+              as double?,
+      notes: freezed == notes
+          ? _value.notes
+          : notes // ignore: cast_nullable_to_non_nullable
+              as String?,
+      isEnabled: null == isEnabled
+          ? _value.isEnabled
+          : isEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$RecurringPaymentRuleImpl extends _RecurringPaymentRule {
+  const _$RecurringPaymentRuleImpl(
+      {required this.id,
+      required this.instanceNumber,
+      this.accountId,
+      this.amount,
+      this.notes,
+      this.isEnabled = true})
+      : super._();
+
+  @override
+  final String id;
+  @override
+  final int instanceNumber;
+// Which occurrence (1st, 2nd, etc.)
+  @override
+  final String? accountId;
+// Specific account for this instance
+  @override
+  final double? amount;
+// Specific amount for this instance (overrides bill amount)
+  @override
+  final String? notes;
+  @override
+  @JsonKey()
+  final bool isEnabled;
+
+  @override
+  String toString() {
+    return 'RecurringPaymentRule(id: $id, instanceNumber: $instanceNumber, accountId: $accountId, amount: $amount, notes: $notes, isEnabled: $isEnabled)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$RecurringPaymentRuleImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.instanceNumber, instanceNumber) ||
+                other.instanceNumber == instanceNumber) &&
+            (identical(other.accountId, accountId) ||
+                other.accountId == accountId) &&
+            (identical(other.amount, amount) || other.amount == amount) &&
+            (identical(other.notes, notes) || other.notes == notes) &&
+            (identical(other.isEnabled, isEnabled) ||
+                other.isEnabled == isEnabled));
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      runtimeType, id, instanceNumber, accountId, amount, notes, isEnabled);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$RecurringPaymentRuleImplCopyWith<_$RecurringPaymentRuleImpl>
+      get copyWith =>
+          __$$RecurringPaymentRuleImplCopyWithImpl<_$RecurringPaymentRuleImpl>(
+              this, _$identity);
+}
+
+abstract class _RecurringPaymentRule extends RecurringPaymentRule {
+  const factory _RecurringPaymentRule(
+      {required final String id,
+      required final int instanceNumber,
+      final String? accountId,
+      final double? amount,
+      final String? notes,
+      final bool isEnabled}) = _$RecurringPaymentRuleImpl;
+  const _RecurringPaymentRule._() : super._();
+
+  @override
+  String get id;
+  @override
+  int get instanceNumber;
+  @override // Which occurrence (1st, 2nd, etc.)
+  String? get accountId;
+  @override // Specific account for this instance
+  double? get amount;
+  @override // Specific amount for this instance (overrides bill amount)
+  String? get notes;
+  @override
+  bool get isEnabled;
+  @override
+  @JsonKey(ignore: true)
+  _$$RecurringPaymentRuleImplCopyWith<_$RecurringPaymentRuleImpl>
+      get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
@@ -990,8 +1419,14 @@ mixin _$Subscription {
   BillFrequency get frequency => throw _privateConstructorUsedError;
   String get categoryId => throw _privateConstructorUsedError;
   String? get description => throw _privateConstructorUsedError;
-  String? get payee => throw _privateConstructorUsedError;
-  String? get accountId => throw _privateConstructorUsedError;
+  String? get payee =>
+      throw _privateConstructorUsedError; // ═══ ACCOUNT RELATIONSHIP ═══
+  String? get defaultAccountId =>
+      throw _privateConstructorUsedError; // Primary account for payments
+  List<String>? get allowedAccountIds =>
+      throw _privateConstructorUsedError; // Alternative accounts for payments
+  String? get accountId =>
+      throw _privateConstructorUsedError; // Legacy field for backward compatibility
   bool get isAutoPay => throw _privateConstructorUsedError;
   bool get isPaid => throw _privateConstructorUsedError;
   DateTime? get lastPaidDate => throw _privateConstructorUsedError;
@@ -1002,6 +1437,14 @@ mixin _$Subscription {
       throw _privateConstructorUsedError;
   DateTime? get lastPriceIncrease => throw _privateConstructorUsedError;
   List<BillPayment> get paymentHistory =>
+      throw _privateConstructorUsedError; // ═══ VARIABLE AMOUNT SUPPORT ═══
+  bool get isVariableAmount => throw _privateConstructorUsedError;
+  double? get minAmount => throw _privateConstructorUsedError;
+  double? get maxAmount =>
+      throw _privateConstructorUsedError; // ═══ CURRENCY SUPPORT ═══
+  String? get currencyCode =>
+      throw _privateConstructorUsedError; // ═══ RECURRING FLEXIBILITY ═══
+  List<RecurringPaymentRule> get recurringPaymentRules =>
       throw _privateConstructorUsedError; // Subscription-specific fields
   bool get isCancelled => throw _privateConstructorUsedError;
   DateTime? get cancellationDate => throw _privateConstructorUsedError;
@@ -1030,6 +1473,8 @@ abstract class $SubscriptionCopyWith<$Res> {
       String categoryId,
       String? description,
       String? payee,
+      String? defaultAccountId,
+      List<String>? allowedAccountIds,
       String? accountId,
       bool isAutoPay,
       bool isPaid,
@@ -1040,6 +1485,11 @@ abstract class $SubscriptionCopyWith<$Res> {
       BillDifficulty cancellationDifficulty,
       DateTime? lastPriceIncrease,
       List<BillPayment> paymentHistory,
+      bool isVariableAmount,
+      double? minAmount,
+      double? maxAmount,
+      String? currencyCode,
+      List<RecurringPaymentRule> recurringPaymentRules,
       bool isCancelled,
       DateTime? cancellationDate,
       String? cancellationReason,
@@ -1069,6 +1519,8 @@ class _$SubscriptionCopyWithImpl<$Res, $Val extends Subscription>
     Object? categoryId = null,
     Object? description = freezed,
     Object? payee = freezed,
+    Object? defaultAccountId = freezed,
+    Object? allowedAccountIds = freezed,
     Object? accountId = freezed,
     Object? isAutoPay = null,
     Object? isPaid = null,
@@ -1079,6 +1531,11 @@ class _$SubscriptionCopyWithImpl<$Res, $Val extends Subscription>
     Object? cancellationDifficulty = null,
     Object? lastPriceIncrease = freezed,
     Object? paymentHistory = null,
+    Object? isVariableAmount = null,
+    Object? minAmount = freezed,
+    Object? maxAmount = freezed,
+    Object? currencyCode = freezed,
+    Object? recurringPaymentRules = null,
     Object? isCancelled = null,
     Object? cancellationDate = freezed,
     Object? cancellationReason = freezed,
@@ -1119,6 +1576,14 @@ class _$SubscriptionCopyWithImpl<$Res, $Val extends Subscription>
           ? _value.payee
           : payee // ignore: cast_nullable_to_non_nullable
               as String?,
+      defaultAccountId: freezed == defaultAccountId
+          ? _value.defaultAccountId
+          : defaultAccountId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      allowedAccountIds: freezed == allowedAccountIds
+          ? _value.allowedAccountIds
+          : allowedAccountIds // ignore: cast_nullable_to_non_nullable
+              as List<String>?,
       accountId: freezed == accountId
           ? _value.accountId
           : accountId // ignore: cast_nullable_to_non_nullable
@@ -1159,6 +1624,26 @@ class _$SubscriptionCopyWithImpl<$Res, $Val extends Subscription>
           ? _value.paymentHistory
           : paymentHistory // ignore: cast_nullable_to_non_nullable
               as List<BillPayment>,
+      isVariableAmount: null == isVariableAmount
+          ? _value.isVariableAmount
+          : isVariableAmount // ignore: cast_nullable_to_non_nullable
+              as bool,
+      minAmount: freezed == minAmount
+          ? _value.minAmount
+          : minAmount // ignore: cast_nullable_to_non_nullable
+              as double?,
+      maxAmount: freezed == maxAmount
+          ? _value.maxAmount
+          : maxAmount // ignore: cast_nullable_to_non_nullable
+              as double?,
+      currencyCode: freezed == currencyCode
+          ? _value.currencyCode
+          : currencyCode // ignore: cast_nullable_to_non_nullable
+              as String?,
+      recurringPaymentRules: null == recurringPaymentRules
+          ? _value.recurringPaymentRules
+          : recurringPaymentRules // ignore: cast_nullable_to_non_nullable
+              as List<RecurringPaymentRule>,
       isCancelled: null == isCancelled
           ? _value.isCancelled
           : isCancelled // ignore: cast_nullable_to_non_nullable
@@ -1204,6 +1689,8 @@ abstract class _$$SubscriptionImplCopyWith<$Res>
       String categoryId,
       String? description,
       String? payee,
+      String? defaultAccountId,
+      List<String>? allowedAccountIds,
       String? accountId,
       bool isAutoPay,
       bool isPaid,
@@ -1214,6 +1701,11 @@ abstract class _$$SubscriptionImplCopyWith<$Res>
       BillDifficulty cancellationDifficulty,
       DateTime? lastPriceIncrease,
       List<BillPayment> paymentHistory,
+      bool isVariableAmount,
+      double? minAmount,
+      double? maxAmount,
+      String? currencyCode,
+      List<RecurringPaymentRule> recurringPaymentRules,
       bool isCancelled,
       DateTime? cancellationDate,
       String? cancellationReason,
@@ -1241,6 +1733,8 @@ class __$$SubscriptionImplCopyWithImpl<$Res>
     Object? categoryId = null,
     Object? description = freezed,
     Object? payee = freezed,
+    Object? defaultAccountId = freezed,
+    Object? allowedAccountIds = freezed,
     Object? accountId = freezed,
     Object? isAutoPay = null,
     Object? isPaid = null,
@@ -1251,6 +1745,11 @@ class __$$SubscriptionImplCopyWithImpl<$Res>
     Object? cancellationDifficulty = null,
     Object? lastPriceIncrease = freezed,
     Object? paymentHistory = null,
+    Object? isVariableAmount = null,
+    Object? minAmount = freezed,
+    Object? maxAmount = freezed,
+    Object? currencyCode = freezed,
+    Object? recurringPaymentRules = null,
     Object? isCancelled = null,
     Object? cancellationDate = freezed,
     Object? cancellationReason = freezed,
@@ -1291,6 +1790,14 @@ class __$$SubscriptionImplCopyWithImpl<$Res>
           ? _value.payee
           : payee // ignore: cast_nullable_to_non_nullable
               as String?,
+      defaultAccountId: freezed == defaultAccountId
+          ? _value.defaultAccountId
+          : defaultAccountId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      allowedAccountIds: freezed == allowedAccountIds
+          ? _value._allowedAccountIds
+          : allowedAccountIds // ignore: cast_nullable_to_non_nullable
+              as List<String>?,
       accountId: freezed == accountId
           ? _value.accountId
           : accountId // ignore: cast_nullable_to_non_nullable
@@ -1331,6 +1838,26 @@ class __$$SubscriptionImplCopyWithImpl<$Res>
           ? _value._paymentHistory
           : paymentHistory // ignore: cast_nullable_to_non_nullable
               as List<BillPayment>,
+      isVariableAmount: null == isVariableAmount
+          ? _value.isVariableAmount
+          : isVariableAmount // ignore: cast_nullable_to_non_nullable
+              as bool,
+      minAmount: freezed == minAmount
+          ? _value.minAmount
+          : minAmount // ignore: cast_nullable_to_non_nullable
+              as double?,
+      maxAmount: freezed == maxAmount
+          ? _value.maxAmount
+          : maxAmount // ignore: cast_nullable_to_non_nullable
+              as double?,
+      currencyCode: freezed == currencyCode
+          ? _value.currencyCode
+          : currencyCode // ignore: cast_nullable_to_non_nullable
+              as String?,
+      recurringPaymentRules: null == recurringPaymentRules
+          ? _value._recurringPaymentRules
+          : recurringPaymentRules // ignore: cast_nullable_to_non_nullable
+              as List<RecurringPaymentRule>,
       isCancelled: null == isCancelled
           ? _value.isCancelled
           : isCancelled // ignore: cast_nullable_to_non_nullable
@@ -1371,6 +1898,8 @@ class _$SubscriptionImpl extends _Subscription {
       required this.categoryId,
       this.description,
       this.payee,
+      this.defaultAccountId,
+      final List<String>? allowedAccountIds,
       this.accountId,
       this.isAutoPay = false,
       this.isPaid = false,
@@ -1381,13 +1910,20 @@ class _$SubscriptionImpl extends _Subscription {
       this.cancellationDifficulty = BillDifficulty.easy,
       this.lastPriceIncrease,
       final List<BillPayment> paymentHistory = const [],
+      this.isVariableAmount = false,
+      this.minAmount,
+      this.maxAmount,
+      this.currencyCode,
+      final List<RecurringPaymentRule> recurringPaymentRules = const [],
       this.isCancelled = false,
       this.cancellationDate,
       this.cancellationReason,
       final List<String> alternativeProviders = const [],
       this.trialEndDate,
       this.hasFreeTrial = false})
-      : _paymentHistory = paymentHistory,
+      : _allowedAccountIds = allowedAccountIds,
+        _paymentHistory = paymentHistory,
+        _recurringPaymentRules = recurringPaymentRules,
         _alternativeProviders = alternativeProviders,
         super._();
 
@@ -1407,8 +1943,26 @@ class _$SubscriptionImpl extends _Subscription {
   final String? description;
   @override
   final String? payee;
+// ═══ ACCOUNT RELATIONSHIP ═══
+  @override
+  final String? defaultAccountId;
+// Primary account for payments
+  final List<String>? _allowedAccountIds;
+// Primary account for payments
+  @override
+  List<String>? get allowedAccountIds {
+    final value = _allowedAccountIds;
+    if (value == null) return null;
+    if (_allowedAccountIds is EqualUnmodifiableListView)
+      return _allowedAccountIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(value);
+  }
+
+// Alternative accounts for payments
   @override
   final String? accountId;
+// Legacy field for backward compatibility
   @override
   @JsonKey()
   final bool isAutoPay;
@@ -1437,6 +1991,29 @@ class _$SubscriptionImpl extends _Subscription {
     return EqualUnmodifiableListView(_paymentHistory);
   }
 
+// ═══ VARIABLE AMOUNT SUPPORT ═══
+  @override
+  @JsonKey()
+  final bool isVariableAmount;
+  @override
+  final double? minAmount;
+  @override
+  final double? maxAmount;
+// ═══ CURRENCY SUPPORT ═══
+  @override
+  final String? currencyCode;
+// ═══ RECURRING FLEXIBILITY ═══
+  final List<RecurringPaymentRule> _recurringPaymentRules;
+// ═══ RECURRING FLEXIBILITY ═══
+  @override
+  @JsonKey()
+  List<RecurringPaymentRule> get recurringPaymentRules {
+    if (_recurringPaymentRules is EqualUnmodifiableListView)
+      return _recurringPaymentRules;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_recurringPaymentRules);
+  }
+
 // Subscription-specific fields
   @override
   @JsonKey()
@@ -1463,7 +2040,7 @@ class _$SubscriptionImpl extends _Subscription {
 
   @override
   String toString() {
-    return 'Subscription(id: $id, name: $name, amount: $amount, dueDate: $dueDate, frequency: $frequency, categoryId: $categoryId, description: $description, payee: $payee, accountId: $accountId, isAutoPay: $isAutoPay, isPaid: $isPaid, lastPaidDate: $lastPaidDate, nextDueDate: $nextDueDate, website: $website, notes: $notes, cancellationDifficulty: $cancellationDifficulty, lastPriceIncrease: $lastPriceIncrease, paymentHistory: $paymentHistory, isCancelled: $isCancelled, cancellationDate: $cancellationDate, cancellationReason: $cancellationReason, alternativeProviders: $alternativeProviders, trialEndDate: $trialEndDate, hasFreeTrial: $hasFreeTrial)';
+    return 'Subscription(id: $id, name: $name, amount: $amount, dueDate: $dueDate, frequency: $frequency, categoryId: $categoryId, description: $description, payee: $payee, defaultAccountId: $defaultAccountId, allowedAccountIds: $allowedAccountIds, accountId: $accountId, isAutoPay: $isAutoPay, isPaid: $isPaid, lastPaidDate: $lastPaidDate, nextDueDate: $nextDueDate, website: $website, notes: $notes, cancellationDifficulty: $cancellationDifficulty, lastPriceIncrease: $lastPriceIncrease, paymentHistory: $paymentHistory, isVariableAmount: $isVariableAmount, minAmount: $minAmount, maxAmount: $maxAmount, currencyCode: $currencyCode, recurringPaymentRules: $recurringPaymentRules, isCancelled: $isCancelled, cancellationDate: $cancellationDate, cancellationReason: $cancellationReason, alternativeProviders: $alternativeProviders, trialEndDate: $trialEndDate, hasFreeTrial: $hasFreeTrial)';
   }
 
   @override
@@ -1482,6 +2059,10 @@ class _$SubscriptionImpl extends _Subscription {
             (identical(other.description, description) ||
                 other.description == description) &&
             (identical(other.payee, payee) || other.payee == payee) &&
+            (identical(other.defaultAccountId, defaultAccountId) ||
+                other.defaultAccountId == defaultAccountId) &&
+            const DeepCollectionEquality()
+                .equals(other._allowedAccountIds, _allowedAccountIds) &&
             (identical(other.accountId, accountId) ||
                 other.accountId == accountId) &&
             (identical(other.isAutoPay, isAutoPay) ||
@@ -1499,6 +2080,16 @@ class _$SubscriptionImpl extends _Subscription {
                 other.lastPriceIncrease == lastPriceIncrease) &&
             const DeepCollectionEquality()
                 .equals(other._paymentHistory, _paymentHistory) &&
+            (identical(other.isVariableAmount, isVariableAmount) ||
+                other.isVariableAmount == isVariableAmount) &&
+            (identical(other.minAmount, minAmount) ||
+                other.minAmount == minAmount) &&
+            (identical(other.maxAmount, maxAmount) ||
+                other.maxAmount == maxAmount) &&
+            (identical(other.currencyCode, currencyCode) ||
+                other.currencyCode == currencyCode) &&
+            const DeepCollectionEquality()
+                .equals(other._recurringPaymentRules, _recurringPaymentRules) &&
             (identical(other.isCancelled, isCancelled) ||
                 other.isCancelled == isCancelled) &&
             (identical(other.cancellationDate, cancellationDate) ||
@@ -1524,6 +2115,8 @@ class _$SubscriptionImpl extends _Subscription {
         categoryId,
         description,
         payee,
+        defaultAccountId,
+        const DeepCollectionEquality().hash(_allowedAccountIds),
         accountId,
         isAutoPay,
         isPaid,
@@ -1534,6 +2127,11 @@ class _$SubscriptionImpl extends _Subscription {
         cancellationDifficulty,
         lastPriceIncrease,
         const DeepCollectionEquality().hash(_paymentHistory),
+        isVariableAmount,
+        minAmount,
+        maxAmount,
+        currencyCode,
+        const DeepCollectionEquality().hash(_recurringPaymentRules),
         isCancelled,
         cancellationDate,
         cancellationReason,
@@ -1559,6 +2157,8 @@ abstract class _Subscription extends Subscription {
       required final String categoryId,
       final String? description,
       final String? payee,
+      final String? defaultAccountId,
+      final List<String>? allowedAccountIds,
       final String? accountId,
       final bool isAutoPay,
       final bool isPaid,
@@ -1569,6 +2169,11 @@ abstract class _Subscription extends Subscription {
       final BillDifficulty cancellationDifficulty,
       final DateTime? lastPriceIncrease,
       final List<BillPayment> paymentHistory,
+      final bool isVariableAmount,
+      final double? minAmount,
+      final double? maxAmount,
+      final String? currencyCode,
+      final List<RecurringPaymentRule> recurringPaymentRules,
       final bool isCancelled,
       final DateTime? cancellationDate,
       final String? cancellationReason,
@@ -1593,9 +2198,13 @@ abstract class _Subscription extends Subscription {
   String? get description;
   @override
   String? get payee;
-  @override
+  @override // ═══ ACCOUNT RELATIONSHIP ═══
+  String? get defaultAccountId;
+  @override // Primary account for payments
+  List<String>? get allowedAccountIds;
+  @override // Alternative accounts for payments
   String? get accountId;
-  @override
+  @override // Legacy field for backward compatibility
   bool get isAutoPay;
   @override
   bool get isPaid;
@@ -1613,6 +2222,16 @@ abstract class _Subscription extends Subscription {
   DateTime? get lastPriceIncrease;
   @override
   List<BillPayment> get paymentHistory;
+  @override // ═══ VARIABLE AMOUNT SUPPORT ═══
+  bool get isVariableAmount;
+  @override
+  double? get minAmount;
+  @override
+  double? get maxAmount;
+  @override // ═══ CURRENCY SUPPORT ═══
+  String? get currencyCode;
+  @override // ═══ RECURRING FLEXIBILITY ═══
+  List<RecurringPaymentRule> get recurringPaymentRules;
   @override // Subscription-specific fields
   bool get isCancelled;
   @override

@@ -111,8 +111,8 @@ class BillNotifier extends StateNotifier<BillState> {
   }
 
   /// Mark bill as paid
-  Future<bool> markBillAsPaid(String billId, BillPayment payment) async {
-    final result = await _markBillAsPaid(billId, payment);
+  Future<bool> markBillAsPaid(String billId, BillPayment payment, {String? accountId}) async {
+    final result = await _markBillAsPaid(billId, payment, accountId: accountId);
 
     return result.when(
       success: (updatedBill) {
