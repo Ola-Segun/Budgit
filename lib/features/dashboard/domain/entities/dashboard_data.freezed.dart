@@ -298,6 +298,7 @@ mixin _$FinancialSnapshot {
   double get incomeThisMonth => throw _privateConstructorUsedError;
   double get expensesThisMonth => throw _privateConstructorUsedError;
   double get balanceThisMonth => throw _privateConstructorUsedError;
+  double get netWorth => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
   $FinancialSnapshotCopyWith<FinancialSnapshot> get copyWith =>
@@ -313,7 +314,8 @@ abstract class $FinancialSnapshotCopyWith<$Res> {
   $Res call(
       {double incomeThisMonth,
       double expensesThisMonth,
-      double balanceThisMonth});
+      double balanceThisMonth,
+      double netWorth});
 }
 
 /// @nodoc
@@ -332,6 +334,7 @@ class _$FinancialSnapshotCopyWithImpl<$Res, $Val extends FinancialSnapshot>
     Object? incomeThisMonth = null,
     Object? expensesThisMonth = null,
     Object? balanceThisMonth = null,
+    Object? netWorth = null,
   }) {
     return _then(_value.copyWith(
       incomeThisMonth: null == incomeThisMonth
@@ -345,6 +348,10 @@ class _$FinancialSnapshotCopyWithImpl<$Res, $Val extends FinancialSnapshot>
       balanceThisMonth: null == balanceThisMonth
           ? _value.balanceThisMonth
           : balanceThisMonth // ignore: cast_nullable_to_non_nullable
+              as double,
+      netWorth: null == netWorth
+          ? _value.netWorth
+          : netWorth // ignore: cast_nullable_to_non_nullable
               as double,
     ) as $Val);
   }
@@ -361,7 +368,8 @@ abstract class _$$FinancialSnapshotImplCopyWith<$Res>
   $Res call(
       {double incomeThisMonth,
       double expensesThisMonth,
-      double balanceThisMonth});
+      double balanceThisMonth,
+      double netWorth});
 }
 
 /// @nodoc
@@ -378,6 +386,7 @@ class __$$FinancialSnapshotImplCopyWithImpl<$Res>
     Object? incomeThisMonth = null,
     Object? expensesThisMonth = null,
     Object? balanceThisMonth = null,
+    Object? netWorth = null,
   }) {
     return _then(_$FinancialSnapshotImpl(
       incomeThisMonth: null == incomeThisMonth
@@ -392,6 +401,10 @@ class __$$FinancialSnapshotImplCopyWithImpl<$Res>
           ? _value.balanceThisMonth
           : balanceThisMonth // ignore: cast_nullable_to_non_nullable
               as double,
+      netWorth: null == netWorth
+          ? _value.netWorth
+          : netWorth // ignore: cast_nullable_to_non_nullable
+              as double,
     ));
   }
 }
@@ -402,7 +415,8 @@ class _$FinancialSnapshotImpl extends _FinancialSnapshot {
   const _$FinancialSnapshotImpl(
       {required this.incomeThisMonth,
       required this.expensesThisMonth,
-      required this.balanceThisMonth})
+      required this.balanceThisMonth,
+      required this.netWorth})
       : super._();
 
   @override
@@ -411,10 +425,12 @@ class _$FinancialSnapshotImpl extends _FinancialSnapshot {
   final double expensesThisMonth;
   @override
   final double balanceThisMonth;
+  @override
+  final double netWorth;
 
   @override
   String toString() {
-    return 'FinancialSnapshot(incomeThisMonth: $incomeThisMonth, expensesThisMonth: $expensesThisMonth, balanceThisMonth: $balanceThisMonth)';
+    return 'FinancialSnapshot(incomeThisMonth: $incomeThisMonth, expensesThisMonth: $expensesThisMonth, balanceThisMonth: $balanceThisMonth, netWorth: $netWorth)';
   }
 
   @override
@@ -427,12 +443,14 @@ class _$FinancialSnapshotImpl extends _FinancialSnapshot {
             (identical(other.expensesThisMonth, expensesThisMonth) ||
                 other.expensesThisMonth == expensesThisMonth) &&
             (identical(other.balanceThisMonth, balanceThisMonth) ||
-                other.balanceThisMonth == balanceThisMonth));
+                other.balanceThisMonth == balanceThisMonth) &&
+            (identical(other.netWorth, netWorth) ||
+                other.netWorth == netWorth));
   }
 
   @override
-  int get hashCode => Object.hash(
-      runtimeType, incomeThisMonth, expensesThisMonth, balanceThisMonth);
+  int get hashCode => Object.hash(runtimeType, incomeThisMonth,
+      expensesThisMonth, balanceThisMonth, netWorth);
 
   @JsonKey(ignore: true)
   @override
@@ -446,7 +464,8 @@ abstract class _FinancialSnapshot extends FinancialSnapshot {
   const factory _FinancialSnapshot(
       {required final double incomeThisMonth,
       required final double expensesThisMonth,
-      required final double balanceThisMonth}) = _$FinancialSnapshotImpl;
+      required final double balanceThisMonth,
+      required final double netWorth}) = _$FinancialSnapshotImpl;
   const _FinancialSnapshot._() : super._();
 
   @override
@@ -455,6 +474,8 @@ abstract class _FinancialSnapshot extends FinancialSnapshot {
   double get expensesThisMonth;
   @override
   double get balanceThisMonth;
+  @override
+  double get netWorth;
   @override
   @JsonKey(ignore: true)
   _$$FinancialSnapshotImplCopyWith<_$FinancialSnapshotImpl> get copyWith =>

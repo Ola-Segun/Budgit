@@ -50,18 +50,12 @@ class _DashboardHeader extends StatelessWidget {
             children: [
               IconButton(
                 icon: const Icon(Icons.settings_outlined),
-                onPressed: () {
-                  debugPrint('HomeDashboard: Navigating to settings');
-                  context.go('/more/settings');
-                },
+                onPressed: () => context.go('/more/settings'),
                 tooltip: 'Settings',
               ),
               IconButton(
                 icon: const Icon(Icons.notifications_outlined),
-                onPressed: () {
-                  debugPrint('HomeDashboard: Navigating to notifications');
-                  context.go('/more/notifications');
-                },
+                onPressed: () => context.go('/more/notifications'),
                 tooltip: 'Notifications',
               ),
             ],
@@ -91,7 +85,6 @@ class HomeDashboardScreen extends ConsumerWidget {
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  debugPrint('HomeDashboardScreen: Expanded constraints - $constraints');
                   return SingleChildScrollView(
                     child: Container(
                       padding: const EdgeInsets.all(16),
@@ -151,8 +144,6 @@ class _FinancialSnapshotCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('FinancialSnapshotCard: Building with income: ${snapshot.incomeThisMonth}, expenses: ${snapshot.expensesThisMonth}, balance: ${snapshot.balanceThisMonth}');
-
     return Card(
       child: Padding(
         padding: AppSpacing.cardPaddingAll,
@@ -182,9 +173,9 @@ class _FinancialSnapshotCard extends StatelessWidget {
                 ),
                 Expanded(
                   child: _SnapshotItem(
-                    label: 'Balance',
-                    amount: '\$${snapshot.balanceThisMonth.toStringAsFixed(2)}',
-                    color: snapshot.balanceThisMonth >= 0 ? Colors.green : Colors.red,
+                    label: 'Net Worth',
+                    amount: '\$${snapshot.netWorth.toStringAsFixed(2)}',
+                    color: snapshot.netWorth >= 0 ? Colors.green : Colors.red,
                   ),
                 ),
               ],
@@ -209,13 +200,13 @@ class _FinancialSnapshotCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
-            // Large bold balance amount
+            // Large bold net worth amount
             Center(
               child: Text(
-                '\$${snapshot.balanceThisMonth.toStringAsFixed(2)}',
+                '\$${snapshot.netWorth.toStringAsFixed(2)}',
                 style: AppTypography.displaySmall.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: snapshot.balanceThisMonth >= 0 ? Colors.green : Colors.red,
+                  color: snapshot.netWorth >= 0 ? Colors.green : Colors.red,
                 ),
               ),
             ),

@@ -46,7 +46,7 @@ class UpdateAccount {
       ));
     }
 
-    if (account.balance.isNaN || account.balance.isInfinite) {
+    if (account.currentBalance.isNaN || account.currentBalance.isInfinite) {
       return Result.error(Failure.validation(
         'Account balance must be a valid number',
         {'balance': 'Invalid balance'},
@@ -62,7 +62,7 @@ class UpdateAccount {
         ));
       }
 
-      if (account.balance > account.creditLimit!) {
+      if (account.currentBalance > account.creditLimit!) {
         return Result.error(Failure.validation(
           'Account balance cannot exceed credit limit',
           {'balance': 'Balance exceeds credit limit'},

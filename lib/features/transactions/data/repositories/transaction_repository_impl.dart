@@ -1,5 +1,6 @@
 import '../../../../core/error/failures.dart';
 import '../../../../core/error/result.dart';
+import '../../../accounts/domain/repositories/account_repository.dart';
 import '../../domain/entities/transaction.dart';
 import '../../domain/entities/transaction_filter.dart';
 import '../../domain/repositories/transaction_repository.dart';
@@ -7,9 +8,10 @@ import '../datasources/transaction_hive_datasource.dart';
 
 /// Implementation of TransactionRepository using Hive data source
 class TransactionRepositoryImpl implements TransactionRepository {
-  const TransactionRepositoryImpl(this._dataSource);
+  const TransactionRepositoryImpl(this._dataSource, this._accountRepository);
 
   final TransactionHiveDataSource _dataSource;
+  final AccountRepository _accountRepository;
 
   @override
   Future<Result<List<Transaction>>> getAll() => _dataSource.getAll();
@@ -269,5 +271,112 @@ class TransactionRepositoryImpl implements TransactionRepository {
     } catch (e) {
       return Result.error(Failure.unknown('Failed to get filtered count: $e'));
     }
+  }
+
+  @override
+  Future<Result<List<Transaction>>> getByAccountId(String accountId) async {
+    try {
+      final allResult = await _dataSource.getAll();
+      if (allResult.isError) {
+        return Result.error(allResult.failureOrNull!);
+      }
+
+      final transactions = allResult.dataOrNull!
+          .where((transaction) =>
+              transaction.accountId == accountId ||
+              transaction.toAccountId == accountId)
+          .toList()
+        ..sort((a, b) => b.date.compareTo(a.date)); // Recent first
+
+      return Result.success(transactions);
+    } catch (e) {
+      return Result.error(Failure.unknown('Failed to get transactions by account ID: $e'));
+    }
+  }
+
+  @override
+  Future<Result<Map<String, double>>> getBalancesByAccount() async {
+    try {
+      final accountsResult = await _accountRepository.getAll();
+      if (accountsResult.isError) {
+        return Result.error(accountsResult.failureOrNull!);
+      }
+
+      final accounts = accountsResult.dataOrNull!;
+      final balances = <String, double>{};
+
+      // Initialize all accounts with 0
+      for (final account in accounts) {
+        balances[account.id] = 0.0;
+      }
+
+      // Get all transactions
+      final transactionsResult = await _dataSource.getAll();
+      if (transactionsResult.isError) {
+        return Result.error(transactionsResult.failureOrNull!);
+      }
+
+      final transactions = transactionsResult.dataOrNull!;
+
+      // Calculate balances from transactions
+      for (final transaction in transactions) {
+        if (transaction.accountId != null && balances.containsKey(transaction.accountId)) {
+          final impact = _calculateTransactionImpact(transaction, transaction.accountId!);
+          balances[transaction.accountId!] = balances[transaction.accountId!]! + impact;
+        }
+
+        // Handle transfer destination
+        if (transaction.isTransfer && transaction.toAccountId != null && balances.containsKey(transaction.toAccountId)) {
+          balances[transaction.toAccountId!] = balances[transaction.toAccountId!]! + transaction.amount;
+        }
+      }
+
+      return Result.success(balances);
+    } catch (e) {
+      return Result.error(Failure.unknown('Failed to calculate balances by account: $e'));
+    }
+  }
+
+  @override
+  Future<Result<double>> getCalculatedBalance(String accountId) async {
+    try {
+      final transactionsResult = await getByAccountId(accountId);
+      if (transactionsResult.isError) {
+        return Result.error(transactionsResult.failureOrNull!);
+      }
+
+      final transactions = transactionsResult.dataOrNull!;
+      double balance = 0.0;
+
+      for (final transaction in transactions) {
+        balance += _calculateTransactionImpact(transaction, accountId);
+      }
+
+      return Result.success(balance);
+    } catch (e) {
+      return Result.error(Failure.unknown('Failed to calculate balance for account: $e'));
+    }
+  }
+
+  /// Calculate the impact of a transaction on an account's balance
+  double _calculateTransactionImpact(Transaction transaction, [String? specificAccountId]) {
+    final accountId = specificAccountId ?? transaction.accountId;
+
+    if (transaction.type == TransactionType.income) {
+      return transaction.amount;
+    } else if (transaction.type == TransactionType.expense) {
+      return -transaction.amount;
+    } else if (transaction.type == TransactionType.transfer) {
+      // For transfers, check if this account is source or destination
+      if (transaction.accountId == accountId) {
+        // This account is the source (money leaving)
+        return -(transaction.amount + (transaction.transferFee ?? 0));
+      } else if (transaction.toAccountId == accountId) {
+        // This account is the destination (money arriving)
+        return transaction.amount;
+      }
+    }
+
+    return 0.0;
   }
 }

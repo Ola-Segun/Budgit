@@ -87,10 +87,39 @@ void main() {
       expect(loan.isLiability, true);
     });
 
-    test('currentBalance should return balance', () {
-      expect(testAccount.currentBalance, 1000.0);
-      final negativeBalance = testAccount.copyWith(balance: -500.0);
-      expect(negativeBalance.currentBalance, -500.0);
+    test('currentBalance should return cachedBalance when available', () {
+      final accountWithCached = testAccount.copyWith(
+        cachedBalance: 1500.0,
+        balance: 1000.0, // legacy field
+      );
+      expect(accountWithCached.currentBalance, 1500.0);
+    });
+
+    test('currentBalance should fallback to balance when cachedBalance is null', () {
+      final accountWithLegacy = testAccount.copyWith(
+        cachedBalance: null,
+        balance: 1000.0,
+      );
+      expect(accountWithLegacy.currentBalance, 1000.0);
+    });
+
+    test('currentBalance should return zero when both cachedBalance and balance are null', () {
+      final accountWithoutBalance = testAccount.copyWith(
+        cachedBalance: null,
+        balance: null,
+      );
+      expect(accountWithoutBalance.currentBalance, 0.0);
+    });
+
+    test('currentBalance should handle negative balances', () {
+      final negativeCached = testAccount.copyWith(cachedBalance: -500.0);
+      expect(negativeCached.currentBalance, -500.0);
+
+      final negativeLegacy = testAccount.copyWith(
+        cachedBalance: null,
+        balance: -300.0,
+      );
+      expect(negativeLegacy.currentBalance, -300.0);
     });
 
     test('availableBalance should return balance for non-credit cards', () {
@@ -201,6 +230,139 @@ void main() {
       expect(updated.balance, 1500.0);
       expect(updated.id, testAccount.id); // unchanged
       expect(updated.type, testAccount.type); // unchanged
+    });
+
+    group('Balance Validation and Reconciliation', () {
+      test('needsReconciliation should return false when balances are not available', () {
+        final noBalances = testAccount.copyWith(
+          cachedBalance: null,
+          reconciledBalance: null,
+        );
+        expect(noBalances.needsReconciliation, false);
+
+        final onlyCached = testAccount.copyWith(
+          cachedBalance: 1000.0,
+          reconciledBalance: null,
+        );
+        expect(onlyCached.needsReconciliation, false);
+
+        final onlyReconciled = testAccount.copyWith(
+          cachedBalance: null,
+          reconciledBalance: 1000.0,
+        );
+        expect(onlyReconciled.needsReconciliation, false);
+      });
+
+      test('needsReconciliation should return true when discrepancy exists', () {
+        final needsReconciliation = testAccount.copyWith(
+          cachedBalance: 1000.0,
+          reconciledBalance: 950.0,
+        );
+        expect(needsReconciliation.needsReconciliation, true);
+
+        final largeDiscrepancy = testAccount.copyWith(
+          cachedBalance: 1000.0,
+          reconciledBalance: 900.0,
+        );
+        expect(largeDiscrepancy.needsReconciliation, true);
+      });
+
+      test('needsReconciliation should return false when balances match within tolerance', () {
+        final matches = testAccount.copyWith(
+          cachedBalance: 1000.0,
+          reconciledBalance: 1000.01, // within 0.01 tolerance
+        );
+        expect(matches.needsReconciliation, false);
+
+        final exactMatch = testAccount.copyWith(
+          cachedBalance: 1000.0,
+          reconciledBalance: 1000.0,
+        );
+        expect(exactMatch.needsReconciliation, false);
+      });
+
+      test('balanceDiscrepancy should return null when balances are not available', () {
+        final noBalances = testAccount.copyWith(
+          cachedBalance: null,
+          reconciledBalance: null,
+        );
+        expect(noBalances.balanceDiscrepancy, null);
+      });
+
+      test('balanceDiscrepancy should return correct discrepancy amount', () {
+        final positiveDiscrepancy = testAccount.copyWith(
+          cachedBalance: 1050.0,
+          reconciledBalance: 1000.0,
+        );
+        expect(positiveDiscrepancy.balanceDiscrepancy, 50.0);
+
+        final negativeDiscrepancy = testAccount.copyWith(
+          cachedBalance: 950.0,
+          reconciledBalance: 1000.0,
+        );
+        expect(negativeDiscrepancy.balanceDiscrepancy, -50.0);
+      });
+
+      test('isValidBalance should return true for valid balances', () {
+        final validAccount = testAccount.copyWith(
+          cachedBalance: 1000.0,
+          reconciledBalance: 950.0,
+        );
+        expect(validAccount.isValidBalance, true);
+      });
+
+      test('isValidBalance should return false for NaN cachedBalance', () {
+        final invalidAccount = testAccount.copyWith(
+          cachedBalance: double.nan,
+        );
+        expect(invalidAccount.isValidBalance, false);
+      });
+
+      test('isValidBalance should return false for infinite cachedBalance', () {
+        final invalidAccount = testAccount.copyWith(
+          cachedBalance: double.infinity,
+        );
+        expect(invalidAccount.isValidBalance, false);
+      });
+
+      test('isValidBalance should return false for NaN reconciledBalance', () {
+        final invalidAccount = testAccount.copyWith(
+          reconciledBalance: double.nan,
+        );
+        expect(invalidAccount.isValidBalance, false);
+      });
+
+      test('isValidBalance should return false for infinite reconciledBalance', () {
+        final invalidAccount = testAccount.copyWith(
+          reconciledBalance: double.infinity,
+        );
+        expect(invalidAccount.isValidBalance, false);
+      });
+
+      test('isValidBalance should return false when cachedBalance and balance disagree', () {
+        final invalidAccount = testAccount.copyWith(
+          cachedBalance: 1000.0,
+          balance: 950.0, // different from cachedBalance
+        );
+        expect(invalidAccount.isValidBalance, false);
+      });
+
+      test('isValidBalance should return true when cachedBalance and balance match', () {
+        final validAccount = testAccount.copyWith(
+          cachedBalance: 1000.0,
+          balance: 1000.0,
+        );
+        expect(validAccount.isValidBalance, true);
+      });
+
+      test('isValidBalance should handle null balances gracefully', () {
+        final nullBalances = testAccount.copyWith(
+          cachedBalance: null,
+          reconciledBalance: null,
+          balance: null,
+        );
+        expect(nullBalances.isValidBalance, true);
+      });
     });
   });
 

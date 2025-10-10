@@ -63,6 +63,15 @@ abstract class TransactionRepository {
 
   /// Get paginated transaction count with filters
   Future<Result<int>> getFilteredCount(TransactionFilter? filter);
+
+  /// Get transactions by account ID (including transfers affecting the account)
+  Future<Result<List<Transaction>>> getByAccountId(String accountId);
+
+  /// Get calculated balances for all accounts from transactions
+  Future<Result<Map<String, double>>> getBalancesByAccount();
+
+  /// Get calculated balance for a specific account from transactions
+  Future<Result<double>> getCalculatedBalance(String accountId);
 }
 
 /// Repository interface for transaction categories

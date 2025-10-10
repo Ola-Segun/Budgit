@@ -18,8 +18,16 @@ final _privateConstructorUsedError = UnsupportedError(
 mixin _$Account {
   String get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
-  AccountType get type => throw _privateConstructorUsedError;
-  double get balance => throw _privateConstructorUsedError;
+  AccountType get type =>
+      throw _privateConstructorUsedError; // Hybrid balance system
+  double? get cachedBalance =>
+      throw _privateConstructorUsedError; // Eager updated on transactions
+  DateTime? get lastBalanceUpdate => throw _privateConstructorUsedError;
+  double? get reconciledBalance =>
+      throw _privateConstructorUsedError; // Calculated from transactions
+  DateTime? get lastReconciliation =>
+      throw _privateConstructorUsedError; // Backward compatibility - for migration
+  double? get balance => throw _privateConstructorUsedError;
   String? get description => throw _privateConstructorUsedError;
   String? get institution => throw _privateConstructorUsedError;
   String? get accountNumber => throw _privateConstructorUsedError;
@@ -58,7 +66,11 @@ abstract class $AccountCopyWith<$Res> {
       {String id,
       String name,
       AccountType type,
-      double balance,
+      double? cachedBalance,
+      DateTime? lastBalanceUpdate,
+      double? reconciledBalance,
+      DateTime? lastReconciliation,
+      double? balance,
       String? description,
       String? institution,
       String? accountNumber,
@@ -93,7 +105,11 @@ class _$AccountCopyWithImpl<$Res, $Val extends Account>
     Object? id = null,
     Object? name = null,
     Object? type = null,
-    Object? balance = null,
+    Object? cachedBalance = freezed,
+    Object? lastBalanceUpdate = freezed,
+    Object? reconciledBalance = freezed,
+    Object? lastReconciliation = freezed,
+    Object? balance = freezed,
     Object? description = freezed,
     Object? institution = freezed,
     Object? accountNumber = freezed,
@@ -124,10 +140,26 @@ class _$AccountCopyWithImpl<$Res, $Val extends Account>
           ? _value.type
           : type // ignore: cast_nullable_to_non_nullable
               as AccountType,
-      balance: null == balance
+      cachedBalance: freezed == cachedBalance
+          ? _value.cachedBalance
+          : cachedBalance // ignore: cast_nullable_to_non_nullable
+              as double?,
+      lastBalanceUpdate: freezed == lastBalanceUpdate
+          ? _value.lastBalanceUpdate
+          : lastBalanceUpdate // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      reconciledBalance: freezed == reconciledBalance
+          ? _value.reconciledBalance
+          : reconciledBalance // ignore: cast_nullable_to_non_nullable
+              as double?,
+      lastReconciliation: freezed == lastReconciliation
+          ? _value.lastReconciliation
+          : lastReconciliation // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      balance: freezed == balance
           ? _value.balance
           : balance // ignore: cast_nullable_to_non_nullable
-              as double,
+              as double?,
       description: freezed == description
           ? _value.description
           : description // ignore: cast_nullable_to_non_nullable
@@ -207,7 +239,11 @@ abstract class _$$AccountImplCopyWith<$Res> implements $AccountCopyWith<$Res> {
       {String id,
       String name,
       AccountType type,
-      double balance,
+      double? cachedBalance,
+      DateTime? lastBalanceUpdate,
+      double? reconciledBalance,
+      DateTime? lastReconciliation,
+      double? balance,
       String? description,
       String? institution,
       String? accountNumber,
@@ -240,7 +276,11 @@ class __$$AccountImplCopyWithImpl<$Res>
     Object? id = null,
     Object? name = null,
     Object? type = null,
-    Object? balance = null,
+    Object? cachedBalance = freezed,
+    Object? lastBalanceUpdate = freezed,
+    Object? reconciledBalance = freezed,
+    Object? lastReconciliation = freezed,
+    Object? balance = freezed,
     Object? description = freezed,
     Object? institution = freezed,
     Object? accountNumber = freezed,
@@ -271,10 +311,26 @@ class __$$AccountImplCopyWithImpl<$Res>
           ? _value.type
           : type // ignore: cast_nullable_to_non_nullable
               as AccountType,
-      balance: null == balance
+      cachedBalance: freezed == cachedBalance
+          ? _value.cachedBalance
+          : cachedBalance // ignore: cast_nullable_to_non_nullable
+              as double?,
+      lastBalanceUpdate: freezed == lastBalanceUpdate
+          ? _value.lastBalanceUpdate
+          : lastBalanceUpdate // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      reconciledBalance: freezed == reconciledBalance
+          ? _value.reconciledBalance
+          : reconciledBalance // ignore: cast_nullable_to_non_nullable
+              as double?,
+      lastReconciliation: freezed == lastReconciliation
+          ? _value.lastReconciliation
+          : lastReconciliation // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      balance: freezed == balance
           ? _value.balance
           : balance // ignore: cast_nullable_to_non_nullable
-              as double,
+              as double?,
       description: freezed == description
           ? _value.description
           : description // ignore: cast_nullable_to_non_nullable
@@ -350,7 +406,11 @@ class _$AccountImpl extends _Account {
       {required this.id,
       required this.name,
       required this.type,
-      required this.balance,
+      this.cachedBalance,
+      this.lastBalanceUpdate,
+      this.reconciledBalance,
+      this.lastReconciliation,
+      this.balance,
       this.description,
       this.institution,
       this.accountNumber,
@@ -375,8 +435,20 @@ class _$AccountImpl extends _Account {
   final String name;
   @override
   final AccountType type;
+// Hybrid balance system
   @override
-  final double balance;
+  final double? cachedBalance;
+// Eager updated on transactions
+  @override
+  final DateTime? lastBalanceUpdate;
+  @override
+  final double? reconciledBalance;
+// Calculated from transactions
+  @override
+  final DateTime? lastReconciliation;
+// Backward compatibility - for migration
+  @override
+  final double? balance;
   @override
   final String? description;
   @override
@@ -422,7 +494,7 @@ class _$AccountImpl extends _Account {
 
   @override
   String toString() {
-    return 'Account(id: $id, name: $name, type: $type, balance: $balance, description: $description, institution: $institution, accountNumber: $accountNumber, currency: $currency, createdAt: $createdAt, updatedAt: $updatedAt, creditLimit: $creditLimit, availableCredit: $availableCredit, interestRate: $interestRate, minimumPayment: $minimumPayment, dueDate: $dueDate, isActive: $isActive, isBankConnected: $isBankConnected, bankConnectionId: $bankConnectionId, lastSyncedAt: $lastSyncedAt, connectionStatus: $connectionStatus)';
+    return 'Account(id: $id, name: $name, type: $type, cachedBalance: $cachedBalance, lastBalanceUpdate: $lastBalanceUpdate, reconciledBalance: $reconciledBalance, lastReconciliation: $lastReconciliation, balance: $balance, description: $description, institution: $institution, accountNumber: $accountNumber, currency: $currency, createdAt: $createdAt, updatedAt: $updatedAt, creditLimit: $creditLimit, availableCredit: $availableCredit, interestRate: $interestRate, minimumPayment: $minimumPayment, dueDate: $dueDate, isActive: $isActive, isBankConnected: $isBankConnected, bankConnectionId: $bankConnectionId, lastSyncedAt: $lastSyncedAt, connectionStatus: $connectionStatus)';
   }
 
   @override
@@ -433,6 +505,14 @@ class _$AccountImpl extends _Account {
             (identical(other.id, id) || other.id == id) &&
             (identical(other.name, name) || other.name == name) &&
             (identical(other.type, type) || other.type == type) &&
+            (identical(other.cachedBalance, cachedBalance) ||
+                other.cachedBalance == cachedBalance) &&
+            (identical(other.lastBalanceUpdate, lastBalanceUpdate) ||
+                other.lastBalanceUpdate == lastBalanceUpdate) &&
+            (identical(other.reconciledBalance, reconciledBalance) ||
+                other.reconciledBalance == reconciledBalance) &&
+            (identical(other.lastReconciliation, lastReconciliation) ||
+                other.lastReconciliation == lastReconciliation) &&
             (identical(other.balance, balance) || other.balance == balance) &&
             (identical(other.description, description) ||
                 other.description == description) &&
@@ -473,6 +553,10 @@ class _$AccountImpl extends _Account {
         id,
         name,
         type,
+        cachedBalance,
+        lastBalanceUpdate,
+        reconciledBalance,
+        lastReconciliation,
         balance,
         description,
         institution,
@@ -504,7 +588,11 @@ abstract class _Account extends Account {
       {required final String id,
       required final String name,
       required final AccountType type,
-      required final double balance,
+      final double? cachedBalance,
+      final DateTime? lastBalanceUpdate,
+      final double? reconciledBalance,
+      final DateTime? lastReconciliation,
+      final double? balance,
       final String? description,
       final String? institution,
       final String? accountNumber,
@@ -529,8 +617,16 @@ abstract class _Account extends Account {
   String get name;
   @override
   AccountType get type;
+  @override // Hybrid balance system
+  double? get cachedBalance;
+  @override // Eager updated on transactions
+  DateTime? get lastBalanceUpdate;
   @override
-  double get balance;
+  double? get reconciledBalance;
+  @override // Calculated from transactions
+  DateTime? get lastReconciliation;
+  @override // Backward compatibility - for migration
+  double? get balance;
   @override
   String? get description;
   @override

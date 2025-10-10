@@ -74,7 +74,7 @@ class AccountBalanceCard extends StatelessWidget {
                         : Colors.green,
                   ),
                 ),
-                if (account.availableBalance != account.balance) ...[
+                if (account.availableBalance != account.currentBalance) ...[
                   const SizedBox(width: 24),
                   Expanded(
                     child: _buildBalanceSection(

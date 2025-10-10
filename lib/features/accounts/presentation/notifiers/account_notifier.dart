@@ -73,10 +73,10 @@ class AccountNotifier extends StateNotifier<AsyncValue<AccountState>> {
       success: (createdAccount) {
         // Update with server response
         final updatedAccounts = [createdAccount, ...currentState.accounts];
-        final newTotalBalance = currentState.totalBalance + createdAccount.balance;
+        final newTotalBalance = currentState.totalBalance + createdAccount.currentBalance;
         final newNetWorth = createdAccount.isAsset
-            ? currentState.netWorth + createdAccount.balance
-            : currentState.netWorth - createdAccount.balance;
+            ? currentState.netWorth + createdAccount.currentBalance
+            : currentState.netWorth - createdAccount.currentBalance;
 
         state = AsyncValue.data(currentState.copyWith(
           accounts: updatedAccounts,
@@ -116,10 +116,10 @@ class AccountNotifier extends StateNotifier<AsyncValue<AccountState>> {
         }).toList();
 
         // Recalculate balances
-        final balanceDiff = updatedAccount.balance - oldAccount.balance;
+        final balanceDiff = updatedAccount.currentBalance - oldAccount.currentBalance;
         final netWorthDiff = updatedAccount.isAsset
-            ? (oldAccount.isAsset ? balanceDiff : updatedAccount.balance - (-oldAccount.balance))
-            : (oldAccount.isLiability ? -balanceDiff : -updatedAccount.balance - oldAccount.balance);
+            ? (oldAccount.isAsset ? balanceDiff : updatedAccount.currentBalance - (-oldAccount.currentBalance))
+            : (oldAccount.isLiability ? -balanceDiff : -updatedAccount.currentBalance - oldAccount.currentBalance);
 
         state = AsyncValue.data(currentState.copyWith(
           accounts: updatedAccounts,
@@ -154,10 +154,10 @@ class AccountNotifier extends StateNotifier<AsyncValue<AccountState>> {
             .toList();
 
         // Update balances
-        final newTotalBalance = currentState.totalBalance - accountToDelete.balance;
+        final newTotalBalance = currentState.totalBalance - accountToDelete.currentBalance;
         final newNetWorth = accountToDelete.isAsset
-            ? currentState.netWorth - accountToDelete.balance
-            : currentState.netWorth + accountToDelete.balance;
+            ? currentState.netWorth - accountToDelete.currentBalance
+            : currentState.netWorth + accountToDelete.currentBalance;
 
         state = AsyncValue.data(currentState.copyWith(
           accounts: updatedAccounts,

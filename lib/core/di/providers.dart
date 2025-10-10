@@ -38,6 +38,7 @@ import '../../features/onboarding/presentation/providers/onboarding_providers.da
 import '../../features/accounts/data/datasources/account_hive_datasource.dart';
 import '../../features/accounts/data/repositories/account_repository_impl.dart';
 import '../../features/accounts/domain/repositories/account_repository.dart';
+import '../../features/accounts/domain/usecases/reconcile_account_balance.dart';
 import '../../features/accounts/domain/usecases/create_account.dart';
 import '../../features/accounts/domain/usecases/get_accounts.dart';
 import '../../features/accounts/domain/usecases/update_account.dart';
@@ -61,6 +62,7 @@ import '../../features/debt/domain/usecases/get_debts.dart';
 import '../../features/debt/domain/usecases/update_debt.dart';
 import '../../features/debt/domain/usecases/delete_debt.dart';
 import '../../features/settings/presentation/providers/settings_providers.dart' as settings_providers;
+import '../../features/notifications/presentation/providers/notification_providers.dart' as notification_providers;
 import '../../features/notifications/presentation/providers/notification_providers.dart' as notification_providers;
 
 /// Core providers for dependency injection
@@ -109,7 +111,10 @@ final transactionCategoryDataSourceProvider = Provider<TransactionCategoryHiveDa
 
 // Transaction repositories
 final transactionRepositoryProvider = Provider<TransactionRepository>((ref) {
-  return TransactionRepositoryImpl(ref.read(transactionDataSourceProvider));
+  return TransactionRepositoryImpl(
+    ref.read(transactionDataSourceProvider),
+    ref.read(accountRepositoryProvider),
+  );
 });
 
 final transactionCategoryRepositoryProvider = Provider<TransactionCategoryRepository>((ref) {
@@ -135,7 +140,10 @@ final transactionCategoryRepositoryProvider = Provider<TransactionCategoryReposi
 
 // Transaction use cases
 final addTransactionProvider = Provider<AddTransaction>((ref) {
-  return AddTransaction(ref.read(transactionRepositoryProvider));
+  return AddTransaction(
+    ref.read(transactionRepositoryProvider),
+    ref.read(accountRepositoryProvider),
+  );
 });
 
 final getTransactionsProvider = Provider<GetTransactions>((ref) {
@@ -147,7 +155,10 @@ final updateTransactionProvider = Provider<UpdateTransaction>((ref) {
 });
 
 final deleteTransactionProvider = Provider<DeleteTransaction>((ref) {
-  return DeleteTransaction(ref.read(transactionRepositoryProvider));
+  return DeleteTransaction(
+    ref.read(transactionRepositoryProvider),
+    ref.read(accountRepositoryProvider),
+  );
 });
 
 final getPaginatedTransactionsProvider = Provider<GetPaginatedTransactions>((ref) {
@@ -184,6 +195,55 @@ final deleteAccountProvider = Provider<DeleteAccount>((ref) {
 final getAccountBalanceProvider = Provider<GetAccountBalance>((ref) {
   return GetAccountBalance(ref.read(accountRepositoryProvider));
 });
+
+final reconcileAccountBalanceProvider = Provider<ReconcileAccountBalance>((ref) {
+  return ReconcileAccountBalance(
+    ref.read(accountRepositoryProvider),
+    ref.read(transactionRepositoryProvider),
+  );
+});
+
+// Reconciliation service for scheduled reconciliation
+final reconciliationServiceProvider = Provider<ReconciliationService>((ref) {
+  return ReconciliationService(
+    ref.read(reconcileAccountBalanceProvider),
+    ref.read(getAccountsProvider),
+    ref.read(errorLoggerProvider),
+  );
+});
+
+class ReconciliationService {
+  const ReconciliationService(
+    this._reconcileAccountBalance,
+    this._getAccounts,
+    this._logger,
+  );
+
+  final ReconcileAccountBalance _reconcileAccountBalance;
+  final GetAccounts _getAccounts;
+  final ErrorLogger _logger;
+
+  /// Reconcile all accounts
+  Future<void> reconcileAllAccounts() async {
+    final result = await _getAccounts();
+    result.when(
+      success: (accounts) async {
+        for (final account in accounts) {
+          await _reconcileAccountBalance(account.id);
+        }
+        _logger.logInfo('Reconciled ${accounts.length} accounts');
+      },
+      error: (failure) {
+        _logger.logError(failure, null);
+      },
+    );
+  }
+
+  /// Reconcile specific account
+  Future<void> reconcileAccount(String accountId) async {
+    await _reconcileAccountBalance(accountId);
+  }
+}
 
 // Budget data sources
 final budgetDataSourceProvider = Provider<BudgetHiveDataSource>((ref) {
@@ -239,7 +299,10 @@ BillHiveDataSource? _billDataSource;
 
 // Bill repositories
 final billRepositoryProvider = Provider<BillRepository>((ref) {
-  return BillRepositoryImpl(ref.read(transactionRepositoryProvider));
+  return BillRepositoryImpl(
+    ref.read(transactionRepositoryProvider),
+    ref.read(accountRepositoryProvider),
+  );
 });
 
 // Bill use cases
@@ -382,40 +445,76 @@ final getFinancialReportsProvider = Provider<GetFinancialReports>((ref) {
 
 // App initialization provider
 final appInitializationProvider = FutureProvider<void>((ref) async {
-  // Initialize storage
-  await HiveStorage.init();
+  try {
+    // Initialize storage
+    await HiveStorage.init();
+    ref.read(errorLoggerProvider).logInfo('Hive storage initialized');
 
-  // Initialize data sources (this also creates the singleton instances)
-  final transactionDataSource = ref.read(transactionDataSourceProvider);
-  final categoryDataSource = ref.read(transactionCategoryDataSourceProvider);
-  final accountDataSource = ref.read(accountDataSourceProvider);
-  final budgetDataSource = ref.read(budgetDataSourceProvider);
-  final billDataSource = ref.read(billDataSourceProvider); // This creates the singleton
-  final goalDataSource = ref.read(goalDataSourceProvider);
-  final insightDataSource = ref.read(insightDataSourceProvider);
-  final settingsDataSource = ref.read(settings_providers.settingsDataSourceProvider);
-  final debtDataSource = ref.read(debtDataSourceProvider);
+    // Initialize data sources (this also creates the singleton instances)
+    final transactionDataSource = ref.read(transactionDataSourceProvider);
+    final categoryDataSource = ref.read(transactionCategoryDataSourceProvider);
+    final accountDataSource = ref.read(accountDataSourceProvider);
+    final budgetDataSource = ref.read(budgetDataSourceProvider);
+    final billDataSource = ref.read(billDataSourceProvider); // This creates the singleton
+    final goalDataSource = ref.read(goalDataSourceProvider);
+    final insightDataSource = ref.read(insightDataSourceProvider);
+    final settingsDataSource = ref.read(settings_providers.settingsDataSourceProvider);
+    final debtDataSource = ref.read(debtDataSourceProvider);
 
-  await transactionDataSource.init();
-  await categoryDataSource.init();
-  await accountDataSource.init();
-  await budgetDataSource.init();
-  await billDataSource.init();
-  await goalDataSource.init();
-  await insightDataSource.init();
-  await settingsDataSource.init();
-  await debtDataSource.init();
+    ref.read(errorLoggerProvider).logInfo('Initializing transaction data source');
+    await transactionDataSource.init();
+    ref.read(errorLoggerProvider).logInfo('Transaction data source initialized');
 
-  // Initialize onboarding data source
-  final userProfileDataSource = ref.read(onboarding_providers.userProfileDataSourceProvider);
-  await userProfileDataSource.init();
+    ref.read(errorLoggerProvider).logInfo('Initializing category data source');
+    await categoryDataSource.init();
+    ref.read(errorLoggerProvider).logInfo('Category data source initialized');
 
-  // Initialize notification service
-  final notificationService = ref.read(notification_providers.notificationServiceProvider);
-  await notificationService.initialize();
+    ref.read(errorLoggerProvider).logInfo('Initializing account data source');
+    await accountDataSource.init();
+    ref.read(errorLoggerProvider).logInfo('Account data source initialized');
 
-  // Initialize other services here as needed
-  ref.read(errorLoggerProvider).logInfo('App initialized successfully');
+    ref.read(errorLoggerProvider).logInfo('Initializing budget data source');
+    await budgetDataSource.init();
+    ref.read(errorLoggerProvider).logInfo('Budget data source initialized');
 
-  // Note: Onboarding state is initialized lazily when accessed
+    ref.read(errorLoggerProvider).logInfo('Initializing bill data source');
+    await billDataSource.init();
+    ref.read(errorLoggerProvider).logInfo('Bill data source initialized');
+
+    ref.read(errorLoggerProvider).logInfo('Initializing goal data source');
+    await goalDataSource.init();
+    ref.read(errorLoggerProvider).logInfo('Goal data source initialized');
+
+    ref.read(errorLoggerProvider).logInfo('Initializing insight data source');
+    await insightDataSource.init();
+    ref.read(errorLoggerProvider).logInfo('Insight data source initialized');
+
+    ref.read(errorLoggerProvider).logInfo('Initializing settings data source');
+    await settingsDataSource.init();
+    ref.read(errorLoggerProvider).logInfo('Settings data source initialized');
+
+    ref.read(errorLoggerProvider).logInfo('Initializing debt data source');
+    await debtDataSource.init();
+    ref.read(errorLoggerProvider).logInfo('Debt data source initialized');
+
+    // Initialize onboarding data source
+    ref.read(errorLoggerProvider).logInfo('Initializing user profile data source');
+    final userProfileDataSource = ref.read(onboarding_providers.userProfileDataSourceProvider);
+    await userProfileDataSource.init();
+    ref.read(errorLoggerProvider).logInfo('User profile data source initialized');
+
+    // Initialize notification service
+    ref.read(errorLoggerProvider).logInfo('Initializing notification service');
+    final notificationService = ref.read(notification_providers.notificationServiceProvider);
+    await notificationService.initialize();
+    ref.read(errorLoggerProvider).logInfo('Notification service initialized');
+
+    // Initialize other services here as needed
+    ref.read(errorLoggerProvider).logInfo('App initialized successfully');
+
+    // Note: Onboarding state is initialized lazily when accessed
+  } catch (e, stackTrace) {
+    ref.read(errorLoggerProvider).logError(e, stackTrace);
+    rethrow;
+  }
 });

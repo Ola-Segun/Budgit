@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 
 import '../../../../core/error/failures.dart';
@@ -14,32 +15,92 @@ class TransactionHiveDataSource {
 
   /// Initialize the data source
   Future<void> init() async {
-    // Wait for Hive to be initialized
-    await HiveStorage.init();
+    try {
+      // Wait for Hive to be initialized
+      await HiveStorage.init();
 
-    // Register adapters if not already registered
-    if (!Hive.isAdapterRegistered(0)) {
-      Hive.registerAdapter(TransactionDtoAdapter());
-    }
-    if (!Hive.isAdapterRegistered(1)) {
-      Hive.registerAdapter(TransactionCategoryDtoAdapter());
-    }
+      // Register adapters if not already registered
+      if (!Hive.isAdapterRegistered(0)) {
+        Hive.registerAdapter(TransactionDtoAdapter());
+      }
+      if (!Hive.isAdapterRegistered(1)) {
+        Hive.registerAdapter(TransactionCategoryDtoAdapter());
+      }
 
-    // Handle box opening with proper type checking
-    if (!Hive.isBoxOpen(_boxName)) {
-      _box = await Hive.openBox<TransactionDto>(_boxName);
-    } else {
-      try {
-        _box = Hive.box<TransactionDto>(_boxName);
-      } catch (e) {
-        // If the box is already open with wrong type, close and reopen
-        if (e.toString().contains('Box<dynamic>')) {
-          await Hive.box(_boxName).close();
+      // Handle box opening with proper type checking
+      if (!Hive.isBoxOpen(_boxName)) {
+        try {
           _box = await Hive.openBox<TransactionDto>(_boxName);
-        } else {
-          rethrow;
+        } catch (e) {
+          debugPrint('Error opening transaction box: $e');
+          // Try to clear incompatible data by opening as dynamic and clearing
+          try {
+            final tempBox = await Hive.openBox(_boxName);
+            await tempBox.clear();
+            await tempBox.close();
+          } catch (e2) {
+            debugPrint('Error clearing box: $e2');
+            // If clearing fails, try deleting the box
+            try {
+              await Hive.deleteBoxFromDisk(_boxName);
+            } catch (e3) {
+              debugPrint('Error deleting box: $e3');
+            }
+          }
+          _box = await Hive.openBox<TransactionDto>(_boxName);
+        }
+      } else {
+        try {
+          _box = Hive.box<TransactionDto>(_boxName);
+        } catch (e) {
+          // If the box is already open with wrong type, close and reopen
+          if (e.toString().contains('Box<dynamic>')) {
+            await Hive.box(_boxName).close();
+            try {
+              _box = await Hive.openBox<TransactionDto>(_boxName);
+            } catch (e2) {
+              debugPrint('Error reopening transaction box: $e2');
+              // Try to clear incompatible data by opening as dynamic and clearing
+              try {
+                final tempBox = await Hive.openBox(_boxName);
+                await tempBox.clear();
+                await tempBox.close();
+              } catch (e3) {
+                debugPrint('Error clearing box: $e3');
+                // If clearing fails, try deleting the box
+                try {
+                  await Hive.deleteBoxFromDisk(_boxName);
+                } catch (e4) {
+                  debugPrint('Error deleting box: $e4');
+                }
+              }
+              _box = await Hive.openBox<TransactionDto>(_boxName);
+            }
+          } else {
+            rethrow;
+          }
         }
       }
+
+      // Try to read all values to check for serialization issues
+      if (_box != null) {
+        final values = _box!.values.toList();
+        for (final dto in values) {
+          try {
+            dto.toDomain(); // This will trigger deserialization
+          } catch (e) {
+            debugPrint('Error deserializing transaction DTO: $e');
+            debugPrint('DTO data: ${dto.toString()}');
+            // Clear the box if deserialization fails due to incompatible data
+            debugPrint('Clearing transaction box due to incompatible data');
+            await _box!.clear();
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error initializing TransactionHiveDataSource: $e');
+      rethrow;
     }
   }
 

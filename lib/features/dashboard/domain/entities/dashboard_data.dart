@@ -21,13 +21,14 @@ class DashboardData with _$DashboardData {
   const DashboardData._();
 }
 
-/// Financial snapshot showing current month income vs expenses
+/// Financial snapshot showing current month income vs expenses and net worth
 @freezed
 class FinancialSnapshot with _$FinancialSnapshot {
   const factory FinancialSnapshot({
     required double incomeThisMonth,
     required double expensesThisMonth,
     required double balanceThisMonth,
+    required double netWorth,
   }) = _FinancialSnapshot;
 
   const FinancialSnapshot._();

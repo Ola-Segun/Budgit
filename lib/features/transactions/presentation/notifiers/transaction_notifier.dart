@@ -145,15 +145,13 @@ class TransactionNotifier extends StateNotifier<AsyncValue<TransactionState>> {
 
     return result.when(
       success: (addedTransaction) {
-        // Update with server response
-        final updatedTransactions = [addedTransaction, ...currentState.transactions];
-        state = AsyncValue.data(currentState.copyWith(
-          transactions: updatedTransactions,
-          isLoading: false,
-        ));
+        debugPrint('TransactionNotifier: Transaction added successfully, reloading transactions');
+        // Reload transactions to ensure consistency with pagination and filters
+        loadTransactions();
         return true;
       },
       error: (failure) {
+        debugPrint('TransactionNotifier: Failed to add transaction: ${failure.message}');
         // Revert to original state with error
         state = AsyncValue.data(currentState.copyWith(
           isLoading: false,
@@ -173,13 +171,13 @@ class TransactionNotifier extends StateNotifier<AsyncValue<TransactionState>> {
 
     return result.when(
       success: (updatedTransaction) {
-        final updatedTransactions = currentState.transactions.map((t) {
-          return t.id == transaction.id ? updatedTransaction : t;
-        }).toList();
-        state = AsyncValue.data(currentState.copyWith(transactions: updatedTransactions));
+        debugPrint('TransactionNotifier: Transaction updated successfully, reloading transactions');
+        // Reload transactions to ensure consistency with pagination and filters
+        loadTransactions();
         return true;
       },
       error: (failure) {
+        debugPrint('TransactionNotifier: Failed to update transaction: ${failure.message}');
         state = AsyncValue.error(failure.message, StackTrace.current);
         return false;
       },
@@ -195,13 +193,13 @@ class TransactionNotifier extends StateNotifier<AsyncValue<TransactionState>> {
 
     return result.when(
       success: (_) {
-        final updatedTransactions = currentState.transactions
-            .where((t) => t.id != transactionId)
-            .toList();
-        state = AsyncValue.data(currentState.copyWith(transactions: updatedTransactions));
+        debugPrint('TransactionNotifier: Transaction deleted successfully, reloading transactions');
+        // Reload transactions to ensure consistency with pagination and filters
+        loadTransactions();
         return true;
       },
       error: (failure) {
+        debugPrint('TransactionNotifier: Failed to delete transaction: ${failure.message}');
         state = AsyncValue.error(failure.message, StackTrace.current);
         return false;
       },

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../accounts/domain/entities/account.dart';
+import '../../../accounts/domain/usecases/create_account.dart';
 import '../../../budgets/domain/entities/budget.dart';
 import '../../../budgets/domain/usecases/create_budget.dart';
 import '../../data/datasources/user_profile_hive_datasource.dart';
@@ -11,12 +13,15 @@ import '../states/onboarding_state.dart';
 /// State notifier for onboarding flow management
 class OnboardingNotifier extends StateNotifier<OnboardingState> {
   final CreateBudget _createBudget;
+  final CreateAccount _createAccount;
   final UserProfileHiveDataSource _userProfileDataSource;
 
   OnboardingNotifier({
     required CreateBudget createBudget,
+    required CreateAccount createAccount,
     required UserProfileHiveDataSource userProfileDataSource,
   })  : _createBudget = createBudget,
+        _createAccount = createAccount,
         _userProfileDataSource = userProfileDataSource,
         super(const OnboardingState()) {
     _loadExistingProfile();
@@ -132,6 +137,9 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       // Create the budget
       final budget = await _createBudgetFromOnboardingData();
 
+      // Create a default checking account
+      await _createDefaultAccount();
+
       // Mark user profile as completed
       final completedProfile = state.userProfile!.completeOnboarding();
 
@@ -215,6 +223,28 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     return result.when(
       success: (_) => null,
       error: (failure) => throw Exception(failure.message),
+    );
+  }
+
+  Future<void> _createDefaultAccount() async {
+    final now = DateTime.now();
+
+    final defaultAccount = Account(
+      id: 'default_checking_${now.millisecondsSinceEpoch}',
+      name: 'Checking Account',
+      type: AccountType.bankAccount,
+      cachedBalance: 0.0,
+      lastBalanceUpdate: now,
+      currency: 'USD',
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    final result = await _createAccount(defaultAccount);
+    return result.when(
+      success: (_) => null,
+      error: (failure) => throw Exception('Failed to create default account: ${failure.message}'),
     );
   }
 }

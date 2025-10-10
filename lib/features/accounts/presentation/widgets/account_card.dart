@@ -15,6 +15,7 @@ class AccountCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('AccountCard: Building for account ${account.name}, balance: ${account.balance}, cachedBalance: ${account.cachedBalance}, currentBalance: ${account.currentBalance}, formattedBalance: ${account.formattedBalance}');
     return Card(
       child: InkWell(
         onTap: onTap,

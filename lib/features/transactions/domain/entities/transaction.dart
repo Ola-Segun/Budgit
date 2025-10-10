@@ -6,19 +6,21 @@ part 'transaction.freezed.dart';
 /// Pure domain entity with no dependencies
 @freezed
 class Transaction with _$Transaction {
-  const factory Transaction({
-    required String id,
-    required String title,
-    required double amount,
-    required TransactionType type,
-    required DateTime date,
-    required String categoryId,
-    required String accountId,
-    String? description,
-    String? receiptUrl,
-    @Default([]) List<String> tags,
-    @Default('USD') String currencyCode, // Currency code (USD, EUR, etc.)
-  }) = _Transaction;
+   const factory Transaction({
+     required String id,
+     required String title,
+     required double amount,
+     required TransactionType type,
+     required DateTime date,
+     required String categoryId,
+     String? accountId, // Optional for transfers
+     String? toAccountId, // Destination account for transfers
+     double? transferFee, // Fee for transfers
+     String? description,
+     String? receiptUrl,
+     @Default([]) List<String> tags,
+     @Default('USD') String currencyCode, // Currency code (USD, EUR, etc.)
+   }) = _Transaction;
 
   const Transaction._();
 
@@ -27,6 +29,23 @@ class Transaction with _$Transaction {
 
   /// Check if transaction is expense
   bool get isExpense => type == TransactionType.expense;
+
+  /// Check if transaction is a transfer
+  bool get isTransfer => type == TransactionType.transfer && toAccountId != null;
+
+  /// Get effective amount for balance calculations
+  /// For the account referenced by accountId
+  double get effectiveAmount {
+    switch (type) {
+      case TransactionType.income:
+        return amount;
+      case TransactionType.expense:
+        return -amount;
+      case TransactionType.transfer:
+        // For transfers: source account loses amount + fee
+        return -(amount + (transferFee ?? 0));
+    }
+  }
 
   /// Get formatted amount with sign
   String get signedAmount => isIncome ? '+\$${amount.toStringAsFixed(2)}' : '-\$${amount.toStringAsFixed(2)}';
@@ -37,20 +56,24 @@ class Transaction with _$Transaction {
 
 /// Transaction type enum
 enum TransactionType {
-  income,
-  expense;
+   income,
+   expense,
+   transfer;
 
-  String get displayName {
-    switch (this) {
-      case TransactionType.income:
-        return 'Income';
-      case TransactionType.expense:
-        return 'Expense';
-    }
-  }
+   String get displayName {
+     switch (this) {
+       case TransactionType.income:
+         return 'Income';
+       case TransactionType.expense:
+         return 'Expense';
+       case TransactionType.transfer:
+         return 'Transfer';
+     }
+   }
 
-  bool get isIncome => this == TransactionType.income;
-  bool get isExpense => this == TransactionType.expense;
+   bool get isIncome => this == TransactionType.income;
+   bool get isExpense => this == TransactionType.expense;
+   bool get isTransfer => this == TransactionType.transfer;
 }
 
 /// Transaction category entity

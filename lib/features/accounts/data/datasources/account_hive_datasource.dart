@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 
 import '../../../../core/error/failures.dart';
@@ -14,29 +15,51 @@ class AccountHiveDataSource {
 
   /// Initialize the data source
   Future<void> init() async {
-    // Wait for Hive to be initialized
-    await HiveStorage.init();
+    try {
+      // Wait for Hive to be initialized
+      await HiveStorage.init();
 
-    // Register adapter if not already registered
-    if (!Hive.isAdapterRegistered(8)) {
-      Hive.registerAdapter(AccountDtoAdapter());
-    }
+      // Register adapter if not already registered
+      if (!Hive.isAdapterRegistered(8)) {
+        Hive.registerAdapter(AccountDtoAdapter());
+      }
 
-    // Handle box opening with proper type checking
-    if (!Hive.isBoxOpen(_boxName)) {
-      _box = await Hive.openBox<AccountDto>(_boxName);
-    } else {
-      try {
-        _box = Hive.box<AccountDto>(_boxName);
-      } catch (e) {
-        // If the box is already open with wrong type, close and reopen
-        if (e.toString().contains('Box<dynamic>')) {
-          await Hive.box(_boxName).close();
-          _box = await Hive.openBox<AccountDto>(_boxName);
-        } else {
-          rethrow;
+      // Handle box opening with proper type checking
+      if (!Hive.isBoxOpen(_boxName)) {
+        _box = await Hive.openBox<AccountDto>(_boxName);
+      } else {
+        try {
+          _box = Hive.box<AccountDto>(_boxName);
+        } catch (e) {
+          // If the box is already open with wrong type, close and reopen
+          if (e.toString().contains('Box<dynamic>')) {
+            await Hive.box(_boxName).close();
+            _box = await Hive.openBox<AccountDto>(_boxName);
+          } else {
+            rethrow;
+          }
         }
       }
+
+      // Try to read all values to check for serialization issues
+      if (_box != null) {
+        final values = _box!.values.toList();
+        for (final dto in values) {
+          try {
+            dto.toDomain(); // This will trigger deserialization
+          } catch (e) {
+            debugPrint('Error deserializing account DTO: $e');
+            debugPrint('DTO data: ${dto.toString()}');
+            // Clear the box if deserialization fails due to incompatible data
+            debugPrint('Clearing account box due to incompatible data');
+            await _box!.clear();
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error initializing AccountHiveDataSource: $e');
+      rethrow;
     }
   }
 
@@ -171,7 +194,7 @@ class AccountHiveDataSource {
       final dtos = _box!.values.where((dto) => dto.isActive != false).toList();
       final total = dtos.fold<double>(0.0, (sum, dto) {
         final account = dto.toDomain();
-        return sum + account.balance;
+        return sum + account.currentBalance;
       });
 
       return Result.success(total);
@@ -191,7 +214,7 @@ class AccountHiveDataSource {
       final netWorth = dtos.fold<double>(0.0, (sum, dto) {
         final account = dto.toDomain();
         // Assets add to net worth, liabilities subtract
-        return sum + (account.isAsset ? account.balance : -account.balance);
+        return sum + (account.isAsset ? account.currentBalance : -account.currentBalance);
       });
 
       return Result.success(netWorth);

@@ -45,7 +45,7 @@ class _AddEditAccountBottomSheetState extends State<AddEditAccountBottomSheet> {
       // Editing mode - populate fields
       final account = widget.account!;
       _nameController.text = account.name;
-      _balanceController.text = account.balance.toStringAsFixed(2);
+      _balanceController.text = account.currentBalance.toStringAsFixed(2);
       _descriptionController.text = account.description ?? '';
       _institutionController.text = account.institution ?? '';
       _accountNumberController.text = account.accountNumber ?? '';
@@ -548,10 +548,18 @@ class _AddEditAccountBottomSheetState extends State<AddEditAccountBottomSheet> {
       return;
     }
 
+    debugPrint('AddEditAccountBottomSheet: _submitAccount called, _isSubmitting: $_isSubmitting');
+    if (_isSubmitting) {
+      debugPrint('AddEditAccountBottomSheet: Already submitting, ignoring duplicate call');
+      return;
+    }
+
     setState(() => _isSubmitting = true);
+    debugPrint('AddEditAccountBottomSheet: Set _isSubmitting to true');
 
     try {
       final balance = double.parse(_balanceController.text);
+      debugPrint('AddEditAccountBottomSheet: Parsed balance: $balance');
       final creditLimit = _creditLimitController.text.isNotEmpty
           ? double.tryParse(_creditLimitController.text)
           : null;
@@ -585,6 +593,7 @@ class _AddEditAccountBottomSheetState extends State<AddEditAccountBottomSheet> {
         isActive: _isActive,
       );
 
+      debugPrint('AddEditAccountBottomSheet: Created account with balance: ${account.balance}, currentBalance: ${account.currentBalance}, formattedBalance: ${account.formattedBalance}');
       widget.onSubmit(account);
     } catch (e) {
       if (mounted) {

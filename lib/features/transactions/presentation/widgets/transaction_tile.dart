@@ -9,6 +9,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/app_bottom_sheet.dart';
 import '../../domain/entities/transaction.dart';
 import '../providers/transaction_providers.dart';
+import '../../../../core/widgets/notification_manager.dart';
 import 'transaction_detail_bottom_sheet.dart';
 
 /// Widget for displaying a transaction in a list
@@ -208,7 +209,7 @@ child: SizedBox(
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            (transaction.accountId.isEmpty) ? 'No Account' : 'Account ${transaction.accountId}',
+                            (transaction.accountId?.isEmpty ?? true) ? 'No Account' : 'Account ${transaction.accountId}',
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   fontSize: 10,
@@ -303,9 +304,7 @@ child: SizedBox(
       if (success && context.mounted) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Transaction deleted')),
-            );
+            NotificationManager.transactionDeleted(context);
           }
         });
       }
@@ -328,9 +327,7 @@ child: SizedBox(
     if (success && context.mounted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Transaction duplicated')),
-          );
+          NotificationManager.transactionDuplicated(context);
         }
       });
     }
@@ -398,9 +395,7 @@ child: SizedBox(
       if (success && context.mounted) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Category updated')),
-            );
+            NotificationManager.categoryUpdated(context);
           }
         });
       }

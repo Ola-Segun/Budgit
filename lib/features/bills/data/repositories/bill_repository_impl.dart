@@ -1,5 +1,6 @@
 import '../../../../core/error/failures.dart';
 import '../../../../core/error/result.dart';
+import '../../../accounts/domain/repositories/account_repository.dart';
 import '../../../transactions/domain/repositories/transaction_repository.dart';
 import '../../domain/entities/bill.dart';
 import '../../domain/repositories/bill_repository.dart';
@@ -7,10 +8,11 @@ import '../datasources/bill_hive_datasource.dart';
 
 /// Implementation of BillRepository using Hive data source
 class BillRepositoryImpl implements BillRepository {
-  BillRepositoryImpl(this._transactionRepository)
+  BillRepositoryImpl(this._transactionRepository, this._accountRepository)
       : _dataSource = BillHiveDataSource();
 
   final TransactionRepository _transactionRepository;
+  final AccountRepository _accountRepository;
   final BillHiveDataSource _dataSource;
 
   @override
@@ -41,11 +43,56 @@ class BillRepositoryImpl implements BillRepository {
   Future<Result<void>> delete(String id) => _dataSource.delete(id);
 
   @override
-  Future<Result<Bill>> markAsPaid(String billId, BillPayment payment) =>
-      _dataSource.markAsPaid(billId, payment, _transactionRepository);
+  Future<Result<Bill>> markAsPaid(String billId, BillPayment payment) async {
+    // First validate account balance if account is specified
+    final billResult = await _dataSource.getById(billId);
+    if (billResult.isError) {
+      return Result.error(billResult.failureOrNull!);
+    }
+
+    final bill = billResult.dataOrNull;
+    if (bill == null) {
+      return Result.error(Failure.validation('Bill not found', {'billId': 'Bill does not exist'}));
+    }
+
+    // Check account balance if bill has an associated account
+    if (bill.accountId != null) {
+      final accountResult = await _accountRepository.getById(bill.accountId!);
+      if (accountResult.isError) {
+        return Result.error(Failure.validation(
+          'Account not found for bill payment',
+          {'accountId': 'Invalid account associated with bill'}
+        ));
+      }
+
+      final account = accountResult.dataOrNull;
+      if (account != null) {
+        // Check if account has sufficient balance (using reconciled balance for accuracy, fallback to cached)
+        // For asset accounts, check if balance >= payment amount
+        // For liability accounts, they can always be "paid" (increases liability)
+        final balanceToCheck = account.reconciledBalance ?? account.cachedBalance ?? account.balance ?? 0.0;
+        final effectiveBalance = account.isAsset ? balanceToCheck : double.infinity;
+
+        if (effectiveBalance < payment.amount) {
+          return Result.error(Failure.validation(
+            'Insufficient account balance',
+            {
+              'accountId': account.id,
+              'required': payment.amount.toString(),
+              'available': balanceToCheck.toString(),
+              'accountType': account.type.name,
+            }
+          ));
+        }
+      }
+    }
+
+    // Proceed with marking as paid
+    return _dataSource.markAsPaid(billId, payment, _transactionRepository);
+  }
 
   @override
-  Future<Result<Bill>> markAsUnpaid(String billId) => _dataSource.markAsUnpaid(billId);
+  Future<Result<Bill>> markAsUnpaid(String billId) => _dataSource.markAsUnpaid(billId, _transactionRepository);
 
   @override
   Future<Result<BillStatus>> getBillStatus(String billId) async {

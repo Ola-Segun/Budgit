@@ -82,11 +82,11 @@ class AccountState with _$AccountState {
 
   /// Get total assets
   double get totalAssets =>
-      assetAccounts.fold(0.0, (sum, account) => sum + account.balance);
+      assetAccounts.fold(0.0, (sum, account) => sum + account.currentBalance);
 
   /// Get total liabilities
   double get totalLiabilities =>
-      liabilityAccounts.fold(0.0, (sum, account) => sum + account.balance.abs());
+      liabilityAccounts.fold(0.0, (sum, account) => sum + account.currentBalance.abs());
 
   /// Get calculated net worth (should match netWorth from state)
   double get calculatedNetWorth => totalAssets - totalLiabilities;

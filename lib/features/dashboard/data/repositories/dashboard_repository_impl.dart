@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../../../core/error/failures.dart';
 import '../../../../core/error/result.dart';
+import '../../../accounts/domain/repositories/account_repository.dart';
 import '../../../bills/domain/entities/bill.dart';
 import '../../../bills/domain/repositories/bill_repository.dart';
 import '../../../budgets/domain/entities/budget.dart';
@@ -21,6 +22,7 @@ class DashboardRepositoryImpl implements DashboardRepository {
     this._transactionRepository,
     this._budgetRepository,
     this._billRepository,
+    this._accountRepository,
     this._insightRepository,
     this._calculateBudgetStatus,
   );
@@ -28,6 +30,7 @@ class DashboardRepositoryImpl implements DashboardRepository {
   final TransactionRepository _transactionRepository;
   final BudgetRepository _budgetRepository;
   final BillRepository _billRepository;
+  final AccountRepository _accountRepository;
   final InsightRepository _insightRepository;
   final CalculateBudgetStatus _calculateBudgetStatus;
 
@@ -50,6 +53,7 @@ class DashboardRepositoryImpl implements DashboardRepository {
               incomeThisMonth: 0.0,
               expensesThisMonth: 0.0,
               balanceThisMonth: 0.0,
+              netWorth: 0.0,
             ));
 
       final budgetOverviewResult = results[1].isSuccess
@@ -120,10 +124,15 @@ class DashboardRepositoryImpl implements DashboardRepository {
 
       final balanceThisMonth = incomeThisMonth - expensesThisMonth;
 
+      // Get net worth from accounts
+      final netWorthResult = await _accountRepository.getNetWorth();
+      final netWorth = netWorthResult.getOrDefault(0.0);
+
       final snapshot = FinancialSnapshot(
         incomeThisMonth: incomeThisMonth,
         expensesThisMonth: expensesThisMonth,
         balanceThisMonth: balanceThisMonth,
+        netWorth: netWorth,
       );
 
       return Result.success(snapshot);

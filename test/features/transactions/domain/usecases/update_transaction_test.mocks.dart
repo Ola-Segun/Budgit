@@ -363,4 +363,56 @@ class MockTransactionRepository extends _i1.Mock
           ),
         )),
       ) as _i3.Future<_i4.Result<int>>);
+
+  @override
+  _i3.Future<_i4.Result<List<_i5.Transaction>>> getByAccountId(
+          String? accountId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getByAccountId,
+          [accountId],
+        ),
+        returnValue: _i3.Future<_i4.Result<List<_i5.Transaction>>>.value(
+            _i6.dummyValue<_i4.Result<List<_i5.Transaction>>>(
+          this,
+          Invocation.method(
+            #getByAccountId,
+            [accountId],
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<List<_i5.Transaction>>>);
+
+  @override
+  _i3.Future<_i4.Result<Map<String, double>>> getBalancesByAccount() =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getBalancesByAccount,
+          [],
+        ),
+        returnValue: _i3.Future<_i4.Result<Map<String, double>>>.value(
+            _i6.dummyValue<_i4.Result<Map<String, double>>>(
+          this,
+          Invocation.method(
+            #getBalancesByAccount,
+            [],
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<Map<String, double>>>);
+
+  @override
+  _i3.Future<_i4.Result<double>> getCalculatedBalance(String? accountId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getCalculatedBalance,
+          [accountId],
+        ),
+        returnValue: _i3.Future<_i4.Result<double>>.value(
+            _i6.dummyValue<_i4.Result<double>>(
+          this,
+          Invocation.method(
+            #getCalculatedBalance,
+            [accountId],
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<double>>);
 }

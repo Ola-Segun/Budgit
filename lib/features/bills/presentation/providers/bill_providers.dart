@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../accounts/presentation/providers/account_providers.dart';
+import '../../../transactions/presentation/providers/transaction_providers.dart';
 import '../../../../core/di/providers.dart' as core_providers;
 import '../../domain/entities/bill.dart';
 import '../../domain/usecases/calculate_bills_summary.dart';
@@ -57,7 +59,7 @@ final billNotifierProvider = StateNotifierProvider<BillNotifier, BillState>((ref
   final markBillAsPaid = ref.watch(markBillAsPaidProvider);
   final getUpcomingBills = ref.watch(getUpcomingBillsProvider);
 
-  return BillNotifier(
+  final notifier = BillNotifier(
     getBills: getBills,
     createBill: createBill,
     updateBill: updateBill,
@@ -66,6 +68,16 @@ final billNotifierProvider = StateNotifierProvider<BillNotifier, BillState>((ref
     markBillAsPaid: markBillAsPaid,
     getUpcomingBills: getUpcomingBills,
   );
+
+  // Listen to transaction changes to invalidate account providers
+  ref.listen(transactionNotifierProvider, (previous, next) {
+    // When transactions change (due to bill payments), invalidate account providers
+    ref.invalidate(accountNotifierProvider);
+    ref.invalidate(totalBalanceProvider);
+    ref.invalidate(netWorthProvider);
+  });
+
+  return notifier;
 });
 
 /// Provider for bills summary

@@ -229,7 +229,7 @@ class _AccountDetailScreenState extends ConsumerState<AccountDetailScreen> {
                   ),
             ),
             const SizedBox(height: 8),
-            _buildInfoRow('Credit Limit', account.formattedBalance),
+            _buildInfoRow('Credit Limit', '${account.currency} ${account.creditLimit!.toStringAsFixed(2)}'),
             if (account.availableCredit != null)
               _buildInfoRow('Available Credit', '${account.currency} ${account.availableCredit!.toStringAsFixed(2)}'),
             if (account.utilizationRate != null)

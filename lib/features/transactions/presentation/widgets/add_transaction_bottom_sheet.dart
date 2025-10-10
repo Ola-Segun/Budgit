@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/notification_manager.dart';
+import '../../../accounts/domain/entities/account.dart';
+import '../../../accounts/presentation/providers/account_providers.dart';
 import '../../domain/entities/transaction.dart';
 
 /// Bottom sheet for adding new transactions
-class AddTransactionBottomSheet extends StatefulWidget {
+class AddTransactionBottomSheet extends ConsumerStatefulWidget {
   const AddTransactionBottomSheet({
     super.key,
     required this.onSubmit,
@@ -15,10 +19,10 @@ class AddTransactionBottomSheet extends StatefulWidget {
   final void Function(Transaction) onSubmit;
 
   @override
-  State<AddTransactionBottomSheet> createState() => _AddTransactionBottomSheetState();
+  ConsumerState<AddTransactionBottomSheet> createState() => _AddTransactionBottomSheetState();
 }
 
-class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
+class _AddTransactionBottomSheetState extends ConsumerState<AddTransactionBottomSheet> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -27,7 +31,7 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
   TransactionType _selectedType = TransactionType.expense;
   DateTime _selectedDate = DateTime.now();
   String _selectedCategoryId = 'food'; // Default category
-  String _selectedAccountId = 'checking'; // Default account
+  String? _selectedAccountId; // Will be set from real accounts
 
   bool _isSubmitting = false;
 
@@ -52,6 +56,8 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final accountsAsync = ref.watch(filteredAccountsProvider);
+
     // Debug logging for responsiveness investigation
     final screenSize = MediaQuery.of(context).size;
     final screenWidth = screenSize.width;
@@ -194,32 +200,47 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
               constraints: BoxConstraints(
                 maxWidth: constraints.maxWidth - (AppTheme.screenPaddingAll.horizontal * 2),
               ),
-              child: DropdownButtonFormField<String>(
-                initialValue: _selectedAccountId,
-                decoration: const InputDecoration(
-                  labelText: 'Account',
-                ),
-                items: const [
-                  DropdownMenuItem(
-                    value: 'checking',
-                    child: Text('Checking Account'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'savings',
-                    child: Text('Savings Account'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'credit',
-                    child: Text('Credit Card'),
-                  ),
-                ],
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _selectedAccountId = value;
+              child: accountsAsync.when(
+                data: (accounts) {
+                  // Set default account if not set and accounts exist
+                  if (_selectedAccountId == null && accounts.isNotEmpty) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        setState(() {
+                          _selectedAccountId = accounts.first.id;
+                        });
+                      }
                     });
                   }
+
+                  return DropdownButtonFormField<String>(
+                    value: _selectedAccountId,
+                    decoration: const InputDecoration(
+                      labelText: 'Account',
+                    ),
+                    items: accounts.map((account) {
+                      return DropdownMenuItem(
+                        value: account.id,
+                        child: Text(account.displayName),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          _selectedAccountId = value;
+                        });
+                      }
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please select an account';
+                      }
+                      return null;
+                    },
+                  );
                 },
+                loading: () => const CircularProgressIndicator(),
+                error: (error, stack) => Text('Error loading accounts: $error'),
               ),
             ),
             const SizedBox(height: 16),
@@ -354,7 +375,22 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
       return;
     }
 
+    // Additional validation for account selection
+    if (_selectedAccountId == null || _selectedAccountId!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select an account')),
+      );
+      return;
+    }
+
+    debugPrint('AddTransactionBottomSheet: _submitTransaction called, _isSubmitting: $_isSubmitting');
+    if (_isSubmitting) {
+      debugPrint('AddTransactionBottomSheet: Already submitting, ignoring duplicate call');
+      return;
+    }
+
     setState(() => _isSubmitting = true);
+    debugPrint('AddTransactionBottomSheet: Set _isSubmitting to true');
 
     try {
       final amount = double.parse(_amountController.text);
@@ -374,15 +410,11 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
             : null,
       );
 
+      debugPrint('AddTransactionBottomSheet: Calling onSubmit with transaction: ${transaction.title}, amount: ${transaction.amount}, accountId: ${transaction.accountId}');
       widget.onSubmit(transaction);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to add transaction: ${e.toString()}'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        NotificationManager.transactionAddFailed(context, e.toString());
       }
     } finally {
       if (mounted) {

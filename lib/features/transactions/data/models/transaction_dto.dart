@@ -27,18 +27,24 @@ class TransactionDto extends HiveObject {
   late String categoryId;
 
   @HiveField(6)
-  late String accountId;
+  String? accountId;
 
   @HiveField(7)
-  String? description;
+  String? toAccountId; // Destination account for transfers
 
   @HiveField(8)
-  String? receiptUrl;
+  double? transferFee; // Fee for transfers
 
   @HiveField(9)
-  List<String>? tags;
+  String? description;
 
   @HiveField(10)
+  String? receiptUrl;
+
+  @HiveField(11)
+  List<String>? tags;
+
+  @HiveField(12)
   late String currencyCode;
 
   /// Default constructor
@@ -53,6 +59,8 @@ class TransactionDto extends HiveObject {
     date = transaction.date;
     categoryId = transaction.categoryId;
     accountId = transaction.accountId;
+    toAccountId = transaction.toAccountId;
+    transferFee = transaction.transferFee;
     description = transaction.description;
     receiptUrl = transaction.receiptUrl;
     tags = transaction.tags;
@@ -72,6 +80,8 @@ class TransactionDto extends HiveObject {
       date: date,
       categoryId: categoryId,
       accountId: accountId,
+      toAccountId: toAccountId,
+      transferFee: transferFee,
       description: description,
       receiptUrl: receiptUrl,
       tags: tags ?? [],

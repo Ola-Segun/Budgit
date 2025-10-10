@@ -22,7 +22,12 @@ mixin _$Transaction {
   TransactionType get type => throw _privateConstructorUsedError;
   DateTime get date => throw _privateConstructorUsedError;
   String get categoryId => throw _privateConstructorUsedError;
-  String get accountId => throw _privateConstructorUsedError;
+  String? get accountId =>
+      throw _privateConstructorUsedError; // Optional for transfers
+  String? get toAccountId =>
+      throw _privateConstructorUsedError; // Destination account for transfers
+  double? get transferFee =>
+      throw _privateConstructorUsedError; // Fee for transfers
   String? get description => throw _privateConstructorUsedError;
   String? get receiptUrl => throw _privateConstructorUsedError;
   List<String> get tags => throw _privateConstructorUsedError;
@@ -46,7 +51,9 @@ abstract class $TransactionCopyWith<$Res> {
       TransactionType type,
       DateTime date,
       String categoryId,
-      String accountId,
+      String? accountId,
+      String? toAccountId,
+      double? transferFee,
       String? description,
       String? receiptUrl,
       List<String> tags,
@@ -72,7 +79,9 @@ class _$TransactionCopyWithImpl<$Res, $Val extends Transaction>
     Object? type = null,
     Object? date = null,
     Object? categoryId = null,
-    Object? accountId = null,
+    Object? accountId = freezed,
+    Object? toAccountId = freezed,
+    Object? transferFee = freezed,
     Object? description = freezed,
     Object? receiptUrl = freezed,
     Object? tags = null,
@@ -103,10 +112,18 @@ class _$TransactionCopyWithImpl<$Res, $Val extends Transaction>
           ? _value.categoryId
           : categoryId // ignore: cast_nullable_to_non_nullable
               as String,
-      accountId: null == accountId
+      accountId: freezed == accountId
           ? _value.accountId
           : accountId // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
+      toAccountId: freezed == toAccountId
+          ? _value.toAccountId
+          : toAccountId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      transferFee: freezed == transferFee
+          ? _value.transferFee
+          : transferFee // ignore: cast_nullable_to_non_nullable
+              as double?,
       description: freezed == description
           ? _value.description
           : description // ignore: cast_nullable_to_non_nullable
@@ -142,7 +159,9 @@ abstract class _$$TransactionImplCopyWith<$Res>
       TransactionType type,
       DateTime date,
       String categoryId,
-      String accountId,
+      String? accountId,
+      String? toAccountId,
+      double? transferFee,
       String? description,
       String? receiptUrl,
       List<String> tags,
@@ -166,7 +185,9 @@ class __$$TransactionImplCopyWithImpl<$Res>
     Object? type = null,
     Object? date = null,
     Object? categoryId = null,
-    Object? accountId = null,
+    Object? accountId = freezed,
+    Object? toAccountId = freezed,
+    Object? transferFee = freezed,
     Object? description = freezed,
     Object? receiptUrl = freezed,
     Object? tags = null,
@@ -197,10 +218,18 @@ class __$$TransactionImplCopyWithImpl<$Res>
           ? _value.categoryId
           : categoryId // ignore: cast_nullable_to_non_nullable
               as String,
-      accountId: null == accountId
+      accountId: freezed == accountId
           ? _value.accountId
           : accountId // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
+      toAccountId: freezed == toAccountId
+          ? _value.toAccountId
+          : toAccountId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      transferFee: freezed == transferFee
+          ? _value.transferFee
+          : transferFee // ignore: cast_nullable_to_non_nullable
+              as double?,
       description: freezed == description
           ? _value.description
           : description // ignore: cast_nullable_to_non_nullable
@@ -231,7 +260,9 @@ class _$TransactionImpl extends _Transaction {
       required this.type,
       required this.date,
       required this.categoryId,
-      required this.accountId,
+      this.accountId,
+      this.toAccountId,
+      this.transferFee,
       this.description,
       this.receiptUrl,
       final List<String> tags = const [],
@@ -252,7 +283,14 @@ class _$TransactionImpl extends _Transaction {
   @override
   final String categoryId;
   @override
-  final String accountId;
+  final String? accountId;
+// Optional for transfers
+  @override
+  final String? toAccountId;
+// Destination account for transfers
+  @override
+  final double? transferFee;
+// Fee for transfers
   @override
   final String? description;
   @override
@@ -272,7 +310,7 @@ class _$TransactionImpl extends _Transaction {
 
   @override
   String toString() {
-    return 'Transaction(id: $id, title: $title, amount: $amount, type: $type, date: $date, categoryId: $categoryId, accountId: $accountId, description: $description, receiptUrl: $receiptUrl, tags: $tags, currencyCode: $currencyCode)';
+    return 'Transaction(id: $id, title: $title, amount: $amount, type: $type, date: $date, categoryId: $categoryId, accountId: $accountId, toAccountId: $toAccountId, transferFee: $transferFee, description: $description, receiptUrl: $receiptUrl, tags: $tags, currencyCode: $currencyCode)';
   }
 
   @override
@@ -289,6 +327,10 @@ class _$TransactionImpl extends _Transaction {
                 other.categoryId == categoryId) &&
             (identical(other.accountId, accountId) ||
                 other.accountId == accountId) &&
+            (identical(other.toAccountId, toAccountId) ||
+                other.toAccountId == toAccountId) &&
+            (identical(other.transferFee, transferFee) ||
+                other.transferFee == transferFee) &&
             (identical(other.description, description) ||
                 other.description == description) &&
             (identical(other.receiptUrl, receiptUrl) ||
@@ -308,6 +350,8 @@ class _$TransactionImpl extends _Transaction {
       date,
       categoryId,
       accountId,
+      toAccountId,
+      transferFee,
       description,
       receiptUrl,
       const DeepCollectionEquality().hash(_tags),
@@ -328,7 +372,9 @@ abstract class _Transaction extends Transaction {
       required final TransactionType type,
       required final DateTime date,
       required final String categoryId,
-      required final String accountId,
+      final String? accountId,
+      final String? toAccountId,
+      final double? transferFee,
       final String? description,
       final String? receiptUrl,
       final List<String> tags,
@@ -348,8 +394,12 @@ abstract class _Transaction extends Transaction {
   @override
   String get categoryId;
   @override
-  String get accountId;
-  @override
+  String? get accountId;
+  @override // Optional for transfers
+  String? get toAccountId;
+  @override // Destination account for transfers
+  double? get transferFee;
+  @override // Fee for transfers
   String? get description;
   @override
   String? get receiptUrl;

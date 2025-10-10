@@ -280,33 +280,32 @@ class BillHiveDataSource {
       await _box!.put(billId, dto);
 
       // Create corresponding expense transaction
-      // Note: Transaction creation failure should not fail the bill payment
-      try {
-        final transaction = Transaction(
-          id: 'bill_${billId}_${payment.id}',
-          title: dto.name,
-          amount: payment.amount,
-          type: TransactionType.expense,
-          date: payment.paymentDate,
-          categoryId: 'utilities', // Use utilities category for bills
-          accountId: dto.accountId ?? 'default', // Use bill's account or default
-          description: 'Bill payment: ${dto.name}',
-        );
+      // Transaction creation is critical for balance integrity - fail if it doesn't work
+      final transaction = Transaction(
+        id: 'bill_${billId}_${payment.id}',
+        title: 'Bill payment: ${dto.name}', // Required title field
+        amount: payment.amount,
+        categoryId: dto.categoryId, // Use bill's actual category
+        date: payment.paymentDate,
+        type: TransactionType.expense,
+        accountId: dto.accountId, // Use bill's account (can be null for income bills)
+        description: 'Payment for ${dto.name}', // Optional description
+      );
 
-        final transactionResult = await transactionRepository.add(transaction);
-        if (transactionResult.isSuccess) {
-          // Update payment with transaction ID for reference
-          final paymentIndex = dto.paymentHistory!.indexWhere((p) => p.id == payment.id);
-          if (paymentIndex != -1) {
-            dto.paymentHistory![paymentIndex].transactionId = transaction.id;
-            await _box!.put(billId, dto);
-          }
+      final transactionResult = await transactionRepository.add(transaction);
+      if (transactionResult.isSuccess) {
+        // Update payment with transaction ID for reference
+        final paymentIndex = dto.paymentHistory!.indexWhere((p) => p.id == payment.id);
+        if (paymentIndex != -1) {
+          dto.paymentHistory![paymentIndex].transactionId = transaction.id;
+          await _box!.put(billId, dto);
         }
-        // If transaction creation fails, we still succeed with bill payment
-        // The transaction will be missing but bill is marked as paid
-      } catch (e) {
-        // Log error but don't fail the bill payment
-        // Transaction can be created manually later if needed
+      } else {
+        // Transaction creation failed - this is a critical error for balance integrity
+        // We should not mark the bill as paid if transaction creation fails
+        return Result.error(Failure.cache(
+          'Failed to create transaction for bill payment: ${transactionResult.failureOrNull?.message}'
+        ));
       }
 
       return Result.success(dto.toDomain());
@@ -316,7 +315,7 @@ class BillHiveDataSource {
   }
 
   /// Mark bill as unpaid
-  Future<Result<Bill>> markAsUnpaid(String billId) async {
+  Future<Result<Bill>> markAsUnpaid(String billId, TransactionRepository transactionRepository) async {
     try {
       if (_box == null) {
         return Result.error(Failure.cache('Data source not initialized'));
@@ -325,6 +324,18 @@ class BillHiveDataSource {
       final dto = _box!.get(billId);
       if (dto == null) {
         return Result.error(Failure.cache('Bill not found'));
+      }
+
+      // Find and delete associated transactions from payment history
+      if (dto.paymentHistory != null) {
+        for (final payment in dto.paymentHistory!) {
+          if (payment.transactionId != null) {
+            // Delete the associated transaction
+            await transactionRepository.delete(payment.transactionId!);
+            // Clear the transaction ID reference
+            payment.transactionId = null;
+          }
+        }
       }
 
       dto.isPaid = false;

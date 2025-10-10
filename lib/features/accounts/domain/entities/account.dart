@@ -10,7 +10,13 @@ class Account with _$Account {
     required String id,
     required String name,
     required AccountType type,
-    required double balance,
+    // Hybrid balance system
+    double? cachedBalance, // Eager updated on transactions
+    DateTime? lastBalanceUpdate,
+    double? reconciledBalance, // Calculated from transactions
+    DateTime? lastReconciliation,
+    // Backward compatibility - for migration
+    double? balance,
     String? description,
     String? institution,
     String? accountNumber,
@@ -39,30 +45,42 @@ class Account with _$Account {
   /// Check if account is liability (negative balance increases net worth)
   bool get isLiability => type.isLiability;
 
-  /// Get current balance (for liabilities, this is the amount owed)
-  double get currentBalance => balance;
+  /// Get current balance - uses cached balance, falls back to balance for backward compatibility
+  double get currentBalance => cachedBalance ?? balance ?? 0.0;
 
   /// Get available balance (for credit cards, this is credit limit - balance)
   double get availableBalance {
     if (type == AccountType.creditCard && creditLimit != null) {
-      return creditLimit! - balance;
+      return creditLimit! - currentBalance;
     }
-    return balance;
+    return currentBalance;
   }
 
   /// Get utilization rate for credit cards
   double? get utilizationRate {
     if (type == AccountType.creditCard && creditLimit != null && creditLimit! > 0) {
-      return (balance / creditLimit!).clamp(0.0, 1.0);
+      return (currentBalance / creditLimit!).clamp(0.0, 1.0);
     }
     return null;
   }
 
   /// Check if account is overdrawn (for checking/savings)
-  bool get isOverdrawn => type == AccountType.bankAccount && balance < 0;
+  bool get isOverdrawn => type == AccountType.bankAccount && currentBalance < 0;
 
   /// Check if credit card is over limit
-  bool get isOverLimit => type == AccountType.creditCard && creditLimit != null && balance > creditLimit!;
+  bool get isOverLimit => type == AccountType.creditCard && creditLimit != null && currentBalance > creditLimit!;
+
+  /// Check if balance needs reconciliation
+  bool get needsReconciliation {
+    if (reconciledBalance == null || cachedBalance == null) return false;
+    return (cachedBalance! - reconciledBalance!).abs() > 0.01;
+  }
+
+  /// Get balance discrepancy if any
+  double? get balanceDiscrepancy {
+    if (reconciledBalance == null || cachedBalance == null) return null;
+    return cachedBalance! - reconciledBalance!;
+  }
 
   /// Get display name with institution
   String get displayName => institution != null ? '$name ($institution)' : name;
@@ -72,6 +90,24 @@ class Account with _$Account {
 
   /// Get formatted available balance
   String get formattedAvailableBalance => '$currency ${availableBalance.toStringAsFixed(2)}';
+
+  /// Validate balance fields
+  bool get isValidBalance {
+    // Cached balance should be reasonable if provided
+    if (cachedBalance != null && (cachedBalance!.isNaN || cachedBalance!.isInfinite)) return false;
+
+    // If reconciled balance exists, it should also be reasonable
+    if (reconciledBalance != null && (reconciledBalance!.isNaN || reconciledBalance!.isInfinite)) {
+      return false;
+    }
+
+    // For backward compatibility, if both balance and cachedBalance are provided, they should match
+    if (balance != null && cachedBalance != null && (balance! - cachedBalance!).abs() > 0.01) {
+      return false;
+    }
+
+    return true;
+  }
 }
 
 /// Account type enum

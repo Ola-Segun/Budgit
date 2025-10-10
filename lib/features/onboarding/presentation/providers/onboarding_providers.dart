@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/di/providers.dart' as core_providers;
+import '../../../accounts/domain/usecases/create_account.dart';
 import '../../../budgets/domain/usecases/create_budget.dart';
 import '../../data/datasources/user_profile_hive_datasource.dart';
 import '../../domain/entities/onboarding_data.dart';
@@ -20,14 +21,21 @@ final createBudgetProvider = Provider<CreateBudget>((ref) {
   return ref.read(core_providers.createBudgetProvider);
 });
 
+/// Provider for CreateAccount use case
+final createAccountProvider = Provider<CreateAccount>((ref) {
+  return ref.read(core_providers.createAccountProvider);
+});
+
 /// State notifier provider for onboarding state management
 final onboardingNotifierProvider =
     StateNotifierProvider<OnboardingNotifier, OnboardingState>((ref) {
   final createBudget = ref.watch(createBudgetProvider);
+  final createAccount = ref.watch(createAccountProvider);
   final userProfileDataSource = ref.watch(userProfileDataSourceProvider);
 
   return OnboardingNotifier(
     createBudget: createBudget,
+    createAccount: createAccount,
     userProfileDataSource: userProfileDataSource,
   );
 });
