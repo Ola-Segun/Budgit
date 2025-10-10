@@ -743,7 +743,7 @@ class _TransactionTile extends ConsumerWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        onTap: () => context.go('/transactions/${transaction.id}'),
+        onTap: () => context.push('/transactions/${transaction.id}'),
       ),
     );
   }

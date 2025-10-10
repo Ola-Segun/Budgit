@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/transactions/presentation/screens/transaction_list_screen.dart';
+import '../../features/transactions/presentation/screens/transaction_detail_screen.dart';
 import '../../features/transactions/presentation/widgets/add_transaction_bottom_sheet.dart';
 import '../../features/transactions/presentation/providers/transaction_providers.dart';
 import '../../features/budgets/presentation/screens/budget_list_screen.dart';
@@ -69,6 +70,13 @@ class AppRouter {
               GoRoute(
                 path: 'add',
                 builder: (context, state) => const _AddTransactionScreen(),
+              ),
+              GoRoute(
+                path: ':id',
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  return _TransactionDetailScreen(id: id);
+                },
               ),
             ],
           ),
@@ -212,6 +220,17 @@ class _AddTransactionScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Add Transaction')),
       body: const Center(child: Text('Loading...')),
     );
+  }
+}
+
+class _TransactionDetailScreen extends StatelessWidget {
+  const _TransactionDetailScreen({required this.id});
+
+  final String id;
+
+  @override
+  Widget build(BuildContext context) {
+    return TransactionDetailScreen(transactionId: id);
   }
 }
 
