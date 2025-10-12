@@ -3,17 +3,46 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/di/providers.dart' as core_providers;
 import '../../domain/entities/transaction.dart';
+import '../../domain/services/category_icon_color_service.dart';
 import '../../domain/usecases/add_transaction.dart';
 import '../../domain/usecases/delete_transaction.dart';
 import '../../domain/usecases/get_paginated_transactions.dart';
 import '../../domain/usecases/get_transactions.dart';
 import '../../domain/usecases/update_transaction.dart';
 import '../notifiers/transaction_notifier.dart';
+import '../notifiers/category_notifier.dart';
 import '../states/transaction_state.dart';
+import '../states/category_state.dart';
 
-/// Provider for transaction categories
+/// State notifier provider for category state management
+final categoryNotifierProvider =
+    StateNotifierProvider<CategoryNotifier, AsyncValue<CategoryState>>((ref) {
+  final getCategories = ref.watch(core_providers.getCategoriesProvider);
+  final addCategory = ref.watch(core_providers.addCategoryProvider);
+  final updateCategory = ref.watch(core_providers.updateCategoryProvider);
+  final deleteCategory = ref.watch(core_providers.deleteCategoryProvider);
+
+  return CategoryNotifier(
+    getCategories: getCategories,
+    addCategory: addCategory,
+    updateCategory: updateCategory,
+    deleteCategory: deleteCategory,
+  );
+});
+
+/// Provider for transaction categories (backward compatibility)
 final transactionCategoriesProvider = Provider<List<TransactionCategory>>((ref) {
-  return TransactionCategory.defaultCategories;
+  final categoryState = ref.watch(categoryNotifierProvider);
+  return categoryState.maybeWhen(
+    data: (state) => state.categories,
+    orElse: () => TransactionCategory.defaultCategories, // Fallback to defaults during loading/error
+  );
+});
+
+/// Provider for CategoryIconColorService
+final categoryIconColorServiceProvider = Provider<CategoryIconColorService>((ref) {
+  final categoryNotifier = ref.watch(categoryNotifierProvider.notifier);
+  return CategoryIconColorService(categoryNotifier);
 });
 
 /// Provider for GetTransactions use case

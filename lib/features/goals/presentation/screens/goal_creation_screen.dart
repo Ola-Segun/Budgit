@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart';
+import '../../../transactions/domain/services/category_icon_color_service.dart';
+import '../../../transactions/presentation/providers/transaction_providers.dart';
 import '../../domain/entities/goal.dart';
 import '../providers/goal_providers.dart';
 
@@ -24,7 +26,7 @@ class _GoalCreationScreenState extends ConsumerState<GoalCreationScreen> {
   final _currentAmountController = TextEditingController();
 
   GoalPriority _selectedPriority = GoalPriority.medium;
-  GoalCategory _selectedCategory = GoalCategory.emergencyFund;
+  String? _selectedCategoryId;
   DateTime _selectedDeadline = DateTime.now().add(const Duration(days: 365));
 
   bool _isSubmitting = false;
@@ -125,29 +127,59 @@ class _GoalCreationScreenState extends ConsumerState<GoalCreationScreen> {
             const SizedBox(height: 16),
 
             // Category
-            DropdownButtonFormField<GoalCategory>(
-              initialValue: _selectedCategory,
-              decoration: const InputDecoration(
-                labelText: 'Category',
-              ),
-              items: GoalCategory.values.map((category) {
-                return DropdownMenuItem(
-                  value: category,
-                  child: Row(
-                    children: [
-                      Icon(_getIconFromCategory(category), size: 20),
-                      const SizedBox(width: 8),
-                      Text(category.displayName),
-                    ],
-                  ),
+            Consumer(
+              builder: (context, ref, child) {
+                final categoryStateAsync = ref.watch(categoryNotifierProvider);
+                final categoryService = CategoryIconColorService(ref.read(categoryNotifierProvider.notifier));
+
+                return categoryStateAsync.when(
+                  data: (categoryState) {
+                    final categories = categoryState.expenseCategories;
+                    if (categories.isEmpty) {
+                      return const Text('No categories available');
+                    }
+
+                    // Set default category if not set
+                    if (_selectedCategoryId == null && categories.isNotEmpty) {
+                      _selectedCategoryId = categories.first.id;
+                    }
+
+                    return DropdownButtonFormField<String>(
+                      initialValue: _selectedCategoryId,
+                      decoration: const InputDecoration(
+                        labelText: 'Category',
+                      ),
+                      items: categories.map((category) {
+                        final iconAndColor = categoryService.getIconAndColorForCategory(category.id);
+                        return DropdownMenuItem(
+                          value: category.id,
+                          child: Row(
+                            children: [
+                              Icon(iconAndColor.icon, size: 20, color: iconAndColor.color),
+                              const SizedBox(width: 8),
+                              Text(category.name),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() {
+                            _selectedCategoryId = value;
+                          });
+                        }
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please select a category';
+                        }
+                        return null;
+                      },
+                    );
+                  },
+                  loading: () => const CircularProgressIndicator(),
+                  error: (error, stack) => Text('Error loading categories: $error'),
                 );
-              }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _selectedCategory = value;
-                  });
-                }
               },
             ),
             const SizedBox(height: 16),
@@ -256,7 +288,7 @@ class _GoalCreationScreenState extends ConsumerState<GoalCreationScreen> {
         currentAmount: currentAmount,
         deadline: _selectedDeadline,
         priority: _selectedPriority,
-        category: _selectedCategory,
+        categoryId: _selectedCategoryId!,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -296,28 +328,4 @@ class _GoalCreationScreenState extends ConsumerState<GoalCreationScreen> {
     }
   }
 
-  IconData _getIconFromCategory(GoalCategory category) {
-    switch (category) {
-      case GoalCategory.emergencyFund:
-        return Icons.security;
-      case GoalCategory.vacation:
-        return Icons.beach_access;
-      case GoalCategory.homeDownPayment:
-        return Icons.home;
-      case GoalCategory.debtPayoff:
-        return Icons.credit_card_off;
-      case GoalCategory.carPurchase:
-        return Icons.directions_car;
-      case GoalCategory.education:
-        return Icons.school;
-      case GoalCategory.retirement:
-        return Icons.account_balance;
-      case GoalCategory.investment:
-        return Icons.trending_up;
-      case GoalCategory.wedding:
-        return Icons.favorite;
-      case GoalCategory.custom:
-        return Icons.star;
-    }
-  }
 }

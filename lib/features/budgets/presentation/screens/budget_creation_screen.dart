@@ -4,7 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/error_view.dart';
+import '../../../../core/widgets/loading_view.dart';
 import '../../../transactions/domain/entities/transaction.dart';
+import '../../../transactions/domain/services/category_icon_color_service.dart';
+import '../../../transactions/presentation/providers/transaction_providers.dart';
 import '../../domain/entities/budget.dart';
 import '../providers/budget_providers.dart';
 
@@ -26,23 +30,11 @@ class _BudgetCreationScreenState extends ConsumerState<BudgetCreationScreen> {
   DateTime _endDate = DateTime.now().add(const Duration(days: 30));
   final List<BudgetCategoryFormData> _categories = [];
 
-  // Available transaction categories for selection (matching transaction creation)
-  final List<Map<String, dynamic>> _availableCategories = [
-    {'id': 'food', 'name': 'Food & Dining', 'icon': Icons.restaurant, 'color': 0xFFF59E0B},
-    {'id': 'transportation', 'name': 'Transportation', 'icon': Icons.directions_car, 'color': 0xFFEF4444},
-    {'id': 'shopping', 'name': 'Shopping', 'icon': Icons.shopping_bag, 'color': 0xFFEC4899},
-    {'id': 'entertainment', 'name': 'Entertainment', 'icon': Icons.movie, 'color': 0xFFF97316},
-    {'id': 'utilities', 'name': 'Utilities', 'icon': Icons.electrical_services, 'color': 0xFF06B6D4},
-    {'id': 'healthcare', 'name': 'Healthcare', 'icon': Icons.local_hospital, 'color': 0xFFDC2626},
-    {'id': 'other', 'name': 'Other', 'icon': Icons.category, 'color': 0xFF64748B},
-  ];
-
   bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
-    // Add a default category
     _addCategory();
   }
 
@@ -58,272 +50,285 @@ class _BudgetCreationScreenState extends ConsumerState<BudgetCreationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final categoryState = ref.watch(categoryNotifierProvider);
+    final categoryIconColorService = ref.watch(categoryIconColorServiceProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create Budget'),
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: AppTheme.screenPaddingAll,
-          children: [
-            // Budget Name
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Budget Name',
-                hintText: 'e.g., Monthly Expenses',
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter a budget name';
-                }
-                return null;
-              },
-              autofocus: true,
-            ),
-            const SizedBox(height: 16),
+      body: categoryState.when(
+        loading: () => const LoadingView(),
+        error: (error, stack) => ErrorView(
+          message: error.toString(),
+          onRetry: () => ref.read(categoryNotifierProvider.notifier).loadCategories(),
+        ),
+        data: (state) => _buildForm(context, state.expenseCategories, categoryIconColorService),
+      ),
+    );
+  }
 
-            // Description
-            TextFormField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Description (optional)',
-                hintText: 'Describe your budget...',
-              ),
-              maxLength: 200,
-              maxLines: 2,
-            ),
-            const SizedBox(height: 16),
+  Widget _buildForm(BuildContext context, List<TransactionCategory> expenseCategories, CategoryIconColorService categoryIconColorService) {
+    for (final category in _categories) {
+      if (category.selectedCategoryId == null && expenseCategories.isNotEmpty) {
+        category.selectedCategoryId = expenseCategories.first.id;
+      }
+    }
 
-            // Budget Type
-            DropdownButtonFormField<BudgetType>(
-              value: _selectedType,
-              decoration: const InputDecoration(
-                labelText: 'Budget Type',
-              ),
-              items: BudgetType.values.map((type) {
-                return DropdownMenuItem(
-                  value: type,
-                  child: Text(type.displayName),
-                );
-              }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _selectedType = value;
-                  });
-                }
-              },
+    return Form(
+      key: _formKey,
+      child: ListView(
+        padding: AppTheme.screenPaddingAll,
+        children: [
+          TextFormField(
+            controller: _nameController,
+            decoration: const InputDecoration(
+              labelText: 'Budget Name',
+              hintText: 'e.g., Monthly Expenses',
             ),
-            const SizedBox(height: 16),
-
-            // Date Range
-            Row(
-              children: [
-                Expanded(
-                  child: InkWell(
-                    onTap: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: _startDate,
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                      );
-                      if (date != null) {
-                        setState(() {
-                          _startDate = date;
-                          // Auto-adjust end date if it's before start date
-                          if (_endDate.isBefore(_startDate)) {
-                            _endDate = _startDate.add(const Duration(days: 30));
-                          }
-                        });
-                      }
-                    },
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'Start Date',
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(DateFormat('MMM dd, yyyy').format(_startDate)),
-                          const Icon(Icons.calendar_today, size: 20),
-                        ],
-                      ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Please enter a budget name';
+              }
+              return null;
+            },
+            autofocus: true,
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _descriptionController,
+            decoration: const InputDecoration(
+              labelText: 'Description (optional)',
+              hintText: 'Describe your budget...',
+            ),
+            maxLength: 200,
+            maxLines: 2,
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<BudgetType>(
+            initialValue: _selectedType,
+            decoration: const InputDecoration(
+              labelText: 'Budget Type',
+            ),
+            items: BudgetType.values.map((type) {
+              return DropdownMenuItem(
+                value: type,
+                child: Text(type.displayName),
+              );
+            }).toList(),
+            onChanged: (value) {
+              if (value != null) {
+                setState(() {
+                  _selectedType = value;
+                });
+              }
+            },
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: _startDate,
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (date != null) {
+                      setState(() {
+                        _startDate = date;
+                        if (_endDate.isBefore(_startDate)) {
+                          _endDate = _startDate.add(const Duration(days: 30));
+                        }
+                      });
+                    }
+                  },
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Start Date',
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(DateFormat('MMM dd, yyyy').format(_startDate)),
+                        const Icon(Icons.calendar_today, size: 20),
+                      ],
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: InkWell(
-                    onTap: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: _endDate,
-                        firstDate: _startDate,
-                        lastDate: _startDate.add(const Duration(days: 365)),
-                      );
-                      if (date != null) {
-                        setState(() {
-                          _endDate = date;
-                        });
-                      }
-                    },
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'End Date',
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(DateFormat('MMM dd, yyyy').format(_endDate)),
-                          const Icon(Icons.calendar_today, size: 20),
-                        ],
-                      ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: InkWell(
+                  onTap: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: _endDate,
+                      firstDate: _startDate,
+                      lastDate: _startDate.add(const Duration(days: 365)),
+                    );
+                    if (date != null) {
+                      setState(() {
+                        _endDate = date;
+                      });
+                    }
+                  },
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'End Date',
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(DateFormat('MMM dd, yyyy').format(_endDate)),
+                        const Icon(Icons.calendar_today, size: 20),
+                      ],
                     ),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // Categories Section
-            Row(
-              children: [
-                Text(
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
                   'Budget Categories',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                 ),
-                const Spacer(),
-                TextButton.icon(
-                  onPressed: _addCategory,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Category'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Category List
-            ..._categories.map((category) => _buildCategoryItem(category)),
-            const SizedBox(height: 16),
-
-            // Total Budget Display
-            Card(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Text(
-                      'Total Budget:',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      '\$${NumberFormat('#,##0.00').format(_calculateTotalBudget())}',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                    ),
-                  ],
-                ),
+              ),
+              TextButton.icon(
+                onPressed: _addCategory,
+                icon: const Icon(Icons.add),
+                label: const Text('Add Category'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ..._categories.map((category) => _buildCategoryItem(category, expenseCategories, categoryIconColorService)),
+          const SizedBox(height: 16),
+          Card(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Text(
+                    'Total Budget:',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '\$${NumberFormat('#,##0.00').format(_calculateTotalBudget())}',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                  ),
+                ],
               ),
             ),
-
-            const SizedBox(height: 32),
-
-            // Action Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: _isSubmitting ? null : () => Navigator.pop(context),
-                    child: const Text('Cancel'),
-                  ),
+          ),
+          const SizedBox(height: 32),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _isSubmitting ? null : () => Navigator.pop(context),
+                  child: const Text('Cancel'),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _isSubmitting ? null : _submitBudget,
-                    child: _isSubmitting
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Create Budget'),
-                  ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _isSubmitting ? null : () => _submitBudget(expenseCategories),
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Create Budget'),
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildCategoryItem(BudgetCategoryFormData category) {
+  Widget _buildCategoryItem(BudgetCategoryFormData category, List<TransactionCategory> expenseCategories, CategoryIconColorService categoryIconColorService) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Category Dropdown
+            DropdownButtonFormField<String>(
+              initialValue: category.selectedCategoryId,
+              isExpanded: true,
+              decoration: const InputDecoration(
+                labelText: 'Category',
+                contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+              ),
+              items: expenseCategories.map((cat) {
+                return DropdownMenuItem(
+                  value: cat.id,
+                  child: Row(
+                    children: [
+                      Icon(
+                        categoryIconColorService.getIconForCategory(cat.id),
+                        size: 20,
+                        color: categoryIconColorService.getColorForCategory(cat.id),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          cat.name,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    category.selectedCategoryId = value;
+                  });
+                }
+              },
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please select a category';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            // Amount Field and Delete Button Row
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: category.selectedCategoryId,
-                    decoration: const InputDecoration(
-                      labelText: 'Category',
-                    ),
-                    items: _availableCategories.map((availableCategory) {
-                      return DropdownMenuItem(
-                        value: availableCategory['id'] as String,
-                        child: Row(
-                          children: [
-                            Icon(
-                              availableCategory['icon'] as IconData,
-                              size: 20,
-                              color: Color(availableCategory['color'] as int),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(availableCategory['name'] as String),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          category.selectedCategoryId = value;
-                        });
-                      }
-                    },
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please select a category';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                SizedBox(
-                  width: 120,
                   child: TextFormField(
                     controller: category.amountController,
                     decoration: const InputDecoration(
                       labelText: 'Amount',
                       prefixText: '\$',
                       hintText: '0.00',
+                      contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 12),
                     ),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
@@ -343,10 +348,17 @@ class _BudgetCreationScreenState extends ConsumerState<BudgetCreationScreen> {
                 ),
                 if (_categories.length > 1) ...[
                   const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: () => _removeCategory(category),
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    tooltip: 'Remove Category',
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: IconButton(
+                      onPressed: () => _removeCategory(category),
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      tooltip: 'Remove Category',
+                      constraints: const BoxConstraints(
+                        minWidth: 40,
+                        minHeight: 40,
+                      ),
+                    ),
                   ),
                 ],
               ],
@@ -377,12 +389,11 @@ class _BudgetCreationScreenState extends ConsumerState<BudgetCreationScreen> {
     });
   }
 
-  Future<void> _submitBudget() async {
+  Future<void> _submitBudget(List<TransactionCategory> expenseCategories) async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    // Validate that total budget is greater than 0
     final totalBudget = _calculateTotalBudget();
     if (totalBudget <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -398,12 +409,12 @@ class _BudgetCreationScreenState extends ConsumerState<BudgetCreationScreen> {
 
     try {
       final categories = _categories.map((categoryData) {
-        final selectedCategory = _availableCategories.firstWhere(
-          (cat) => cat['id'] == categoryData.selectedCategoryId,
+        final selectedCategory = expenseCategories.firstWhere(
+          (cat) => cat.id == categoryData.selectedCategoryId,
         );
         return BudgetCategory(
-          id: selectedCategory['id'] as String,
-          name: selectedCategory['name'] as String,
+          id: selectedCategory.id,
+          name: selectedCategory.name,
           amount: double.parse(categoryData.amountController.text),
         );
       }).toList();
@@ -457,7 +468,7 @@ class _BudgetCreationScreenState extends ConsumerState<BudgetCreationScreen> {
 
 /// Helper class for category form data
 class BudgetCategoryFormData {
-  String selectedCategoryId = 'food'; // Default to food category
+  String? selectedCategoryId;
   final TextEditingController amountController = TextEditingController();
 
   void dispose() {

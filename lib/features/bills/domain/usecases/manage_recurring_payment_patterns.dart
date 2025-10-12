@@ -22,9 +22,6 @@ class ManageRecurringPaymentPatterns {
     }
 
     final bill = billResult.dataOrNull!;
-    if (bill == null) {
-      return Result.error(Failure.notFound('Bill not found'));
-    }
 
     // Validate the rule
     final ruleValidation = rule.validate();
@@ -66,9 +63,6 @@ class ManageRecurringPaymentPatterns {
     }
 
     final bill = billResult.dataOrNull!;
-    if (bill == null) {
-      return Result.error(Failure.notFound('Bill not found'));
-    }
 
     // Validate the updated rule
     final ruleValidation = updatedRule.validate();
@@ -118,9 +112,6 @@ class ManageRecurringPaymentPatterns {
     }
 
     final bill = billResult.dataOrNull!;
-    if (bill == null) {
-      return Result.error(Failure.notFound('Bill not found'));
-    }
 
     // Remove the rule
     final updatedRules = bill.recurringPaymentRules.where((rule) => rule.id != ruleId).toList();

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/account.dart';
 
 /// Bottom sheet for adding or editing accounts
@@ -202,7 +201,7 @@ class _AddEditAccountBottomSheetState extends State<AddEditAccountBottomSheet> {
 
                     // Currency
                     DropdownButtonFormField<String>(
-                      value: _selectedCurrency,
+                      initialValue: _selectedCurrency,
                       decoration: const InputDecoration(
                         labelText: 'Currency',
                       ),

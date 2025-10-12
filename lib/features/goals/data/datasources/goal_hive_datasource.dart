@@ -63,6 +63,9 @@ class GoalHiveDataSource {
         }
       }
     }
+
+    // Run migration to ensure backward compatibility
+    await migrateCategories();
   }
 
   /// Get all goals
@@ -149,14 +152,14 @@ class GoalHiveDataSource {
     }
   }
 
-  /// Get goals by category
-  Future<Result<List<Goal>>> getByCategory(GoalCategory category) async {
+  /// Get goals by category ID
+  Future<Result<List<Goal>>> getByCategoryId(String categoryId) async {
     try {
       if (_goalsBox == null) {
         return Result.error(Failure.cache('Data source not initialized'));
       }
 
-      final dtos = _goalsBox!.values.where((dto) => dto.category == category.name).toList();
+      final dtos = _goalsBox!.values.where((dto) => dto.categoryId == categoryId).toList();
       final goals = dtos.map((dto) => dto.toDomain()).toList();
 
       // Sort by priority then deadline
@@ -465,6 +468,52 @@ class GoalHiveDataSource {
       return Result.success(null);
     } catch (e) {
       return Result.error(Failure.cache('Failed to clear goals: $e'));
+    }
+  }
+
+  /// Migrate existing goals to ensure they have valid category IDs
+  /// This handles the transition from enum-based to dynamic categories
+  Future<Result<void>> migrateCategories() async {
+    try {
+      if (_goalsBox == null) {
+        return Result.error(Failure.cache('Data source not initialized'));
+      }
+
+      bool hasMigrations = false;
+
+      // Migrate each goal that doesn't have a categoryId
+      for (final key in _goalsBox!.keys) {
+        final dto = _goalsBox!.get(key);
+        if (dto != null && (dto.categoryId.isEmpty || dto.categoryId == 'other')) {
+          // Assign a default category ID for goals without proper categories
+          // In a real migration, you might want to prompt the user or use more sophisticated logic
+          final defaultCategoryId = 'other'; // Default fallback category
+
+          final migratedDto = GoalDto()
+            ..id = dto.id
+            ..title = dto.title
+            ..description = dto.description
+            ..targetAmount = dto.targetAmount
+            ..currentAmount = dto.currentAmount
+            ..deadline = dto.deadline
+            ..priority = dto.priority
+            ..categoryId = defaultCategoryId
+            ..createdAt = dto.createdAt
+            ..updatedAt = dto.updatedAt
+            ..tags = dto.tags;
+
+          await _goalsBox!.put(key, migratedDto);
+          hasMigrations = true;
+        }
+      }
+
+      if (hasMigrations) {
+        debugPrint('Successfully migrated goal categories to dynamic IDs');
+      }
+
+      return Result.success(null);
+    } catch (e) {
+      return Result.error(Failure.cache('Failed to migrate goal categories: $e'));
     }
   }
 

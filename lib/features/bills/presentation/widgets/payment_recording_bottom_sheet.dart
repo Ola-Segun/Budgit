@@ -207,7 +207,7 @@ class _PaymentRecordingBottomSheetState
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         DropdownButtonFormField<String>(
-                          value: _selectedAccountId,
+                          initialValue: _selectedAccountId,
                           isExpanded: true, // CRITICAL: This fixes the overflow
                           decoration: const InputDecoration(
                             labelText: 'Payment Account',
@@ -321,38 +321,38 @@ class _PaymentRecordingBottomSheetState
                             ),
                           ),
                         ],
-                        if (selectedAccount != null) ...[
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color:
-                                  Theme.of(context).colorScheme.surfaceVariant,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.info_outline,
-                                  color: Theme.of(context).colorScheme.primary,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'After payment: ${selectedAccount.currency} ${(selectedAccount.availableBalance - (double.tryParse(_amountController.text) ?? 0)).toStringAsFixed(2)}',
-                                    style: TextStyle(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
-                                      fontSize: 14,
-                                    ),
+                        ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color:
+                                Theme.of(context).colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: Theme.of(context).colorScheme.primary,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'After payment: ${selectedAccount.currency} ${(selectedAccount.availableBalance - (double.tryParse(_amountController.text) ?? 0)).toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                    fontSize: 14,
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
+                      ],
                       ],
                     );
                   },
@@ -394,7 +394,7 @@ class _PaymentRecordingBottomSheetState
 
             // Payment Method
             DropdownButtonFormField<PaymentMethod>(
-              value: _paymentMethod,
+              initialValue: _paymentMethod,
               decoration: const InputDecoration(
                 labelText: 'Payment Method',
                 border: OutlineInputBorder(),

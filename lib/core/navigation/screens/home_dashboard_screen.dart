@@ -95,10 +95,6 @@ class HomeDashboardScreen extends ConsumerWidget {
                           child: Text('Error loading dashboard: $error'),
                         ),
                         data: (dashboardData) {
-                          if (dashboardData == null) {
-                            return const Center(child: Text('No dashboard data available'));
-                          }
-
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -816,11 +812,12 @@ class _TransactionTile extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: categories.map((category) {
+                  final iconColorService = ref.watch(categoryIconColorServiceProvider);
                   return ListTile(
                     title: Row(
                       children: [
                         Icon(
-                          _getIconFromCategoryId(category.id),
+                          iconColorService.getIconForCategory(category.id),
                           size: 20,
                           color: Color(category.color),
                         ),
@@ -860,30 +857,6 @@ class _TransactionTile extends ConsumerWidget {
     }
   }
 
-  IconData _getIconFromCategoryId(String categoryId) {
-    switch (categoryId) {
-      case 'food':
-        return Icons.restaurant;
-      case 'transport':
-        return Icons.directions_car;
-      case 'shopping':
-        return Icons.shopping_bag;
-      case 'entertainment':
-        return Icons.movie;
-      case 'utilities':
-        return Icons.bolt;
-      case 'healthcare':
-        return Icons.local_hospital;
-      case 'salary':
-        return Icons.work;
-      case 'freelance':
-        return Icons.computer;
-      case 'investment':
-        return Icons.trending_up;
-      default:
-        return Icons.category;
-    }
-  }
 }
 
 /// Insights card with rotating insights

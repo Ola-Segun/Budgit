@@ -164,5 +164,70 @@ class TransactionCategory with _$TransactionCategory {
       color: 0xFF64748B, // Gray
       type: TransactionType.expense,
     ),
+
+    // Goal-related expense categories
+    const TransactionCategory(
+      id: 'emergency_fund',
+      name: 'Emergency Fund',
+      icon: 'security',
+      color: 0xFFDC2626, // Red
+      type: TransactionType.expense,
+    ),
+    const TransactionCategory(
+      id: 'vacation',
+      name: 'Vacation',
+      icon: 'beach_access',
+      color: 0xFF059669, // Green
+      type: TransactionType.expense,
+    ),
+    const TransactionCategory(
+      id: 'home_down_payment',
+      name: 'Home Down Payment',
+      icon: 'home',
+      color: 0xFF7C3AED, // Purple
+      type: TransactionType.expense,
+    ),
+    const TransactionCategory(
+      id: 'debt_payoff',
+      name: 'Debt Payoff',
+      icon: 'credit_card_off',
+      color: 0xFFEA580C, // Orange
+      type: TransactionType.expense,
+    ),
+    const TransactionCategory(
+      id: 'car_purchase',
+      name: 'Car Purchase',
+      icon: 'directions_car',
+      color: 0xFF2563EB, // Blue
+      type: TransactionType.expense,
+    ),
+    const TransactionCategory(
+      id: 'education',
+      name: 'Education',
+      icon: 'school',
+      color: 0xFF7C2D12, // Brown
+      type: TransactionType.expense,
+    ),
+    const TransactionCategory(
+      id: 'retirement',
+      name: 'Retirement',
+      icon: 'account_balance',
+      color: 0xFF0D9488, // Teal
+      type: TransactionType.expense,
+    ),
+    const TransactionCategory(
+      id: 'investment',
+      name: 'Investment',
+      icon: 'trending_up',
+      color: 0xFF16A34A, // Green
+      type: TransactionType.expense,
+    ),
+    const TransactionCategory(
+      id: 'wedding',
+      name: 'Wedding',
+      icon: 'favorite',
+      color: 0xFFBE185D, // Pink
+      type: TransactionType.expense,
+    ),
   ];
 }

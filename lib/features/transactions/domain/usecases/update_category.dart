@@ -2,6 +2,7 @@ import '../../../../core/error/failures.dart';
 import '../../../../core/error/result.dart';
 import '../entities/transaction.dart';
 import '../repositories/transaction_category_repository.dart';
+import '../validators/category_validator.dart';
 
 /// Use case for updating an existing transaction category
 class UpdateCategory {
@@ -12,8 +13,16 @@ class UpdateCategory {
   /// Execute the use case
   Future<Result<TransactionCategory>> call(TransactionCategory category) async {
     try {
-      // Validate category
-      final validationResult = _validateCategory(category);
+      // Get existing categories for validation
+      final existingCategoriesResult = await _repository.getAll();
+      if (existingCategoriesResult.isError) {
+        return Result.error(existingCategoriesResult.failureOrNull!);
+      }
+
+      final existingCategories = existingCategoriesResult.dataOrNull ?? [];
+
+      // Validate category using CategoryValidator
+      final validationResult = CategoryValidator.validateForUpdate(category, existingCategories);
       if (validationResult.isError) {
         return validationResult;
       }
@@ -23,24 +32,5 @@ class UpdateCategory {
     } catch (e) {
       return Result.error(Failure.unknown('Failed to update category: $e'));
     }
-  }
-
-  /// Validate category data
-  Result<TransactionCategory> _validateCategory(TransactionCategory category) {
-    if (category.name.trim().isEmpty) {
-      return Result.error(Failure.validation(
-        'Category name cannot be empty',
-        {'name': 'Name is required'},
-      ));
-    }
-
-    if (category.name.length > 50) {
-      return Result.error(Failure.validation(
-        'Category name too long',
-        {'name': 'Name must be 50 characters or less'},
-      ));
-    }
-
-    return Result.success(category);
   }
 }

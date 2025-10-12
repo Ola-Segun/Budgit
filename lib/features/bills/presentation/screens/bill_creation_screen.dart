@@ -8,6 +8,8 @@ import '../../../../core/error/failures.dart';
 import '../../../accounts/domain/entities/account.dart';
 import '../../../accounts/presentation/providers/account_providers.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart';
+import '../../../transactions/domain/entities/transaction.dart';
+import '../../../transactions/presentation/providers/transaction_providers.dart';
 import '../../../../core/di/providers.dart' as core_providers;
 import '../../domain/entities/bill.dart';
 import '../../domain/usecases/validate_bill_account.dart';
@@ -32,22 +34,11 @@ class _BillCreationScreenState extends ConsumerState<BillCreationScreen> {
 
   BillFrequency _selectedFrequency = BillFrequency.monthly;
   DateTime _selectedDueDate = DateTime.now().add(const Duration(days: 30));
-  String _selectedCategoryId = 'utilities'; // Default category
+  String _selectedCategoryId = ''; // Will be set dynamically
   String? _selectedAccountId;
   bool _isAutoPay = false;
 
   bool _isSubmitting = false;
-
-  // Mock categories - in real app, this would come from a provider
-  final List<Map<String, dynamic>> _categories = [
-    {'id': 'utilities', 'name': 'Utilities', 'icon': Icons.electrical_services},
-    {'id': 'rent', 'name': 'Rent/Mortgage', 'icon': Icons.home},
-    {'id': 'insurance', 'name': 'Insurance', 'icon': Icons.security},
-    {'id': 'subscription', 'name': 'Subscriptions', 'icon': Icons.subscriptions},
-    {'id': 'credit_card', 'name': 'Credit Card', 'icon': Icons.credit_card},
-    {'id': 'loan', 'name': 'Loan Payment', 'icon': Icons.account_balance},
-    {'id': 'other', 'name': 'Other', 'icon': Icons.category},
-  ];
 
   @override
   void dispose() {
@@ -114,29 +105,103 @@ class _BillCreationScreenState extends ConsumerState<BillCreationScreen> {
             const SizedBox(height: 16),
 
             // Category
-            DropdownButtonFormField<String>(
-              initialValue: _selectedCategoryId,
-              decoration: const InputDecoration(
-                labelText: 'Category',
-              ),
-              items: _categories.map((category) {
-                return DropdownMenuItem(
-                  value: category['id'] as String,
-                  child: Row(
-                    children: [
-                      Icon(category['icon'] as IconData, size: 20),
-                      const SizedBox(width: 8),
-                      Text(category['name'] as String),
-                    ],
+            Consumer(
+              builder: (context, ref, child) {
+                final categoryState = ref.watch(categoryNotifierProvider);
+                final categoryIconColorService = ref.watch(categoryIconColorServiceProvider);
+
+                return categoryState.when(
+                  data: (state) {
+                    final expenseCategories = state.getCategoriesByType(TransactionType.expense);
+
+                    // Update default category if not set or invalid
+                    if (_selectedCategoryId.isEmpty ||
+                        !expenseCategories.any((cat) => cat.id == _selectedCategoryId)) {
+                      _selectedCategoryId = _getSmartDefaultCategoryId(expenseCategories);
+                    }
+
+                    if (expenseCategories.isEmpty) {
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Text(
+                                'No expense categories available. Please add categories first.',
+                                style: TextStyle(fontSize: 14),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return DropdownButtonFormField<String>(
+                      initialValue: _selectedCategoryId,
+                      decoration: const InputDecoration(
+                        labelText: 'Category',
+                      ),
+                      items: expenseCategories.map((category) {
+                        final iconAndColor = categoryIconColorService.getIconAndColorForCategory(category.id);
+                        return DropdownMenuItem(
+                          value: category.id,
+                          child: Row(
+                            children: [
+                              Icon(iconAndColor.icon, size: 20, color: iconAndColor.color),
+                              const SizedBox(width: 8),
+                              Text(category.name),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() {
+                            _selectedCategoryId = value;
+                          });
+                        }
+                      },
+                    );
+                  },
+                  loading: () => const SizedBox(
+                    height: 60,
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  error: (error, stack) => Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.errorContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Error loading categories: $error',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 );
-              }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _selectedCategoryId = value;
-                  });
-                }
               },
             ),
             const SizedBox(height: 16),
@@ -201,7 +266,7 @@ Consumer(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DropdownButtonFormField<String>(
-              value: _selectedAccountId,
+              initialValue: _selectedAccountId,
               isExpanded: true, // CRITICAL: This fixes the overflow
               decoration: const InputDecoration(
                 labelText: 'Default Account (Optional)',
@@ -484,6 +549,30 @@ Consumer(
         ),
       ),
     );
+  }
+
+  /// Get smart default category ID for expense categories (bills)
+  String _getSmartDefaultCategoryId(List<TransactionCategory> expenseCategories) {
+    if (expenseCategories.isEmpty) {
+      // Fallback to default categories if no user categories exist
+      final defaultCategories = TransactionCategory.defaultCategories.where((cat) => cat.type == TransactionType.expense).toList();
+      return defaultCategories.isNotEmpty ? defaultCategories.first.id : 'other';
+    }
+
+    // Prefer commonly used bill categories
+    final preferredIds = ['utilities', 'other'];
+    for (final preferredId in preferredIds) {
+      final preferredCategory = expenseCategories.firstWhere(
+        (cat) => cat.id == preferredId,
+        orElse: () => expenseCategories.first,
+      );
+      if (preferredCategory.id == preferredId) {
+        return preferredId;
+      }
+    }
+
+    // Return first expense category
+    return expenseCategories.first.id;
   }
 
   Future<void> _submitBill() async {

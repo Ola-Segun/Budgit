@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../accounts/domain/entities/account.dart';
 import '../../../accounts/presentation/providers/account_providers.dart';
+import '../../../transactions/presentation/providers/transaction_providers.dart';
 import '../../domain/entities/bill.dart';
 
 /// Bottom sheet for editing an existing bill
@@ -38,17 +39,6 @@ class _EditBillBottomSheetState extends ConsumerState<EditBillBottomSheet> {
   late bool _isAutoPay;
 
   bool _isSubmitting = false;
-
-  // Mock categories - in real app, this would come from a provider
-  final List<Map<String, dynamic>> _categories = [
-    {'id': 'utilities', 'name': 'Utilities', 'icon': Icons.electrical_services},
-    {'id': 'rent', 'name': 'Rent/Mortgage', 'icon': Icons.home},
-    {'id': 'insurance', 'name': 'Insurance', 'icon': Icons.security},
-    {'id': 'subscription', 'name': 'Subscriptions', 'icon': Icons.subscriptions},
-    {'id': 'credit_card', 'name': 'Credit Card', 'icon': Icons.credit_card},
-    {'id': 'loan', 'name': 'Loan Payment', 'icon': Icons.account_balance},
-    {'id': 'other', 'name': 'Other', 'icon': Icons.category},
-  ];
 
   @override
   void initState() {
@@ -163,29 +153,63 @@ class _EditBillBottomSheetState extends ConsumerState<EditBillBottomSheet> {
                     const SizedBox(height: 16),
 
                     // Category
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedCategoryId,
-                      decoration: const InputDecoration(
-                        labelText: 'Category',
-                      ),
-                      items: _categories.map((category) {
-                        return DropdownMenuItem(
-                          value: category['id'] as String,
-                          child: Row(
-                            children: [
-                              Icon(category['icon'] as IconData, size: 20),
-                              const SizedBox(width: 8),
-                              Text(category['name'] as String),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() {
-                            _selectedCategoryId = value;
-                          });
+                    Consumer(
+                      builder: (context, ref, child) {
+                        final categories = ref.watch(transactionCategoriesProvider);
+                        final categoryIconColorService = ref.watch(categoryIconColorServiceProvider);
+
+                        if (categories.isEmpty) {
+                          return Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Text(
+                                    'No categories available. You can still create the bill and assign a category later.',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
                         }
+
+                        return DropdownButtonFormField<String>(
+                          initialValue: _selectedCategoryId,
+                          decoration: const InputDecoration(
+                            labelText: 'Category',
+                          ),
+                          items: categories.map((category) {
+                            return DropdownMenuItem(
+                              value: category.id,
+                              child: Row(
+                                children: [
+                                  Icon(categoryIconColorService.getIconForCategory(category.id), size: 20, color: categoryIconColorService.getColorForCategory(category.id)),
+                                  const SizedBox(width: 8),
+                                  Text(category.name),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedCategoryId = value;
+                              });
+                            }
+                          },
+                        );
                       },
                     ),
                     const SizedBox(height: 16),
@@ -250,7 +274,7 @@ Consumer(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DropdownButtonFormField<String>(
-              value: _selectedAccountId,
+              initialValue: _selectedAccountId,
               isExpanded: true, // CRITICAL: This fixes the overflow
               decoration: const InputDecoration(
                 labelText: 'Default Account (Optional)',
@@ -612,4 +636,5 @@ Consumer(
       }
     }
   }
+
 }

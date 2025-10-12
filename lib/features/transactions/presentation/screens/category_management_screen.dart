@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 import '../../../../core/di/providers.dart' as core_providers;
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/transaction.dart';
-import '../../domain/repositories/transaction_category_repository.dart';
 import '../../domain/usecases/add_category.dart';
 import '../../domain/usecases/delete_category.dart';
 import '../../domain/usecases/update_category.dart';
 import '../providers/transaction_providers.dart';
+import '../../../insights/presentation/providers/insight_providers.dart';
 
 /// Screen for managing transaction categories
 class CategoryManagementScreen extends ConsumerStatefulWidget {
@@ -22,69 +25,136 @@ class CategoryManagementScreen extends ConsumerStatefulWidget {
 class _CategoryManagementScreenState extends ConsumerState<CategoryManagementScreen> {
   @override
   Widget build(BuildContext context) {
-    final categories = ref.watch(transactionCategoriesProvider);
+    final categoryStateAsync = ref.watch(categoryNotifierProvider);
+    final categoryIconColorService = ref.watch(categoryIconColorServiceProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Categories'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => _showAddCategoryDialog(context),
+          categoryStateAsync.maybeWhen(
+            data: (state) => state.isOperationInProgress
+                ? const SizedBox.shrink()
+                : IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: () => _showAddCategoryDialog(context),
+                  ),
+            orElse: () => const SizedBox.shrink(),
           ),
         ],
       ),
-      body: ListView.builder(
-        padding: AppTheme.screenPaddingAll,
-        itemCount: categories.length,
-        itemBuilder: (context, index) {
-          final category = categories[index];
-          return _buildCategoryTile(category);
+      body: categoryStateAsync.when(
+        data: (categoryState) {
+          if (categoryState.categories.isEmpty) {
+            return const Center(
+              child: Text('No categories found. Add your first category!'),
+            );
+          }
+
+          return ListView.builder(
+            padding: AppTheme.screenPaddingAll,
+            itemCount: categoryState.categories.length,
+            itemBuilder: (context, index) {
+              final category = categoryState.categories[index];
+              return _buildCategoryTile(category, categoryState.isOperationInProgress, categoryIconColorService);
+            },
+          );
         },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Failed to load categories: $error'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.invalidate(categoryNotifierProvider),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildCategoryTile(TransactionCategory category) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: Color(category.color).withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
+  Widget _buildCategoryTile(TransactionCategory category, bool isOperationInProgress, dynamic categoryIconColorService) {
+    return Slidable(
+      key: ValueKey(category.id),
+      endActionPane: ActionPane(
+        motion: const ScrollMotion(),
+        children: [
+          // Edit action (blue)
+          SlidableAction(
+            onPressed: isOperationInProgress ? null : (_) {
+              HapticFeedback.lightImpact();
+              _showEditCategoryDialog(context, category);
+            },
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Colors.white,
+            icon: Icons.edit,
+            label: 'Edit',
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           ),
-          child: Icon(
-            _getIconFromString(category.icon),
-            color: Color(category.color),
+          // Delete action (red)
+          SlidableAction(
+            onPressed: isOperationInProgress ? null : (_) {
+              HapticFeedback.mediumImpact();
+              _confirmDeleteCategory(context, category);
+            },
+            backgroundColor: Theme.of(context).colorScheme.error,
+            foregroundColor: Colors.white,
+            icon: Icons.delete,
+            label: 'Delete',
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           ),
-        ),
-        title: Text(
-          category.name,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-        ),
-        subtitle: Text(
-          category.type.displayName,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () => _showEditCategoryDialog(context, category),
+        ],
+      ),
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 8),
+        child: ListTile(
+          leading: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Color(category.color).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
             ),
-            IconButton(
-              icon: const Icon(Icons.delete),
-              onPressed: () => _confirmDeleteCategory(context, category),
+            child: Icon(
+              categoryIconColorService.getIconForCategory(category.id),
+              color: categoryIconColorService.getColorForCategory(category.id),
             ),
-          ],
+          ),
+          title: Text(
+            category.name,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          subtitle: Text(
+            category.type.displayName,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.edit),
+                onPressed: isOperationInProgress ? null : () => _showEditCategoryDialog(context, category),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete),
+                onPressed: isOperationInProgress ? null : () => _confirmDeleteCategory(context, category),
+              ),
+            ],
+          ),
+          onTap: () {
+            // Could navigate to category details or show options
+          },
         ),
       ),
     );
@@ -130,7 +200,7 @@ class _CategoryManagementScreenState extends ConsumerState<CategoryManagementScr
 
     if (confirmed == true) {
       // Get the repository and create the use case
-      final repository = ref.read(core_providers.transactionCategoryRepositoryProvider) as TransactionCategoryRepository;
+      final repository = ref.read(core_providers.transactionCategoryRepositoryProvider);
       final deleteCategory = DeleteCategory(repository);
 
       // Call the use case
@@ -142,8 +212,13 @@ class _CategoryManagementScreenState extends ConsumerState<CategoryManagementScr
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Category deleted successfully')),
             );
-            // Refresh the categories list
+            // Refresh the categories list and dependent providers
             ref.invalidate(transactionCategoriesProvider);
+            ref.invalidate(categoryNotifierProvider);
+            // Invalidate transaction-related providers that might depend on category display
+            ref.invalidate(transactionNotifierProvider);
+            ref.invalidate(filteredTransactionsProvider);
+            ref.invalidate(transactionStatsProvider);
           },
           error: (failure) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -155,30 +230,6 @@ class _CategoryManagementScreenState extends ConsumerState<CategoryManagementScr
     }
   }
 
-  IconData _getIconFromString(String iconName) {
-    switch (iconName) {
-      case 'restaurant':
-        return Icons.restaurant;
-      case 'directions_car':
-        return Icons.directions_car;
-      case 'shopping_bag':
-        return Icons.shopping_bag;
-      case 'movie':
-        return Icons.movie;
-      case 'bolt':
-        return Icons.bolt;
-      case 'local_hospital':
-        return Icons.local_hospital;
-      case 'work':
-        return Icons.work;
-      case 'computer':
-        return Icons.computer;
-      case 'trending_up':
-        return Icons.trending_up;
-      default:
-        return Icons.category;
-    }
-  }
 }
 
 /// Dialog for adding a new category
@@ -390,8 +441,25 @@ class _AddCategoryDialogState extends ConsumerState<AddCategoryDialog> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Category added successfully')),
             );
-            // Refresh the categories list in the parent
+            // Refresh the categories list and dependent providers
             ref.invalidate(transactionCategoriesProvider);
+            ref.invalidate(categoryNotifierProvider);
+            // Invalidate transaction-related providers that might depend on category display
+            ref.invalidate(transactionNotifierProvider);
+            ref.invalidate(filteredTransactionsProvider);
+            ref.invalidate(transactionStatsProvider);
+            // Invalidate dashboard and insights that might use category data
+            // Note: dashboardDataProvider watches transactionNotifierProvider so it will auto-update
+            // But we can also invalidate insight providers if they depend on categories
+            ref.invalidate(insightNotifierProvider);
+            // Invalidate dashboard and insights that might use category data
+            // Note: dashboardDataProvider watches transactionNotifierProvider so it will auto-update
+            // But we can also invalidate insight providers if they depend on categories
+            ref.invalidate(insightNotifierProvider);
+            // Invalidate dashboard and insights that might use category data
+            // Note: dashboardDataProvider watches transactionNotifierProvider so it will auto-update
+            // But we can also invalidate insight providers if they depend on categories
+            ref.invalidate(insightNotifierProvider);
           },
           error: (failure) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -613,8 +681,13 @@ class _EditCategoryDialogState extends ConsumerState<EditCategoryDialog> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Category updated successfully')),
             );
-            // Refresh the categories list in the parent
+            // Refresh the categories list and dependent providers
             ref.invalidate(transactionCategoriesProvider);
+            ref.invalidate(categoryNotifierProvider);
+            // Invalidate transaction-related providers that might depend on category display
+            ref.invalidate(transactionNotifierProvider);
+            ref.invalidate(filteredTransactionsProvider);
+            ref.invalidate(transactionStatsProvider);
           },
           error: (failure) {
             ScaffoldMessenger.of(context).showSnackBar(

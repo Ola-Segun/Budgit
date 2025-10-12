@@ -201,12 +201,6 @@ class AddTransaction {
     }
 
     final sourceAccount = sourceResult.dataOrNull!;
-    if (sourceAccount == null) {
-      return Result.error(Failure.validation(
-        'Source account not found for transfer',
-        {'accountId': 'Source account does not exist'},
-      ));
-    }
 
     // Calculate source delta: -(amount + fee)
     final sourceDelta = -(transaction.amount + (transaction.transferFee ?? 0));
@@ -230,12 +224,6 @@ class AddTransaction {
     }
 
     final destAccount = destResult.dataOrNull!;
-    if (destAccount == null) {
-      return Result.error(Failure.validation(
-        'Destination account not found for transfer',
-        {'toAccountId': 'Destination account does not exist'},
-      ));
-    }
 
     // Calculate destination delta: +amount
     final destDelta = transaction.amount;

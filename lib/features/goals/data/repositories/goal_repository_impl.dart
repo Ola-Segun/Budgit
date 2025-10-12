@@ -1,4 +1,7 @@
+import 'package:flutter/foundation.dart';
+
 import '../../../../core/error/result.dart';
+import '../../../transactions/domain/repositories/transaction_category_repository.dart';
 import '../../domain/entities/goal.dart';
 import '../../domain/entities/goal_contribution.dart';
 import '../../domain/entities/goal_progress.dart';
@@ -7,9 +10,10 @@ import '../datasources/goal_hive_datasource.dart';
 
 /// Implementation of GoalRepository using Hive data source
 class GoalRepositoryImpl implements GoalRepository {
-  const GoalRepositoryImpl(this._dataSource);
+  const GoalRepositoryImpl(this._dataSource, this._transactionCategoryRepository);
 
   final GoalHiveDataSource _dataSource;
+  final TransactionCategoryRepository _transactionCategoryRepository;
 
   @override
   Future<Result<List<Goal>>> getAll() => _dataSource.getAll();
@@ -25,8 +29,8 @@ class GoalRepositoryImpl implements GoalRepository {
       _dataSource.getByPriority(priority);
 
   @override
-  Future<Result<List<Goal>>> getByCategory(GoalCategory category) =>
-      _dataSource.getByCategory(category);
+  Future<Result<List<Goal>>> getByCategoryId(String categoryId) =>
+      _dataSource.getByCategoryId(categoryId);
 
   @override
   Future<Result<Goal>> add(Goal goal) => _dataSource.add(goal);
@@ -62,4 +66,39 @@ class GoalRepositoryImpl implements GoalRepository {
 
   @override
   Future<Result<int>> getCount() => _dataSource.getCount();
+
+  @override
+  Future<Result<List<Goal>>> getAllWithCategories() async {
+    final goalsResult = await getAll();
+    if (goalsResult.isError) {
+      return goalsResult;
+    }
+
+    final goals = goalsResult.dataOrNull ?? [];
+    final goalsWithCategories = <Goal>[];
+
+    for (final goal in goals) {
+      final categoryName = await _getCategoryName(goal.categoryId);
+      // For now, we can't modify the Goal entity to include categoryName
+      // So we return the goals as-is. Category name resolution should be done in presentation layer
+      // using the _getCategoryName method or similar approach
+      goalsWithCategories.add(goal);
+    }
+
+    return Result.success(goalsWithCategories);
+  }
+
+  /// Get category name by ID using repository lookup
+  Future<String> _getCategoryName(String categoryId) async {
+    final result = await _transactionCategoryRepository.getById(categoryId);
+
+    return result.when(
+      success: (category) => category?.name ?? categoryId,
+      error: (failure) {
+        // Log error and return category ID as fallback
+        debugPrint('Failed to get category name for $categoryId: $failure');
+        return categoryId;
+      },
+    );
+  }
 }

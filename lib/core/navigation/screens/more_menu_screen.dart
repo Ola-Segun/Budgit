@@ -38,6 +38,12 @@ class MoreMenuScreen extends StatelessWidget {
                 subtitle: 'Monitor and manage your debts',
                 onTap: () => context.go('/more/debt'),
               ),
+              _MenuItem(
+                icon: Icons.category,
+                title: 'Categories',
+                subtitle: 'Manage transaction categories',
+                onTap: () => context.go('/more/categories'),
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),

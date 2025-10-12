@@ -34,7 +34,7 @@ class GoalState with _$GoalState {
       filtered = filtered.where((goal) {
         return goal.title.toLowerCase().contains(query) ||
                goal.description.toLowerCase().contains(query) ||
-               goal.category.displayName.toLowerCase().contains(query);
+               goal.categoryId.toLowerCase().contains(query);
       }).toList();
     }
 
@@ -47,7 +47,7 @@ class GoalState with _$GoalState {
         }
 
         // Filter by category
-        if (filter!.category != null && goal.category != filter!.category) {
+        if (filter!.category != null && goal.categoryId != filter!.category) {
           return false;
         }
 
@@ -94,12 +94,12 @@ class GoalState with _$GoalState {
   }
 
   /// Get goals grouped by category
-  Map<GoalCategory, List<Goal>> get goalsByCategory {
-    final grouped = <GoalCategory, List<Goal>>{};
+  Map<String, List<Goal>> get goalsByCategory {
+    final grouped = <String, List<Goal>>{};
 
     for (final goal in filteredGoals) {
-      grouped[goal.category] ??= [];
-      grouped[goal.category]!.add(goal);
+      grouped[goal.categoryId] ??= [];
+      grouped[goal.categoryId]!.add(goal);
     }
 
     return grouped;
@@ -137,7 +137,7 @@ class GoalState with _$GoalState {
 class GoalFilter with _$GoalFilter {
   const factory GoalFilter({
     GoalPriority? priority,
-    GoalCategory? category,
+    String? category,
     bool? showCompleted,
     DateTime? deadlineStart,
     DateTime? deadlineEnd,

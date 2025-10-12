@@ -1,6 +1,5 @@
 import '../../../../core/error/failures.dart';
 import '../../../../core/error/result.dart';
-import '../../../accounts/domain/entities/account.dart';
 import '../../../accounts/domain/repositories/account_repository.dart';
 import '../entities/bill.dart';
 
@@ -24,9 +23,6 @@ class ValidateBillCurrency {
     }
 
     final account = accountResult.dataOrNull!;
-    if (account == null) {
-      return Result.error(Failure.notFound('Account not found'));
-    }
 
     // Get bill currency (default to USD if not specified)
     final billCurrency = bill.currencyCode ?? 'USD';

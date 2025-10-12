@@ -1,13 +1,22 @@
+import '../../../../core/error/failures.dart';
 import '../../../../core/error/result.dart';
+import '../../../bills/domain/repositories/bill_repository.dart';
 import '../../domain/entities/transaction.dart';
+import '../../domain/repositories/transaction_category_repository.dart';
 import '../../domain/repositories/transaction_repository.dart';
 import '../datasources/transaction_category_hive_datasource.dart';
 
 /// Implementation of TransactionCategoryRepository using Hive data source
 class TransactionCategoryRepositoryImpl implements TransactionCategoryRepository {
-  const TransactionCategoryRepositoryImpl(this._dataSource);
+  const TransactionCategoryRepositoryImpl(
+    this._dataSource,
+    this._transactionRepository,
+    this._billRepository,
+  );
 
   final TransactionCategoryHiveDataSource _dataSource;
+  final TransactionRepository _transactionRepository;
+  final BillRepository _billRepository;
 
   @override
   Future<Result<List<TransactionCategory>>> getAll() => _dataSource.getAll();
@@ -31,6 +40,31 @@ class TransactionCategoryRepositoryImpl implements TransactionCategoryRepository
   Future<Result<void>> delete(String id) => _dataSource.delete(id);
 
   @override
-  Future<Result<bool>> isCategoryInUse(String categoryId) =>
-      _dataSource.isCategoryInUse(categoryId);
+  Future<Result<bool>> isCategoryInUse(String categoryId) async {
+    try {
+      // Check if category is used by any transactions
+      final transactionsResult = await _transactionRepository.getByCategory(categoryId);
+      if (transactionsResult.isError) {
+        return Result.error(transactionsResult.failureOrNull!);
+      }
+
+      final transactions = transactionsResult.dataOrNull ?? [];
+      if (transactions.isNotEmpty) {
+        return Result.success(true);
+      }
+
+      // Check if category is used by any bills
+      final billsResult = await _billRepository.getAll();
+      if (billsResult.isError) {
+        return Result.error(billsResult.failureOrNull!);
+      }
+
+      final bills = billsResult.dataOrNull ?? [];
+      final isUsedByBills = bills.any((bill) => bill.categoryId == categoryId);
+
+      return Result.success(isUsedByBills);
+    } catch (e) {
+      return Result.error(Failure.unknown('Failed to check category usage: $e'));
+    }
+  }
 }

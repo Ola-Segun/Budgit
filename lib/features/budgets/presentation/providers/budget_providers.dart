@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/di/providers.dart' as core_providers;
 import '../../../transactions/presentation/providers/transaction_providers.dart';
+import '../../../transactions/presentation/states/category_state.dart';
 import '../../../transactions/presentation/states/transaction_state.dart';
 import '../../domain/entities/budget.dart';
 import '../../domain/usecases/calculate_budget_status.dart';
@@ -68,6 +69,23 @@ final budgetNotifierProvider =
       // Only refresh if we have budgets loaded and transaction state changed
       if (next.value?.transactions.isNotEmpty == true) {
         // Refresh budget statuses when transactions change
+        notifier.loadActiveBudgets();
+      }
+    },
+    fireImmediately: false,
+  );
+
+  // Listen to category changes and refresh budget statuses only when necessary
+  ref.listen<AsyncValue<CategoryState>>(
+    categoryNotifierProvider,
+    (previous, next) {
+      // Only refresh if categories were actually modified (not just operation state changes)
+      final prevCategories = previous?.value?.categories ?? [];
+      final nextCategories = next.value?.categories ?? [];
+
+      // Check if categories actually changed (not just operation state)
+      if (prevCategories.length != nextCategories.length ||
+          !prevCategories.every((cat) => nextCategories.any((c) => c.id == cat.id && c.name == cat.name))) {
         notifier.loadActiveBudgets();
       }
     },
@@ -162,25 +180,31 @@ final budgetStatsProvider = Provider<AsyncValue<BudgetStats>>((ref) {
 });
 
 /// Provider for individual budget by ID
-final budgetProvider = FutureProvider.family<Budget?, String>((ref, budgetId) async {
-  final getBudgets = ref.watch(getBudgetsProvider);
-  final result = await getBudgets();
+final budgetProvider = Provider.family<AsyncValue<Budget?>, String>((ref, budgetId) {
+  final budgetState = ref.watch(budgetNotifierProvider);
 
-  return result.when(
-    success: (budgets) => budgets.where((budget) => budget.id == budgetId).firstOrNull,
-    error: (failure) => null,
+  return budgetState.when(
+    data: (state) => AsyncValue.data(
+      state.budgets.where((budget) => budget.id == budgetId).firstOrNull,
+    ),
+    loading: () => const AsyncValue.loading(),
+    error: (error, stack) => AsyncValue.error(error, stack),
   );
 });
 
 /// Provider for budget status by ID
 final budgetStatusProvider = FutureProvider.family<BudgetStatus?, String>((ref, budgetId) async {
-  final calculateBudgetStatus = ref.watch(calculateBudgetStatusProvider);
-  final budgetAsync = ref.watch(budgetProvider(budgetId));
+  // Listen to budget state changes to refresh
+  final budgetState = ref.watch(budgetNotifierProvider);
+  // Listen to transaction changes to refresh status
+  ref.watch(transactionNotifierProvider);
 
-  final budget = await budgetAsync.when(
-    data: (budget) => budget,
-    loading: () => null,
-    error: (_, __) => null,
+  final calculateBudgetStatus = ref.watch(calculateBudgetStatusProvider);
+
+  // Get budget from the notifier state instead of direct repository call
+  final budget = budgetState.maybeWhen(
+    data: (state) => state.budgets.where((b) => b.id == budgetId).firstOrNull,
+    orElse: () => null,
   );
 
   if (budget == null) return null;

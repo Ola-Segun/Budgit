@@ -14,7 +14,7 @@ class Goal with _$Goal {
     required double currentAmount,
     required DateTime deadline,
     required GoalPriority priority,
-    required GoalCategory category,
+    required String categoryId,
     required DateTime createdAt,
     required DateTime updatedAt,
     @Default([]) List<String> tags,
@@ -123,95 +123,6 @@ enum GoalPriority {
         return 2;
       case GoalPriority.high:
         return 3;
-    }
-  }
-}
-
-/// Goal category enum
-enum GoalCategory {
-  emergencyFund,
-  vacation,
-  homeDownPayment,
-  debtPayoff,
-  carPurchase,
-  education,
-  retirement,
-  investment,
-  wedding,
-  custom;
-
-  String get displayName {
-    switch (this) {
-      case GoalCategory.emergencyFund:
-        return 'Emergency Fund';
-      case GoalCategory.vacation:
-        return 'Vacation';
-      case GoalCategory.homeDownPayment:
-        return 'Home Down Payment';
-      case GoalCategory.debtPayoff:
-        return 'Debt Payoff';
-      case GoalCategory.carPurchase:
-        return 'Car Purchase';
-      case GoalCategory.education:
-        return 'Education';
-      case GoalCategory.retirement:
-        return 'Retirement';
-      case GoalCategory.investment:
-        return 'Investment';
-      case GoalCategory.wedding:
-        return 'Wedding';
-      case GoalCategory.custom:
-        return 'Custom';
-    }
-  }
-
-  String get icon {
-    switch (this) {
-      case GoalCategory.emergencyFund:
-        return 'security';
-      case GoalCategory.vacation:
-        return 'beach_access';
-      case GoalCategory.homeDownPayment:
-        return 'home';
-      case GoalCategory.debtPayoff:
-        return 'credit_card_off';
-      case GoalCategory.carPurchase:
-        return 'directions_car';
-      case GoalCategory.education:
-        return 'school';
-      case GoalCategory.retirement:
-        return 'account_balance';
-      case GoalCategory.investment:
-        return 'trending_up';
-      case GoalCategory.wedding:
-        return 'favorite';
-      case GoalCategory.custom:
-        return 'star';
-    }
-  }
-
-  int get defaultColor {
-    switch (this) {
-      case GoalCategory.emergencyFund:
-        return 0xFFDC2626; // Red
-      case GoalCategory.vacation:
-        return 0xFF059669; // Green
-      case GoalCategory.homeDownPayment:
-        return 0xFF7C3AED; // Purple
-      case GoalCategory.debtPayoff:
-        return 0xFFEA580C; // Orange
-      case GoalCategory.carPurchase:
-        return 0xFF2563EB; // Blue
-      case GoalCategory.education:
-        return 0xFF7C2D12; // Brown
-      case GoalCategory.retirement:
-        return 0xFF0D9488; // Teal
-      case GoalCategory.investment:
-        return 0xFF16A34A; // Green
-      case GoalCategory.wedding:
-        return 0xFFBE185D; // Pink
-      case GoalCategory.custom:
-        return 0xFF64748B; // Gray
     }
   }
 }

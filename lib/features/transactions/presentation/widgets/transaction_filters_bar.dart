@@ -337,6 +337,7 @@ class _TransactionFiltersBarState extends ConsumerState<TransactionFiltersBar> {
   }
 
   void _showCategoriesMultiSelect(List<TransactionCategory> categories) {
+    final categoryIconColorService = ref.read(categoryIconColorServiceProvider);
     final currentFilter = ref.read(transactionNotifierProvider).value?.filter;
     final selectedIds = List<String>.from(currentFilter?.categoryIds ?? []);
 
@@ -359,9 +360,9 @@ class _TransactionFiltersBarState extends ConsumerState<TransactionFiltersBar> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        _getIconFromString(category.icon),
+                        categoryIconColorService.getIconForCategory(category.id),
                         size: 20,
-                        color: Color(category.color),
+                        color: categoryIconColorService.getColorForCategory(category.id),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -463,28 +464,4 @@ class _TransactionFiltersBarState extends ConsumerState<TransactionFiltersBar> {
     );
   }
 
-  IconData _getIconFromString(String iconName) {
-    switch (iconName) {
-      case 'restaurant':
-        return Icons.restaurant;
-      case 'directions_car':
-        return Icons.directions_car;
-      case 'shopping_bag':
-        return Icons.shopping_bag;
-      case 'movie':
-        return Icons.movie;
-      case 'bolt':
-        return Icons.bolt;
-      case 'local_hospital':
-        return Icons.local_hospital;
-      case 'work':
-        return Icons.work;
-      case 'computer':
-        return Icons.computer;
-      case 'trending_up':
-        return Icons.trending_up;
-      default:
-        return Icons.category;
-    }
-  }
 }

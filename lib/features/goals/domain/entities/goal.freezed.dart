@@ -23,7 +23,7 @@ mixin _$Goal {
   double get currentAmount => throw _privateConstructorUsedError;
   DateTime get deadline => throw _privateConstructorUsedError;
   GoalPriority get priority => throw _privateConstructorUsedError;
-  GoalCategory get category => throw _privateConstructorUsedError;
+  String get categoryId => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
   DateTime get updatedAt => throw _privateConstructorUsedError;
   List<String> get tags => throw _privateConstructorUsedError;
@@ -45,7 +45,7 @@ abstract class $GoalCopyWith<$Res> {
       double currentAmount,
       DateTime deadline,
       GoalPriority priority,
-      GoalCategory category,
+      String categoryId,
       DateTime createdAt,
       DateTime updatedAt,
       List<String> tags});
@@ -71,7 +71,7 @@ class _$GoalCopyWithImpl<$Res, $Val extends Goal>
     Object? currentAmount = null,
     Object? deadline = null,
     Object? priority = null,
-    Object? category = null,
+    Object? categoryId = null,
     Object? createdAt = null,
     Object? updatedAt = null,
     Object? tags = null,
@@ -105,10 +105,10 @@ class _$GoalCopyWithImpl<$Res, $Val extends Goal>
           ? _value.priority
           : priority // ignore: cast_nullable_to_non_nullable
               as GoalPriority,
-      category: null == category
-          ? _value.category
-          : category // ignore: cast_nullable_to_non_nullable
-              as GoalCategory,
+      categoryId: null == categoryId
+          ? _value.categoryId
+          : categoryId // ignore: cast_nullable_to_non_nullable
+              as String,
       createdAt: null == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -140,7 +140,7 @@ abstract class _$$GoalImplCopyWith<$Res> implements $GoalCopyWith<$Res> {
       double currentAmount,
       DateTime deadline,
       GoalPriority priority,
-      GoalCategory category,
+      String categoryId,
       DateTime createdAt,
       DateTime updatedAt,
       List<String> tags});
@@ -163,7 +163,7 @@ class __$$GoalImplCopyWithImpl<$Res>
     Object? currentAmount = null,
     Object? deadline = null,
     Object? priority = null,
-    Object? category = null,
+    Object? categoryId = null,
     Object? createdAt = null,
     Object? updatedAt = null,
     Object? tags = null,
@@ -197,10 +197,10 @@ class __$$GoalImplCopyWithImpl<$Res>
           ? _value.priority
           : priority // ignore: cast_nullable_to_non_nullable
               as GoalPriority,
-      category: null == category
-          ? _value.category
-          : category // ignore: cast_nullable_to_non_nullable
-              as GoalCategory,
+      categoryId: null == categoryId
+          ? _value.categoryId
+          : categoryId // ignore: cast_nullable_to_non_nullable
+              as String,
       createdAt: null == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -228,7 +228,7 @@ class _$GoalImpl extends _Goal {
       required this.currentAmount,
       required this.deadline,
       required this.priority,
-      required this.category,
+      required this.categoryId,
       required this.createdAt,
       required this.updatedAt,
       final List<String> tags = const []})
@@ -250,7 +250,7 @@ class _$GoalImpl extends _Goal {
   @override
   final GoalPriority priority;
   @override
-  final GoalCategory category;
+  final String categoryId;
   @override
   final DateTime createdAt;
   @override
@@ -266,7 +266,7 @@ class _$GoalImpl extends _Goal {
 
   @override
   String toString() {
-    return 'Goal(id: $id, title: $title, description: $description, targetAmount: $targetAmount, currentAmount: $currentAmount, deadline: $deadline, priority: $priority, category: $category, createdAt: $createdAt, updatedAt: $updatedAt, tags: $tags)';
+    return 'Goal(id: $id, title: $title, description: $description, targetAmount: $targetAmount, currentAmount: $currentAmount, deadline: $deadline, priority: $priority, categoryId: $categoryId, createdAt: $createdAt, updatedAt: $updatedAt, tags: $tags)';
   }
 
   @override
@@ -286,8 +286,8 @@ class _$GoalImpl extends _Goal {
                 other.deadline == deadline) &&
             (identical(other.priority, priority) ||
                 other.priority == priority) &&
-            (identical(other.category, category) ||
-                other.category == category) &&
+            (identical(other.categoryId, categoryId) ||
+                other.categoryId == categoryId) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -305,7 +305,7 @@ class _$GoalImpl extends _Goal {
       currentAmount,
       deadline,
       priority,
-      category,
+      categoryId,
       createdAt,
       updatedAt,
       const DeepCollectionEquality().hash(_tags));
@@ -326,7 +326,7 @@ abstract class _Goal extends Goal {
       required final double currentAmount,
       required final DateTime deadline,
       required final GoalPriority priority,
-      required final GoalCategory category,
+      required final String categoryId,
       required final DateTime createdAt,
       required final DateTime updatedAt,
       final List<String> tags}) = _$GoalImpl;
@@ -347,7 +347,7 @@ abstract class _Goal extends Goal {
   @override
   GoalPriority get priority;
   @override
-  GoalCategory get category;
+  String get categoryId;
   @override
   DateTime get createdAt;
   @override

@@ -10,6 +10,7 @@ import '../../../budgets/domain/entities/budget.dart';
 import '../../../budgets/domain/repositories/budget_repository.dart';
 import '../../../budgets/domain/usecases/calculate_budget_status.dart';
 import '../../../transactions/domain/entities/transaction.dart';
+import '../../../transactions/domain/repositories/transaction_category_repository.dart';
 import '../../../insights/domain/entities/insight.dart';
 import '../../../insights/domain/repositories/insight_repository.dart';
 import '../../../transactions/domain/repositories/transaction_repository.dart';
@@ -24,6 +25,7 @@ class DashboardRepositoryImpl implements DashboardRepository {
     this._billRepository,
     this._accountRepository,
     this._insightRepository,
+    this._transactionCategoryRepository,
     this._calculateBudgetStatus,
   );
 
@@ -32,6 +34,7 @@ class DashboardRepositoryImpl implements DashboardRepository {
   final BillRepository _billRepository;
   final AccountRepository _accountRepository;
   final InsightRepository _insightRepository;
+  final TransactionCategoryRepository _transactionCategoryRepository;
   final CalculateBudgetStatus _calculateBudgetStatus;
 
   @override
@@ -165,20 +168,25 @@ class DashboardRepositoryImpl implements DashboardRepository {
       }
 
       final budgetStatus = statusResult.dataOrNull!;
-      final categoryOverviews = budgetStatus.categoryStatuses
-          .map((status) => BudgetCategoryOverview(
-                categoryId: status.categoryId,
-                categoryName: _getCategoryName(status.categoryId), // You'd implement this
-                spent: status.spent,
-                budget: status.budget,
-                percentage: status.percentage,
-                status: _mapBudgetHealthToStatus(status.status),
-              ))
-          .sorted((a, b) => b.spent.compareTo(a.spent)) // Sort by spending amount
-          .take(limit)
-          .toList();
+      // Get category names asynchronously
+      final categoryOverviews = <BudgetCategoryOverview>[];
+      for (final status in budgetStatus.categoryStatuses) {
+        final categoryName = await _getCategoryName(status.categoryId);
+        categoryOverviews.add(BudgetCategoryOverview(
+          categoryId: status.categoryId,
+          categoryName: categoryName,
+          spent: status.spent,
+          budget: status.budget,
+          percentage: status.percentage,
+          status: _mapBudgetHealthToStatus(status.status),
+        ));
+      }
 
-      return Result.success(categoryOverviews);
+      categoryOverviews
+          .sort((a, b) => b.spent.compareTo(a.spent)); // Sort by spending amount
+      final limitedOverviews = categoryOverviews.take(limit).toList();
+
+      return Result.success(limitedOverviews);
     } catch (e) {
       return Result.error(Failure.unknown('Failed to get budget overview: $e'));
     }
@@ -258,13 +266,6 @@ class DashboardRepositoryImpl implements DashboardRepository {
     return Result.success(null);
   }
 
-  /// Get budget health status based on progress percentage
-  BudgetHealthStatus _getBudgetHealthStatus(double percentage) {
-    if (percentage > 1.0) return BudgetHealthStatus.overBudget;
-    if (percentage > 0.9) return BudgetHealthStatus.critical;
-    if (percentage > 0.75) return BudgetHealthStatus.warning;
-    return BudgetHealthStatus.healthy;
-  }
 
   /// Map BudgetHealth to BudgetHealthStatus
   BudgetHealthStatus _mapBudgetHealthToStatus(BudgetHealth health) {
@@ -280,18 +281,17 @@ class DashboardRepositoryImpl implements DashboardRepository {
     }
   }
 
-  /// Get category name by ID (placeholder implementation)
-  String _getCategoryName(String categoryId) {
-    // In a real app, you'd have a category repository
-    final categoryNames = {
-      'food': 'Food & Dining',
-      'transportation': 'Transportation',
-      'entertainment': 'Entertainment',
-      'shopping': 'Shopping',
-      'utilities': 'Utilities',
-      'healthcare': 'Healthcare',
-    };
+  /// Get category name by ID using repository lookup
+  Future<String> _getCategoryName(String categoryId) async {
+    final result = await _transactionCategoryRepository.getById(categoryId);
 
-    return categoryNames[categoryId] ?? categoryId;
+    return result.when(
+      success: (category) => category?.name ?? categoryId,
+      error: (failure) {
+        // Log error and return category ID as fallback
+        debugPrint('Failed to get category name for $categoryId: $failure');
+        return categoryId;
+      },
+    );
   }
 }

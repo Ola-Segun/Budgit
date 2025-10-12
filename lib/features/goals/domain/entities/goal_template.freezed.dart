@@ -21,7 +21,7 @@ mixin _$GoalTemplate {
   String get description => throw _privateConstructorUsedError;
   double get suggestedAmount => throw _privateConstructorUsedError;
   int get suggestedMonths => throw _privateConstructorUsedError;
-  GoalCategory get category => throw _privateConstructorUsedError;
+  String get categoryId => throw _privateConstructorUsedError;
   GoalPriority get defaultPriority => throw _privateConstructorUsedError;
   String? get icon => throw _privateConstructorUsedError;
   int? get color => throw _privateConstructorUsedError;
@@ -44,7 +44,7 @@ abstract class $GoalTemplateCopyWith<$Res> {
       String description,
       double suggestedAmount,
       int suggestedMonths,
-      GoalCategory category,
+      String categoryId,
       GoalPriority defaultPriority,
       String? icon,
       int? color,
@@ -69,7 +69,7 @@ class _$GoalTemplateCopyWithImpl<$Res, $Val extends GoalTemplate>
     Object? description = null,
     Object? suggestedAmount = null,
     Object? suggestedMonths = null,
-    Object? category = null,
+    Object? categoryId = null,
     Object? defaultPriority = null,
     Object? icon = freezed,
     Object? color = freezed,
@@ -96,10 +96,10 @@ class _$GoalTemplateCopyWithImpl<$Res, $Val extends GoalTemplate>
           ? _value.suggestedMonths
           : suggestedMonths // ignore: cast_nullable_to_non_nullable
               as int,
-      category: null == category
-          ? _value.category
-          : category // ignore: cast_nullable_to_non_nullable
-              as GoalCategory,
+      categoryId: null == categoryId
+          ? _value.categoryId
+          : categoryId // ignore: cast_nullable_to_non_nullable
+              as String,
       defaultPriority: null == defaultPriority
           ? _value.defaultPriority
           : defaultPriority // ignore: cast_nullable_to_non_nullable
@@ -134,7 +134,7 @@ abstract class _$$GoalTemplateImplCopyWith<$Res>
       String description,
       double suggestedAmount,
       int suggestedMonths,
-      GoalCategory category,
+      String categoryId,
       GoalPriority defaultPriority,
       String? icon,
       int? color,
@@ -157,7 +157,7 @@ class __$$GoalTemplateImplCopyWithImpl<$Res>
     Object? description = null,
     Object? suggestedAmount = null,
     Object? suggestedMonths = null,
-    Object? category = null,
+    Object? categoryId = null,
     Object? defaultPriority = null,
     Object? icon = freezed,
     Object? color = freezed,
@@ -184,10 +184,10 @@ class __$$GoalTemplateImplCopyWithImpl<$Res>
           ? _value.suggestedMonths
           : suggestedMonths // ignore: cast_nullable_to_non_nullable
               as int,
-      category: null == category
-          ? _value.category
-          : category // ignore: cast_nullable_to_non_nullable
-              as GoalCategory,
+      categoryId: null == categoryId
+          ? _value.categoryId
+          : categoryId // ignore: cast_nullable_to_non_nullable
+              as String,
       defaultPriority: null == defaultPriority
           ? _value.defaultPriority
           : defaultPriority // ignore: cast_nullable_to_non_nullable
@@ -217,7 +217,7 @@ class _$GoalTemplateImpl extends _GoalTemplate {
       required this.description,
       required this.suggestedAmount,
       required this.suggestedMonths,
-      required this.category,
+      required this.categoryId,
       required this.defaultPriority,
       this.icon,
       this.color,
@@ -236,7 +236,7 @@ class _$GoalTemplateImpl extends _GoalTemplate {
   @override
   final int suggestedMonths;
   @override
-  final GoalCategory category;
+  final String categoryId;
   @override
   final GoalPriority defaultPriority;
   @override
@@ -253,7 +253,7 @@ class _$GoalTemplateImpl extends _GoalTemplate {
 
   @override
   String toString() {
-    return 'GoalTemplate(id: $id, name: $name, description: $description, suggestedAmount: $suggestedAmount, suggestedMonths: $suggestedMonths, category: $category, defaultPriority: $defaultPriority, icon: $icon, color: $color, tips: $tips)';
+    return 'GoalTemplate(id: $id, name: $name, description: $description, suggestedAmount: $suggestedAmount, suggestedMonths: $suggestedMonths, categoryId: $categoryId, defaultPriority: $defaultPriority, icon: $icon, color: $color, tips: $tips)';
   }
 
   @override
@@ -269,8 +269,8 @@ class _$GoalTemplateImpl extends _GoalTemplate {
                 other.suggestedAmount == suggestedAmount) &&
             (identical(other.suggestedMonths, suggestedMonths) ||
                 other.suggestedMonths == suggestedMonths) &&
-            (identical(other.category, category) ||
-                other.category == category) &&
+            (identical(other.categoryId, categoryId) ||
+                other.categoryId == categoryId) &&
             (identical(other.defaultPriority, defaultPriority) ||
                 other.defaultPriority == defaultPriority) &&
             (identical(other.icon, icon) || other.icon == icon) &&
@@ -286,7 +286,7 @@ class _$GoalTemplateImpl extends _GoalTemplate {
       description,
       suggestedAmount,
       suggestedMonths,
-      category,
+      categoryId,
       defaultPriority,
       icon,
       color,
@@ -306,7 +306,7 @@ abstract class _GoalTemplate extends GoalTemplate {
       required final String description,
       required final double suggestedAmount,
       required final int suggestedMonths,
-      required final GoalCategory category,
+      required final String categoryId,
       required final GoalPriority defaultPriority,
       final String? icon,
       final int? color,
@@ -324,7 +324,7 @@ abstract class _GoalTemplate extends GoalTemplate {
   @override
   int get suggestedMonths;
   @override
-  GoalCategory get category;
+  String get categoryId;
   @override
   GoalPriority get defaultPriority;
   @override

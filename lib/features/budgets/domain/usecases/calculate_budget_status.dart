@@ -5,7 +5,6 @@ import '../../../../core/error/result.dart';
 import '../../../transactions/domain/entities/transaction.dart';
 import '../../../transactions/domain/repositories/transaction_repository.dart';
 import '../entities/budget.dart';
-import '../repositories/budget_repository.dart';
 
 /// Use case for calculating budget status with spending data
 class CalculateBudgetStatus {

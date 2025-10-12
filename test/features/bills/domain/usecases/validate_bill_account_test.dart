@@ -2,11 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
-import '../../../../../lib/core/error/failures.dart';
-import '../../../../../lib/core/error/result.dart';
-import '../../../../../lib/features/accounts/domain/entities/account.dart';
-import '../../../../../lib/features/accounts/domain/repositories/account_repository.dart';
-import '../../../../../lib/features/bills/domain/usecases/validate_bill_account.dart';
+import 'package:budget_tracker/core/error/failures.dart';
+import 'package:budget_tracker/core/error/result.dart';
+import 'package:budget_tracker/features/accounts/domain/entities/account.dart';
+import 'package:budget_tracker/features/accounts/domain/repositories/account_repository.dart';
+import 'package:budget_tracker/features/bills/domain/usecases/validate_bill_account.dart';
 
 @GenerateMocks([AccountRepository])
 import 'validate_bill_account_test.mocks.dart';
@@ -102,9 +102,9 @@ void main() {
       );
 
       final failure = result.failureOrNull as ValidationFailure;
-      expect(failure.errors?['availableBalance'], '50.0');
-      expect(failure.errors?['requiredAmount'], '100.0');
-      expect(failure.errors?['shortfall'], '50.0');
+      expect(failure.errors['availableBalance'], '50.0');
+      expect(failure.errors['requiredAmount'], '100.0');
+      expect(failure.errors['shortfall'], '50.0');
     });
 
     test('should succeed when account has sufficient balance', () async {
@@ -266,9 +266,9 @@ void main() {
       );
 
       final failure = result.failureOrNull as ValidationFailure;
-      expect(failure.errors?['availableBalance'], '50.00');
-      expect(failure.errors?['paymentAmount'], '75.00');
-      expect(failure.errors?['shortfall'], '25.00');
+      expect(failure.errors['availableBalance'], '50.00');
+      expect(failure.errors['paymentAmount'], '75.00');
+      expect(failure.errors['shortfall'], '25.00');
     });
 
     test('should succeed when account has sufficient funds for payment', () async {
@@ -346,7 +346,7 @@ void main() {
       );
 
       final failure = result.failureOrNull as ValidationFailure;
-      expect(failure.errors?['projectedUtilization'], '92.5%');
+      expect(failure.errors['projectedUtilization'], '92.5%');
     });
 
     test('should succeed with credit card that has available credit', () async {

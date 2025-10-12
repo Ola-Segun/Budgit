@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 
+import '../../../transactions/domain/services/category_icon_color_service.dart';
+import '../../../transactions/presentation/providers/transaction_providers.dart';
 import '../../domain/entities/goal.dart';
 
 /// Card widget displaying goal progress with visual progress bar
-class GoalProgressCard extends StatelessWidget {
+class GoalProgressCard extends ConsumerWidget {
   const GoalProgressCard({
     super.key,
     required this.goal,
@@ -13,10 +16,13 @@ class GoalProgressCard extends StatelessWidget {
   final Goal goal;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final progress = goal.progressPercentage;
     final isCompleted = goal.isCompleted;
     final isOverdue = goal.isOverdue;
+    final categoryService = CategoryIconColorService(ref.read(categoryNotifierProvider.notifier));
+    final categoryColor = categoryService.getColorForCategory(goal.categoryId);
+    final categoryStateAsync = ref.watch(categoryNotifierProvider);
 
     return Card(
       child: Padding(
@@ -30,12 +36,12 @@ class GoalProgressCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Color(goal.category.defaultColor).withValues(alpha: 0.1),
+                    color: categoryColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.circle,
-                    color: Color(goal.category.defaultColor),
+                    color: categoryColor,
                     size: 20,
                   ),
                 ),
@@ -50,11 +56,29 @@ class GoalProgressCard extends StatelessWidget {
                               fontWeight: FontWeight.w600,
                             ),
                       ),
-                      Text(
-                        goal.category.displayName,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                      categoryStateAsync.when(
+                        data: (categoryState) {
+                          final category = categoryState.getCategoryById(goal.categoryId);
+                          final categoryName = category?.name ?? goal.categoryId.replaceAll('_', ' ').toUpperCase();
+                          return Text(
+                            categoryName,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                          );
+                        },
+                        loading: () => Text(
+                          goal.categoryId.replaceAll('_', ' ').toUpperCase(),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                        error: (error, stack) => Text(
+                          goal.categoryId.replaceAll('_', ' ').toUpperCase(),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
                       ),
                     ],
                   ),
@@ -102,7 +126,7 @@ class GoalProgressCard extends StatelessWidget {
                   ? Colors.green
                   : isOverdue
                       ? Colors.red
-                      : Color(goal.category.defaultColor),
+                      : categoryColor,
               barRadius: const Radius.circular(6),
             ),
             const SizedBox(height: 12),

@@ -30,7 +30,7 @@ class GoalDto extends HiveObject {
   late String priority; // Store as string for Hive compatibility
 
   @HiveField(7)
-  late String category; // Store as string for Hive compatibility
+  late String categoryId; // Store as string for Hive compatibility
 
   @HiveField(8)
   late DateTime createdAt;
@@ -53,7 +53,7 @@ class GoalDto extends HiveObject {
     currentAmount = goal.currentAmount;
     deadline = goal.deadline;
     priority = goal.priority.name; // Convert enum to string
-    category = goal.category.name; // Convert enum to string
+    categoryId = goal.categoryId; // Store category ID directly
     createdAt = goal.createdAt;
     updatedAt = goal.updatedAt;
     tags = goal.tags;
@@ -72,10 +72,7 @@ class GoalDto extends HiveObject {
         (e) => e.name == priority,
         orElse: () => GoalPriority.medium, // Default fallback
       ),
-      category: GoalCategory.values.firstWhere(
-        (e) => e.name == category,
-        orElse: () => GoalCategory.custom, // Default fallback
-      ),
+      categoryId: categoryId,
       createdAt: createdAt,
       updatedAt: updatedAt,
       tags: tags ?? [],

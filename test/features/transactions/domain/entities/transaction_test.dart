@@ -153,7 +153,7 @@ void main() {
     test('defaultCategories should contain expected categories', () {
       final categories = TransactionCategory.defaultCategories;
 
-      expect(categories.length, greaterThan(5));
+      expect(categories.length, greaterThan(15)); // Now includes goal categories
 
       // Check for essential categories
       final foodCategory = categories.firstWhere((c) => c.id == 'food');
@@ -163,6 +163,22 @@ void main() {
       final salaryCategory = categories.firstWhere((c) => c.id == 'salary');
       expect(salaryCategory.name, 'Salary');
       expect(salaryCategory.type, TransactionType.income);
+
+      // Check for goal-related categories
+      final emergencyFundCategory = categories.firstWhere((c) => c.id == 'emergency_fund');
+      expect(emergencyFundCategory.name, 'Emergency Fund');
+      expect(emergencyFundCategory.icon, 'security');
+      expect(emergencyFundCategory.type, TransactionType.expense);
+
+      final vacationCategory = categories.firstWhere((c) => c.id == 'vacation');
+      expect(vacationCategory.name, 'Vacation');
+      expect(vacationCategory.icon, 'beach_access');
+      expect(vacationCategory.type, TransactionType.expense);
+
+      final homeDownPaymentCategory = categories.firstWhere((c) => c.id == 'home_down_payment');
+      expect(homeDownPaymentCategory.name, 'Home Down Payment');
+      expect(homeDownPaymentCategory.icon, 'home');
+      expect(homeDownPaymentCategory.type, TransactionType.expense);
     });
   });
 }

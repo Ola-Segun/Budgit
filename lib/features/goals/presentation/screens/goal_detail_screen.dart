@@ -7,6 +7,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_bottom_sheet.dart';
 import '../../../../core/widgets/error_view.dart';
 import '../../../../core/widgets/loading_view.dart';
+import '../../../transactions/presentation/providers/transaction_providers.dart';
 import '../../domain/entities/goal.dart';
 import '../providers/goal_providers.dart';
 import '../widgets/add_contribution_bottom_sheet.dart';
@@ -160,7 +161,20 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
             const SizedBox(height: 16),
 
             // Category
-            _buildInfoRow('Category', goal.category.displayName),
+            Consumer(
+              builder: (context, ref, child) {
+                final categoryStateAsync = ref.watch(categoryNotifierProvider);
+                return categoryStateAsync.when(
+                  data: (categoryState) {
+                    final category = categoryState.getCategoryById(goal.categoryId);
+                    final categoryName = category?.name ?? goal.categoryId.replaceAll('_', ' ').toUpperCase();
+                    return _buildInfoRow('Category', categoryName);
+                  },
+                  loading: () => _buildInfoRow('Category', goal.categoryId.replaceAll('_', ' ').toUpperCase()),
+                  error: (error, stack) => _buildInfoRow('Category', goal.categoryId.replaceAll('_', ' ').toUpperCase()),
+                );
+              },
+            ),
 
             // Priority
             _buildInfoRow('Priority', goal.priority.displayName),

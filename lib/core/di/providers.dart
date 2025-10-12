@@ -9,11 +9,16 @@ import '../../features/transactions/data/datasources/transaction_category_hive_d
 import '../../features/transactions/data/repositories/transaction_repository_impl.dart';
 import '../../features/transactions/data/repositories/transaction_category_repository_impl.dart';
 import '../../features/transactions/domain/repositories/transaction_repository.dart';
+import '../../features/transactions/domain/repositories/transaction_category_repository.dart';
 import '../../features/transactions/domain/usecases/add_transaction.dart';
 import '../../features/transactions/domain/usecases/get_paginated_transactions.dart';
 import '../../features/transactions/domain/usecases/get_transactions.dart';
 import '../../features/transactions/domain/usecases/update_transaction.dart';
 import '../../features/transactions/domain/usecases/delete_transaction.dart';
+import '../../features/transactions/domain/usecases/get_categories.dart';
+import '../../features/transactions/domain/usecases/add_category.dart';
+import '../../features/transactions/domain/usecases/update_category.dart';
+import '../../features/transactions/domain/usecases/delete_category.dart';
 import '../../features/budgets/data/datasources/budget_hive_datasource.dart';
 import '../../features/budgets/data/repositories/budget_repository_impl.dart';
 import '../../features/budgets/domain/repositories/budget_repository.dart';
@@ -63,7 +68,6 @@ import '../../features/debt/domain/usecases/get_debts.dart';
 import '../../features/debt/domain/usecases/update_debt.dart';
 import '../../features/debt/domain/usecases/delete_debt.dart';
 import '../../features/settings/presentation/providers/settings_providers.dart' as settings_providers;
-import '../../features/notifications/presentation/providers/notification_providers.dart' as notification_providers;
 import '../../features/notifications/presentation/providers/notification_providers.dart' as notification_providers;
 
 /// Core providers for dependency injection
@@ -119,25 +123,29 @@ final transactionRepositoryProvider = Provider<TransactionRepository>((ref) {
 });
 
 final transactionCategoryRepositoryProvider = Provider<TransactionCategoryRepository>((ref) {
-  return TransactionCategoryRepositoryImpl(ref.read(transactionCategoryDataSourceProvider));
+  return TransactionCategoryRepositoryImpl(
+    ref.read(transactionCategoryDataSourceProvider),
+    ref.read(transactionRepositoryProvider),
+    ref.read(billRepositoryProvider),
+  );
 });
 
-// Category use cases - TODO: Fix provider type issues
-// final addCategoryProvider = Provider<AddCategory>((ref) {
-//   return AddCategory(ref.read(transactionCategoryRepositoryProvider));
-// });
+// Category use cases
+final getCategoriesProvider = Provider<GetCategories>((ref) {
+  return GetCategories(ref.read(transactionCategoryRepositoryProvider));
+});
 
-// final getCategoriesProvider = Provider<GetCategories>((ref) {
-//   return GetCategories(ref.read(transactionCategoryRepositoryProvider));
-// });
+final addCategoryProvider = Provider<AddCategory>((ref) {
+  return AddCategory(ref.read(transactionCategoryRepositoryProvider));
+});
 
-// final updateCategoryProvider = Provider<UpdateCategory>((ref) {
-//   return UpdateCategory(ref.read(transactionCategoryRepositoryProvider));
-// });
+final updateCategoryProvider = Provider<UpdateCategory>((ref) {
+  return UpdateCategory(ref.read(transactionCategoryRepositoryProvider));
+});
 
-// final deleteCategoryProvider = Provider<DeleteCategory>((ref) {
-//   return DeleteCategory(ref.read(transactionCategoryRepositoryProvider));
-// });
+final deleteCategoryProvider = Provider<DeleteCategory>((ref) {
+  return DeleteCategory(ref.read(transactionCategoryRepositoryProvider));
+});
 
 // Transaction use cases
 final addTransactionProvider = Provider<AddTransaction>((ref) {
@@ -256,6 +264,7 @@ final budgetRepositoryProvider = Provider<BudgetRepository>((ref) {
   return BudgetRepositoryImpl(
     ref.read(budgetDataSourceProvider),
     ref.read(calculateBudgetStatusProvider),
+    ref.read(transactionCategoryRepositoryProvider),
   );
 });
 
@@ -383,7 +392,10 @@ final goalDataSourceProvider = Provider<GoalHiveDataSource>((ref) {
 
 // Goal repositories
 final goalRepositoryProvider = Provider<GoalRepository>((ref) {
-  return GoalRepositoryImpl(ref.read(goalDataSourceProvider));
+  return GoalRepositoryImpl(
+    ref.read(goalDataSourceProvider),
+    ref.read(transactionCategoryRepositoryProvider),
+  );
 });
 
 // Goal use cases

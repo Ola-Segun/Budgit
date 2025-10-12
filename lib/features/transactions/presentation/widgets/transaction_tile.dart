@@ -27,6 +27,14 @@ class TransactionTile extends ConsumerWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     debugPrint('TransactionTile: Screen width: $screenWidth');
 
+    // Get category data using centralized service
+    final categoryIconColorService = ref.watch(categoryIconColorServiceProvider);
+    final categories = ref.watch(transactionCategoriesProvider);
+    final category = categories.where((c) => c.id == transaction.categoryId).firstOrNull;
+    final categoryIcon = categoryIconColorService.getIconForCategory(transaction.categoryId);
+    final categoryColor = categoryIconColorService.getColorForCategory(transaction.categoryId);
+    final categoryName = category != null ? category.name : 'Unknown Category';
+
     return Slidable(
       key: ValueKey(transaction.id),
       endActionPane: ActionPane(
@@ -96,12 +104,12 @@ child: SizedBox(
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: _getCategoryColor().withValues(alpha: 0.1),
+                color: categoryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
               ),
               child: Icon(
-                _getCategoryIcon(),
-                color: _getCategoryColor(),
+                categoryIcon,
+                color: categoryColor,
                 size: 20,
               ),
             ),
@@ -181,7 +189,7 @@ child: SizedBox(
                       Flexible(
                         flex: 2,
                         child: Text(
-                          _getCategoryName(),
+                          categoryName,
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
@@ -337,6 +345,7 @@ child: SizedBox(
     HapticFeedback.lightImpact();
 
     final categories = ref.read(transactionCategoriesProvider);
+    final categoryIconColorService = ref.read(categoryIconColorServiceProvider);
     String? selectedCategoryId = transaction.categoryId;
 
     final result = await showDialog<String>(
@@ -360,9 +369,9 @@ child: SizedBox(
                     title: Row(
                       children: [
                         Icon(
-                          _getIconFromCategoryId(category.id),
+                          categoryIconColorService.getIconForCategory(category.id),
                           size: 20,
-                          color: Color(category.color),
+                          color: categoryIconColorService.getColorForCategory(category.id),
                         ),
                         const SizedBox(width: 8),
                         Text(category.name),
@@ -402,113 +411,10 @@ child: SizedBox(
     }
   }
 
-  IconData _getIconFromCategoryId(String categoryId) {
-    switch (categoryId) {
-      case 'food':
-        return Icons.restaurant;
-      case 'transport':
-        return Icons.directions_car;
-      case 'shopping':
-        return Icons.shopping_bag;
-      case 'entertainment':
-        return Icons.movie;
-      case 'utilities':
-        return Icons.bolt;
-      case 'healthcare':
-        return Icons.local_hospital;
-      case 'salary':
-        return Icons.work;
-      case 'freelance':
-        return Icons.computer;
-      case 'investment':
-        return Icons.trending_up;
-      default:
-        return Icons.category;
-    }
-  }
-
   bool _isToday(DateTime date) {
     final now = DateTime.now();
     return date.year == now.year &&
            date.month == now.month &&
            date.day == now.day;
-  }
-
-  IconData _getCategoryIcon() {
-    // Mock category icons - in real app, this would come from category data
-    switch (transaction.categoryId) {
-      case 'food':
-        return Icons.restaurant;
-      case 'transport':
-        return Icons.directions_car;
-      case 'shopping':
-        return Icons.shopping_bag;
-      case 'entertainment':
-        return Icons.movie;
-      case 'utilities':
-        return Icons.bolt;
-      case 'healthcare':
-        return Icons.local_hospital;
-      case 'salary':
-        return Icons.work;
-      case 'freelance':
-        return Icons.computer;
-      case 'investment':
-        return Icons.trending_up;
-      default:
-        return Icons.category;
-    }
-  }
-
-  Color _getCategoryColor() {
-    // Mock category colors - in real app, this would come from category data
-    switch (transaction.categoryId) {
-      case 'food':
-        return const Color(0xFFF59E0B); // Yellow
-      case 'transport':
-        return const Color(0xFFEF4444); // Red
-      case 'shopping':
-        return const Color(0xFFEC4899); // Pink
-      case 'entertainment':
-        return const Color(0xFFF97316); // Orange
-      case 'utilities':
-        return const Color(0xFF06B6D4); // Cyan
-      case 'healthcare':
-        return const Color(0xFFDC2626); // Dark red
-      case 'salary':
-        return const Color(0xFF10B981); // Green
-      case 'freelance':
-        return const Color(0xFF3B82F6); // Blue
-      case 'investment':
-        return const Color(0xFF8B5CF6); // Purple
-      default:
-        return const Color(0xFF64748B); // Gray
-    }
-  }
-
-  String _getCategoryName() {
-    // Mock category names - in real app, this would come from category data
-    switch (transaction.categoryId) {
-      case 'food':
-        return 'Food & Dining';
-      case 'transport':
-        return 'Transportation';
-      case 'shopping':
-        return 'Shopping';
-      case 'entertainment':
-        return 'Entertainment';
-      case 'utilities':
-        return 'Utilities';
-      case 'healthcare':
-        return 'Healthcare';
-      case 'salary':
-        return 'Salary';
-      case 'freelance':
-        return 'Freelance';
-      case 'investment':
-        return 'Investment';
-      default:
-        return 'Other';
-    }
   }
 }

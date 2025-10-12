@@ -24,7 +24,7 @@ class GoalDtoAdapter extends TypeAdapter<GoalDto> {
       ..currentAmount = fields[4] as double
       ..deadline = fields[5] as DateTime
       ..priority = fields[6] as String
-      ..category = fields[7] as String
+      ..categoryId = fields[7] as String
       ..createdAt = fields[8] as DateTime
       ..updatedAt = fields[9] as DateTime
       ..tags = (fields[10] as List?)?.cast<String>();
@@ -49,7 +49,7 @@ class GoalDtoAdapter extends TypeAdapter<GoalDto> {
       ..writeByte(6)
       ..write(obj.priority)
       ..writeByte(7)
-      ..write(obj.category)
+      ..write(obj.categoryId)
       ..writeByte(8)
       ..write(obj.createdAt)
       ..writeByte(9)

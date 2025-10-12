@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -472,7 +471,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
 }
 
 /// Bottom sheet for transaction filters
-class TransactionFilterBottomSheet extends StatefulWidget {
+class TransactionFilterBottomSheet extends ConsumerWidget {
   const TransactionFilterBottomSheet({
     super.key,
     this.currentFilter,
@@ -487,10 +486,38 @@ class TransactionFilterBottomSheet extends StatefulWidget {
   final VoidCallback onClearFilter;
 
   @override
-  State<TransactionFilterBottomSheet> createState() => _TransactionFilterBottomSheetState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final categoryIconColorService = ref.watch(categoryIconColorServiceProvider);
+    return _TransactionFilterBottomSheetContent(
+      currentFilter: currentFilter,
+      categories: categories,
+      categoryIconColorService: categoryIconColorService,
+      onApplyFilter: onApplyFilter,
+      onClearFilter: onClearFilter,
+    );
+  }
 }
 
-class _TransactionFilterBottomSheetState extends State<TransactionFilterBottomSheet> {
+class _TransactionFilterBottomSheetContent extends StatefulWidget {
+  const _TransactionFilterBottomSheetContent({
+    required this.currentFilter,
+    required this.categories,
+    required this.categoryIconColorService,
+    required this.onApplyFilter,
+    required this.onClearFilter,
+  });
+
+  final TransactionFilter? currentFilter;
+  final List<TransactionCategory> categories;
+  final dynamic categoryIconColorService;
+  final void Function(TransactionFilter) onApplyFilter;
+  final VoidCallback onClearFilter;
+
+  @override
+  State<_TransactionFilterBottomSheetContent> createState() => _TransactionFilterBottomSheetContentState();
+}
+
+class _TransactionFilterBottomSheetContentState extends State<_TransactionFilterBottomSheetContent> {
   late TransactionType? _selectedType;
   late List<String> _selectedCategoryIds;
   late String? _selectedAccountId;
@@ -786,9 +813,9 @@ class _TransactionFilterBottomSheetState extends State<TransactionFilterBottomSh
                   title: Row(
                     children: [
                       Icon(
-                        _getIconFromString(category.icon),
+                        widget.categoryIconColorService.getIconForCategory(category.id),
                         size: 20,
-                        color: Color(category.color),
+                        color: widget.categoryIconColorService.getColorForCategory(category.id),
                       ),
                       const SizedBox(width: 8),
                       Text(category.name),
@@ -821,28 +848,4 @@ class _TransactionFilterBottomSheetState extends State<TransactionFilterBottomSh
     );
   }
 
-  IconData _getIconFromString(String iconName) {
-    switch (iconName) {
-      case 'restaurant':
-        return Icons.restaurant;
-      case 'directions_car':
-        return Icons.directions_car;
-      case 'shopping_bag':
-        return Icons.shopping_bag;
-      case 'movie':
-        return Icons.movie;
-      case 'bolt':
-        return Icons.bolt;
-      case 'local_hospital':
-        return Icons.local_hospital;
-      case 'work':
-        return Icons.work;
-      case 'computer':
-        return Icons.computer;
-      case 'trending_up':
-        return Icons.trending_up;
-      default:
-        return Icons.category;
-    }
-  }
 }

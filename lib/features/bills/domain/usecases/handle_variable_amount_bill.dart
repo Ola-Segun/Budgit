@@ -26,9 +26,6 @@ class HandleVariableAmountBill {
     }
 
     final bill = billResult.dataOrNull!;
-    if (bill == null) {
-      return Result.error(Failure.notFound('Bill not found'));
-    }
 
     // Validate that this is a variable amount bill
     if (!bill.isVariableAmount) {
@@ -155,9 +152,6 @@ class HandleVariableAmountBill {
     }
 
     final bill = billResult.dataOrNull!;
-    if (bill == null) {
-      return Result.error(Failure.notFound('Bill not found'));
-    }
 
     if (!bill.isVariableAmount) {
       return Result.success(AmountChangeStats(
@@ -305,7 +299,7 @@ class AmountChangeStats {
 
     final direction = isIncreasing ? 'increasing' : 'decreasing';
     final amount = averageChange.abs().toStringAsFixed(2);
-    return 'Average $direction of \$${amount} per payment';
+    return 'Average $direction of \$$amount per payment';
   }
 
   String get volatilityDescription {

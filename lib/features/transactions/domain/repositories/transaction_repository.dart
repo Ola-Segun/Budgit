@@ -73,27 +73,3 @@ abstract class TransactionRepository {
   /// Get calculated balance for a specific account from transactions
   Future<Result<double>> getCalculatedBalance(String accountId);
 }
-
-/// Repository interface for transaction categories
-abstract class TransactionCategoryRepository {
-  /// Get all categories
-  Future<Result<List<TransactionCategory>>> getAll();
-
-  /// Get category by ID
-  Future<Result<TransactionCategory?>> getById(String id);
-
-  /// Get categories by type
-  Future<Result<List<TransactionCategory>>> getByType(TransactionType type);
-
-  /// Add new category
-  Future<Result<TransactionCategory>> add(TransactionCategory category);
-
-  /// Update existing category
-  Future<Result<TransactionCategory>> update(TransactionCategory category);
-
-  /// Delete category by ID
-  Future<Result<void>> delete(String id);
-
-  /// Check if category is in use
-  Future<Result<bool>> isCategoryInUse(String categoryId);
-}

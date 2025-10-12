@@ -18,8 +18,8 @@ abstract class GoalRepository {
   /// Get goals by priority
   Future<Result<List<Goal>>> getByPriority(GoalPriority priority);
 
-  /// Get goals by category
-  Future<Result<List<Goal>>> getByCategory(GoalCategory category);
+  /// Get goals by category ID
+  Future<Result<List<Goal>>> getByCategoryId(String categoryId);
 
   /// Add new goal
   Future<Result<Goal>> add(Goal goal);
@@ -50,4 +50,7 @@ abstract class GoalRepository {
 
   /// Get goal count
   Future<Result<int>> getCount();
+
+  /// Get all goals with category names resolved
+  Future<Result<List<Goal>>> getAllWithCategories();
 }

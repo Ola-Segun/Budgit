@@ -5,9 +5,9 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/notification_manager.dart';
-import '../../../accounts/domain/entities/account.dart';
 import '../../../accounts/presentation/providers/account_providers.dart';
 import '../../domain/entities/transaction.dart';
+import '../providers/transaction_providers.dart';
 
 /// Bottom sheet for adding new transactions
 class AddTransactionBottomSheet extends ConsumerStatefulWidget {
@@ -30,21 +30,10 @@ class _AddTransactionBottomSheetState extends ConsumerState<AddTransactionBottom
 
   TransactionType _selectedType = TransactionType.expense;
   DateTime _selectedDate = DateTime.now();
-  String _selectedCategoryId = 'food'; // Default category
+  String? _selectedCategoryId; // Will be set dynamically based on transaction type
   String? _selectedAccountId; // Will be set from real accounts
 
   bool _isSubmitting = false;
-
-  // Mock categories - in real app, this would come from a provider
-  final List<Map<String, dynamic>> _categories = [
-    {'id': 'food', 'name': 'Food & Dining', 'icon': Icons.restaurant},
-    {'id': 'transportation', 'name': 'Transportation', 'icon': Icons.directions_car},
-    {'id': 'shopping', 'name': 'Shopping', 'icon': Icons.shopping_bag},
-    {'id': 'entertainment', 'name': 'Entertainment', 'icon': Icons.movie},
-    {'id': 'utilities', 'name': 'Utilities', 'icon': Icons.electrical_services},
-    {'id': 'healthcare', 'name': 'Healthcare', 'icon': Icons.local_hospital},
-    {'id': 'other', 'name': 'Other', 'icon': Icons.category},
-  ];
 
   @override
   void dispose() {
@@ -57,12 +46,14 @@ class _AddTransactionBottomSheetState extends ConsumerState<AddTransactionBottom
   @override
   Widget build(BuildContext context) {
     final accountsAsync = ref.watch(filteredAccountsProvider);
+    final categoriesAsync = ref.watch(categoryNotifierProvider);
+    final categoryIconColorService = ref.watch(categoryIconColorServiceProvider);
 
     // Debug logging for responsiveness investigation
     final screenSize = MediaQuery.of(context).size;
     final screenWidth = screenSize.width;
     final screenHeight = screenSize.height;
-    debugPrint('AddTransactionBottomSheet: Screen size: ${screenWidth}x${screenHeight}');
+    debugPrint('AddTransactionBottomSheet: Screen size: ${screenWidth}x$screenHeight');
 
     final buttonChild = _isSubmitting
         ? SizedBox(
@@ -124,6 +115,8 @@ class _AddTransactionBottomSheetState extends ConsumerState<AddTransactionBottom
                 onSelectionChanged: (selected) {
                   setState(() {
                     _selectedType = selected.first;
+                    // Reset category when type changes so it gets the new default
+                    _selectedCategoryId = null;
                   });
                 },
               ),
@@ -161,36 +154,61 @@ class _AddTransactionBottomSheetState extends ConsumerState<AddTransactionBottom
               constraints: BoxConstraints(
                 maxWidth: constraints.maxWidth - (AppTheme.screenPaddingAll.horizontal * 2),
               ),
-              child: DropdownButtonFormField<String>(
-                initialValue: _selectedCategoryId,
-                decoration: const InputDecoration(
-                  labelText: 'Category',
-                ),
-                items: _categories.map((category) {
-                  return DropdownMenuItem(
-                    value: category['id'] as String,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(category['icon'] as IconData, size: 20),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            category['name'] as String,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _selectedCategoryId = value;
+              child: categoriesAsync.when(
+                data: (categoryState) {
+                  final categories = categoryState.categories;
+                  // Set default category if not set and categories exist
+                  if (_selectedCategoryId == null && categories.isNotEmpty) {
+                    final defaultCategoryId = _getSmartDefaultCategoryId(categories, _selectedType);
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        setState(() {
+                          _selectedCategoryId = defaultCategoryId;
+                        });
+                      }
                     });
                   }
+
+                  return DropdownButtonFormField<String>(
+                    initialValue: _selectedCategoryId,
+                    decoration: const InputDecoration(
+                      labelText: 'Category',
+                    ),
+                    items: categories.map((category) {
+                      return DropdownMenuItem(
+                        value: category.id,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(categoryIconColorService.getIconForCategory(category.id), size: 20, color: categoryIconColorService.getColorForCategory(category.id)),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                category.name,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          _selectedCategoryId = value;
+                        });
+                      }
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please select a category';
+                      }
+                      return null;
+                    },
+                  );
                 },
+                loading: () => const CircularProgressIndicator(),
+                error: (error, stack) => Text('Error loading categories: $error'),
               ),
             ),
             const SizedBox(height: 16),
@@ -214,7 +232,7 @@ class _AddTransactionBottomSheetState extends ConsumerState<AddTransactionBottom
                   }
 
                   return DropdownButtonFormField<String>(
-                    value: _selectedAccountId,
+                    initialValue: _selectedAccountId,
                     decoration: const InputDecoration(
                       labelText: 'Account',
                     ),
@@ -339,6 +357,32 @@ class _AddTransactionBottomSheetState extends ConsumerState<AddTransactionBottom
     );
   }
 
+  /// Get smart default category ID based on transaction type
+  String _getSmartDefaultCategoryId(List<TransactionCategory> categories, TransactionType type) {
+    final typeCategories = categories.where((cat) => cat.type == type).toList();
+
+    if (typeCategories.isEmpty) {
+      // Fallback to default categories if no user categories exist
+      final defaultCategories = TransactionCategory.defaultCategories.where((cat) => cat.type == type).toList();
+      return defaultCategories.isNotEmpty ? defaultCategories.first.id : 'other';
+    }
+
+    // Prefer commonly used categories
+    final preferredIds = type == TransactionType.expense ? ['food', 'transport', 'shopping'] : ['salary', 'freelance'];
+    for (final preferredId in preferredIds) {
+      final preferredCategory = typeCategories.firstWhere(
+        (cat) => cat.id == preferredId,
+        orElse: () => typeCategories.first,
+      );
+      if (preferredCategory.id != typeCategories.first.id || preferredIds.contains(preferredCategory.id)) {
+        return preferredCategory.id;
+      }
+    }
+
+    // Return first category of the type
+    return typeCategories.first.id;
+  }
+
   Future<void> _scanReceipt() async {
     // Show receipt scanning dialog
     await showDialog(
@@ -370,6 +414,7 @@ class _AddTransactionBottomSheetState extends ConsumerState<AddTransactionBottom
     );
   }
 
+
   Future<void> _submitTransaction() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -379,6 +424,14 @@ class _AddTransactionBottomSheetState extends ConsumerState<AddTransactionBottom
     if (_selectedAccountId == null || _selectedAccountId!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select an account')),
+      );
+      return;
+    }
+
+    // Additional validation for category selection
+    if (_selectedCategoryId == null || _selectedCategoryId!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a category')),
       );
       return;
     }
@@ -403,7 +456,7 @@ class _AddTransactionBottomSheetState extends ConsumerState<AddTransactionBottom
         amount: amount,
         type: _selectedType,
         date: _selectedDate,
-        categoryId: _selectedCategoryId,
+        categoryId: _selectedCategoryId!,
         accountId: _selectedAccountId,
         description: _noteController.text.isNotEmpty
             ? _noteController.text

@@ -1,4 +1,5 @@
 import '../../../../core/error/result.dart';
+import '../../../dashboard/domain/entities/dashboard_data.dart';
 import '../entities/budget.dart';
 
 /// Repository interface for budget operations
@@ -32,4 +33,7 @@ abstract class BudgetRepository {
 
   /// Duplicate budget with new date range
   Future<Result<Budget>> duplicate(String budgetId, DateTime newStartDate, DateTime newEndDate);
+
+  /// Get budget category overviews with resolved category names
+  Future<Result<List<BudgetCategoryOverview>>> getBudgetCategoryOverviews(String budgetId, {int limit = 5});
 }

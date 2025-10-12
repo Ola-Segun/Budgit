@@ -374,7 +374,7 @@ abstract class _GoalState extends GoalState {
 /// @nodoc
 mixin _$GoalFilter {
   GoalPriority? get priority => throw _privateConstructorUsedError;
-  GoalCategory? get category => throw _privateConstructorUsedError;
+  String? get category => throw _privateConstructorUsedError;
   bool? get showCompleted => throw _privateConstructorUsedError;
   DateTime? get deadlineStart => throw _privateConstructorUsedError;
   DateTime? get deadlineEnd => throw _privateConstructorUsedError;
@@ -392,7 +392,7 @@ abstract class $GoalFilterCopyWith<$Res> {
   @useResult
   $Res call(
       {GoalPriority? priority,
-      GoalCategory? category,
+      String? category,
       bool? showCompleted,
       DateTime? deadlineStart,
       DateTime? deadlineEnd});
@@ -425,7 +425,7 @@ class _$GoalFilterCopyWithImpl<$Res, $Val extends GoalFilter>
       category: freezed == category
           ? _value.category
           : category // ignore: cast_nullable_to_non_nullable
-              as GoalCategory?,
+              as String?,
       showCompleted: freezed == showCompleted
           ? _value.showCompleted
           : showCompleted // ignore: cast_nullable_to_non_nullable
@@ -452,7 +452,7 @@ abstract class _$$GoalFilterImplCopyWith<$Res>
   @useResult
   $Res call(
       {GoalPriority? priority,
-      GoalCategory? category,
+      String? category,
       bool? showCompleted,
       DateTime? deadlineStart,
       DateTime? deadlineEnd});
@@ -483,7 +483,7 @@ class __$$GoalFilterImplCopyWithImpl<$Res>
       category: freezed == category
           ? _value.category
           : category // ignore: cast_nullable_to_non_nullable
-              as GoalCategory?,
+              as String?,
       showCompleted: freezed == showCompleted
           ? _value.showCompleted
           : showCompleted // ignore: cast_nullable_to_non_nullable
@@ -514,7 +514,7 @@ class _$GoalFilterImpl extends _GoalFilter {
   @override
   final GoalPriority? priority;
   @override
-  final GoalCategory? category;
+  final String? category;
   @override
   final bool? showCompleted;
   @override
@@ -558,7 +558,7 @@ class _$GoalFilterImpl extends _GoalFilter {
 abstract class _GoalFilter extends GoalFilter {
   const factory _GoalFilter(
       {final GoalPriority? priority,
-      final GoalCategory? category,
+      final String? category,
       final bool? showCompleted,
       final DateTime? deadlineStart,
       final DateTime? deadlineEnd}) = _$GoalFilterImpl;
@@ -567,7 +567,7 @@ abstract class _GoalFilter extends GoalFilter {
   @override
   GoalPriority? get priority;
   @override
-  GoalCategory? get category;
+  String? get category;
   @override
   bool? get showCompleted;
   @override

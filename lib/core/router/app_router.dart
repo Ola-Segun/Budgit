@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/transactions/presentation/screens/transaction_list_screen.dart';
 import '../../features/transactions/presentation/screens/transaction_detail_screen.dart';
+import '../../features/transactions/presentation/screens/category_management_screen.dart';
 import '../../features/transactions/presentation/widgets/add_transaction_bottom_sheet.dart';
 import '../../features/transactions/presentation/providers/transaction_providers.dart';
 import '../../features/budgets/presentation/screens/budget_list_screen.dart';
@@ -161,6 +162,10 @@ class AppRouter {
               GoRoute(
                 path: 'debt',
                 builder: (context, state) => const _DebtScreen(),
+              ),
+              GoRoute(
+                path: 'categories',
+                builder: (context, state) => const _CategoriesScreen(),
               ),
               GoRoute(
                 path: 'insights',
@@ -374,6 +379,15 @@ class _DebtScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return const DebtDashboardScreen();
+  }
+}
+
+class _CategoriesScreen extends ConsumerWidget {
+  const _CategoriesScreen();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return const CategoryManagementScreen();
   }
 }
 

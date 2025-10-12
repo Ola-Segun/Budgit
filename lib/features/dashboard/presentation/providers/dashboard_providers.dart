@@ -19,6 +19,7 @@ final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
     ref.watch(core_providers.billRepositoryProvider),
     ref.watch(core_providers.accountRepositoryProvider),
     ref.watch(core_providers.insightRepositoryProvider),
+    ref.watch(core_providers.transactionCategoryRepositoryProvider),
     ref.watch(core_providers.calculateBudgetStatusProvider),
   );
 });

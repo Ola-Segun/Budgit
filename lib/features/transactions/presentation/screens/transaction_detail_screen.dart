@@ -146,10 +146,12 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
 
   Widget _buildEditView(Transaction transaction) {
     final categories = ref.read(transactionCategoriesProvider);
+    final categoryIconColorService = ref.read(categoryIconColorServiceProvider);
 
     return EditTransactionForm(
       transaction: transaction,
       categories: categories,
+      categoryIconColorService: categoryIconColorService,
       onSave: (updatedTransaction) async {
         final success = await ref
             .read(transactionNotifierProvider.notifier)
@@ -245,12 +247,14 @@ class EditTransactionForm extends StatefulWidget {
     super.key,
     required this.transaction,
     required this.categories,
+    required this.categoryIconColorService,
     required this.onSave,
     required this.onCancel,
   });
 
   final Transaction transaction;
   final List<TransactionCategory> categories;
+  final dynamic categoryIconColorService;
   final void Function(Transaction) onSave;
   final VoidCallback onCancel;
 
@@ -373,9 +377,9 @@ class _EditTransactionFormState extends State<EditTransactionForm> {
                   child: Row(
                     children: [
                       Icon(
-                        _getIconFromString(category.icon),
+                        widget.categoryIconColorService.getIconForCategory(category.id),
                         size: 20,
-                        color: Color(category.color),
+                        color: widget.categoryIconColorService.getColorForCategory(category.id),
                       ),
                       const SizedBox(width: 8),
                       Text(category.name),
@@ -481,28 +485,4 @@ class _EditTransactionFormState extends State<EditTransactionForm> {
     widget.onSave(updatedTransaction);
   }
 
-  IconData _getIconFromString(String iconName) {
-    switch (iconName) {
-      case 'restaurant':
-        return Icons.restaurant;
-      case 'directions_car':
-        return Icons.directions_car;
-      case 'shopping_bag':
-        return Icons.shopping_bag;
-      case 'movie':
-        return Icons.movie;
-      case 'bolt':
-        return Icons.bolt;
-      case 'local_hospital':
-        return Icons.local_hospital;
-      case 'work':
-        return Icons.work;
-      case 'computer':
-        return Icons.computer;
-      case 'trending_up':
-        return Icons.trending_up;
-      default:
-        return Icons.category;
-    }
-  }
 }

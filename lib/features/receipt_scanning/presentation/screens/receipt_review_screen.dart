@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/widgets/error_view.dart';
+import '../../../../core/widgets/loading_view.dart';
 import '../../../../features/transactions/domain/entities/transaction.dart';
 import '../../../../features/transactions/presentation/providers/transaction_providers.dart';
 import '../../domain/entities/receipt_data.dart';
@@ -30,7 +32,7 @@ class _ReceiptReviewScreenState extends ConsumerState<ReceiptReviewScreen> {
   late TextEditingController _dateController;
   late TextEditingController _categoryController;
 
-  String _selectedCategory = 'food'; // Default category
+  String? _selectedCategory; // Will be set when categories are loaded
 
   @override
   void initState() {
@@ -41,7 +43,6 @@ class _ReceiptReviewScreenState extends ConsumerState<ReceiptReviewScreen> {
       text: DateFormat('yyyy-MM-dd').format(widget.receiptData.date),
     );
     _categoryController = TextEditingController(text: widget.receiptData.suggestedCategory ?? 'food');
-    _selectedCategory = widget.receiptData.suggestedCategory ?? 'food';
   }
 
   @override
@@ -55,6 +56,8 @@ class _ReceiptReviewScreenState extends ConsumerState<ReceiptReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final categoryState = ref.watch(categoryNotifierProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Review Receipt'),
@@ -129,19 +132,40 @@ class _ReceiptReviewScreenState extends ConsumerState<ReceiptReviewScreen> {
             const SizedBox(height: AppSpacing.md),
 
             // Category field
-            DropdownButtonFormField<String>(
-              initialValue: _selectedCategory,
-              decoration: const InputDecoration(
-                labelText: 'Category',
-              ),
-              items: _getCategoryItems(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _selectedCategory = value;
-                  });
+            categoryState.when(
+              data: (state) {
+                final expenseCategories = state.getCategoriesByType(TransactionType.expense);
+
+                // Set default category if not set
+                if (_selectedCategory == null && expenseCategories.isNotEmpty) {
+                  _selectedCategory = _getSmartDefaultCategoryId(expenseCategories, widget.receiptData.suggestedCategory);
                 }
+
+                return DropdownButtonFormField<String>(
+                  initialValue: _selectedCategory,
+                  decoration: const InputDecoration(
+                    labelText: 'Category',
+                  ),
+                  items: expenseCategories.map((category) {
+                    return DropdownMenuItem<String>(
+                      value: category.id,
+                      child: Text(category.name),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _selectedCategory = value;
+                      });
+                    }
+                  },
+                );
               },
+              loading: () => const LoadingView(),
+              error: (error, stack) => ErrorView(
+                message: 'Failed to load categories',
+                onRetry: () => ref.read(categoryNotifierProvider.notifier).loadCategories(),
+              ),
             ),
 
             const SizedBox(height: AppSpacing.lg),
@@ -172,17 +196,6 @@ class _ReceiptReviewScreenState extends ConsumerState<ReceiptReviewScreen> {
     );
   }
 
-  List<DropdownMenuItem<String>> _getCategoryItems() {
-    // TODO: Get categories from repository
-    return [
-      const DropdownMenuItem(value: 'food', child: Text('Food & Dining')),
-      const DropdownMenuItem(value: 'transportation', child: Text('Transportation')),
-      const DropdownMenuItem(value: 'shopping', child: Text('Shopping')),
-      const DropdownMenuItem(value: 'healthcare', child: Text('Healthcare')),
-      const DropdownMenuItem(value: 'entertainment', child: Text('Entertainment')),
-      const DropdownMenuItem(value: 'other', child: Text('Other')),
-    ];
-  }
 
   Widget _buildItemTile(ReceiptItem item) {
     return Card(
@@ -206,6 +219,41 @@ class _ReceiptReviewScreenState extends ConsumerState<ReceiptReviewScreen> {
         ),
       ),
     );
+  }
+
+  /// Get smart default category ID for expense transactions
+  String _getSmartDefaultCategoryId(List<TransactionCategory> expenseCategories, String? suggestedCategory) {
+    if (expenseCategories.isEmpty) {
+      // Fallback to default categories if no user categories exist
+      final defaultCategories = TransactionCategory.defaultCategories.where((cat) => cat.type == TransactionType.expense).toList();
+      return defaultCategories.isNotEmpty ? defaultCategories.first.id : 'other';
+    }
+
+    // First try the suggested category
+    if (suggestedCategory != null) {
+      final suggestedCat = expenseCategories.firstWhere(
+        (cat) => cat.id == suggestedCategory,
+        orElse: () => expenseCategories.first,
+      );
+      if (suggestedCat.id == suggestedCategory) {
+        return suggestedCategory;
+      }
+    }
+
+    // Prefer commonly used expense categories
+    final preferredIds = ['food', 'transport', 'shopping'];
+    for (final preferredId in preferredIds) {
+      final preferredCategory = expenseCategories.firstWhere(
+        (cat) => cat.id == preferredId,
+        orElse: () => expenseCategories.first,
+      );
+      if (preferredCategory.id == preferredId) {
+        return preferredId;
+      }
+    }
+
+    // Return first expense category
+    return expenseCategories.first.id;
   }
 
   Future<void> _selectDate() async {
@@ -233,6 +281,13 @@ class _ReceiptReviewScreenState extends ConsumerState<ReceiptReviewScreen> {
         return;
       }
 
+      if (_selectedCategory == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select a category')),
+        );
+        return;
+      }
+
       final date = DateFormat('yyyy-MM-dd').parse(_dateController.text);
 
       final transaction = Transaction(
@@ -241,7 +296,7 @@ class _ReceiptReviewScreenState extends ConsumerState<ReceiptReviewScreen> {
         amount: amount,
         date: date,
         type: TransactionType.expense,
-        categoryId: _selectedCategory,
+        categoryId: _selectedCategory!,
         accountId: 'checking', // Default account
       );
 

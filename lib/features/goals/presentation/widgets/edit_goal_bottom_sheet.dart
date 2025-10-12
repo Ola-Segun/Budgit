@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../transactions/domain/services/category_icon_color_service.dart';
+import '../../../transactions/presentation/providers/transaction_providers.dart';
 import '../../domain/entities/goal.dart';
 
 /// Bottom sheet for editing an existing goal
@@ -28,7 +30,7 @@ class _EditGoalBottomSheetState extends ConsumerState<EditGoalBottomSheet> {
   late final TextEditingController _currentAmountController;
 
   late GoalPriority _selectedPriority;
-  late GoalCategory _selectedCategory;
+  late String _selectedCategoryId;
   late DateTime _selectedDeadline;
 
   bool _isSubmitting = false;
@@ -42,7 +44,7 @@ class _EditGoalBottomSheetState extends ConsumerState<EditGoalBottomSheet> {
     _currentAmountController = TextEditingController(text: widget.goal.currentAmount.toString());
 
     _selectedPriority = widget.goal.priority;
-    _selectedCategory = widget.goal.category;
+    _selectedCategoryId = widget.goal.categoryId;
     _selectedDeadline = widget.goal.deadline;
   }
 
@@ -173,36 +175,57 @@ class _EditGoalBottomSheetState extends ConsumerState<EditGoalBottomSheet> {
                     const SizedBox(height: 16),
 
                     // Category
-                    DropdownButtonFormField<GoalCategory>(
-                      value: _selectedCategory,
-                      decoration: const InputDecoration(
-                        labelText: 'Category',
-                      ),
-                      items: GoalCategory.values.map((category) {
-                        return DropdownMenuItem(
-                          value: category,
-                          child: Row(
-                            children: [
-                              Icon(_getIconFromCategory(category), size: 20),
-                              const SizedBox(width: 8),
-                              Text(category.displayName),
-                            ],
-                          ),
+                    Consumer(
+                      builder: (context, ref, child) {
+                        final categoryStateAsync = ref.watch(categoryNotifierProvider);
+                        final categoryService = CategoryIconColorService(ref.read(categoryNotifierProvider.notifier));
+
+                        return categoryStateAsync.when(
+                          data: (categoryState) {
+                            final categories = categoryState.expenseCategories;
+                            return DropdownButtonFormField<String>(
+                              initialValue: _selectedCategoryId,
+                              decoration: const InputDecoration(
+                                labelText: 'Category',
+                              ),
+                              items: categories.map((category) {
+                                final iconAndColor = categoryService.getIconAndColorForCategory(category.id);
+                                return DropdownMenuItem(
+                                  value: category.id,
+                                  child: Row(
+                                    children: [
+                                      Icon(iconAndColor.icon, size: 20, color: iconAndColor.color),
+                                      const SizedBox(width: 8),
+                                      Text(category.name),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                if (value != null) {
+                                  setState(() {
+                                    _selectedCategoryId = value;
+                                  });
+                                }
+                              },
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please select a category';
+                                }
+                                return null;
+                              },
+                            );
+                          },
+                          loading: () => const CircularProgressIndicator(),
+                          error: (error, stack) => Text('Error loading categories: $error'),
                         );
-                      }).toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() {
-                            _selectedCategory = value;
-                          });
-                        }
                       },
                     ),
                     const SizedBox(height: 16),
 
                     // Priority
                     DropdownButtonFormField<GoalPriority>(
-                      value: _selectedPriority,
+                      initialValue: _selectedPriority,
                       decoration: const InputDecoration(
                         labelText: 'Priority',
                       ),
@@ -307,7 +330,7 @@ class _EditGoalBottomSheetState extends ConsumerState<EditGoalBottomSheet> {
         currentAmount: currentAmount,
         deadline: _selectedDeadline,
         priority: _selectedPriority,
-        category: _selectedCategory,
+        categoryId: _selectedCategoryId,
         updatedAt: DateTime.now(),
       );
 
@@ -328,28 +351,4 @@ class _EditGoalBottomSheetState extends ConsumerState<EditGoalBottomSheet> {
     }
   }
 
-  IconData _getIconFromCategory(GoalCategory category) {
-    switch (category) {
-      case GoalCategory.emergencyFund:
-        return Icons.security;
-      case GoalCategory.vacation:
-        return Icons.beach_access;
-      case GoalCategory.homeDownPayment:
-        return Icons.home;
-      case GoalCategory.debtPayoff:
-        return Icons.credit_card_off;
-      case GoalCategory.carPurchase:
-        return Icons.directions_car;
-      case GoalCategory.education:
-        return Icons.school;
-      case GoalCategory.retirement:
-        return Icons.account_balance;
-      case GoalCategory.investment:
-        return Icons.trending_up;
-      case GoalCategory.wedding:
-        return Icons.favorite;
-      case GoalCategory.custom:
-        return Icons.star;
-    }
-  }
 }
