@@ -134,19 +134,19 @@ class _BudgetListScreenState extends ConsumerState<BudgetListScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Active Budgets Section
-          if (activeBudgets.isNotEmpty) ...[
-            _buildSectionHeader('Active Budgets', activeBudgets.length),
-            const SizedBox(height: 8),
-            ...activeBudgets.map((budget) => BudgetCard(
-              budget: budget,
-              status: state.budgetStatuses
-                  .where((s) => s.budget.id == budget.id)
-                  .firstOrNull,
-              onTap: () => _onBudgetTap(budget),
-            )),
-            const SizedBox(height: 24),
-          ],
+          // // Active Budgets Section
+          // if (activeBudgets.isNotEmpty) ...[
+          //   _buildSectionHeader('Active Budgets', activeBudgets.length),
+          //   const SizedBox(height: 8),
+          //   ...activeBudgets.map((budget) => BudgetCard(
+          //     budget: budget,
+          //     status: state.budgetStatuses
+          //         .where((s) => s.budget.id == budget.id)
+          //         .firstOrNull,
+          //     onTap: () => _onBudgetTap(budget),
+          //   )),
+          //   const SizedBox(height: 24),
+          // ],
 
           // All Budgets Section
           if (filteredBudgets.isNotEmpty) ...[

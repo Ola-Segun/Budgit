@@ -4,27 +4,38 @@ import 'package:mockito/mockito.dart';
 
 import 'package:budget_tracker/core/error/failures.dart';
 import 'package:budget_tracker/core/error/result.dart';
+import 'package:budget_tracker/features/accounts/domain/entities/account.dart';
+import 'package:budget_tracker/features/accounts/domain/repositories/account_repository.dart';
 import 'package:budget_tracker/features/transactions/domain/entities/transaction.dart';
 import 'package:budget_tracker/features/transactions/domain/repositories/transaction_repository.dart';
 import 'package:budget_tracker/features/transactions/domain/usecases/update_transaction.dart';
 
 import '../../../../test_setup.dart';
 
-@GenerateMocks([TransactionRepository])
+@GenerateMocks([TransactionRepository, AccountRepository])
 import 'update_transaction_test.mocks.dart';
 
 void main() {
    late UpdateTransaction useCase;
-   late MockTransactionRepository mockRepository;
+   late MockTransactionRepository mockTransactionRepository;
+   late MockAccountRepository mockAccountRepository;
 
    setUpAll(() {
      setupMockitoDummies();
    });
 
    setUp(() {
-     mockRepository = MockTransactionRepository();
-     useCase = UpdateTransaction(mockRepository);
+     mockTransactionRepository = MockTransactionRepository();
+     mockAccountRepository = MockAccountRepository();
+     useCase = UpdateTransaction(mockTransactionRepository, mockAccountRepository);
    });
+
+   final testAccount = Account(
+     id: 'account1',
+     name: 'Test Account',
+     type: AccountType.bankAccount,
+     cachedBalance: 1000.0,
+   );
 
   group('UpdateTransaction Use Case', () {
     final testTransaction = Transaction(
@@ -44,10 +55,14 @@ void main() {
 
     test('should update transaction successfully', () async {
       // Arrange
-      when(mockRepository.getById(testTransaction.id))
+      when(mockTransactionRepository.getById(testTransaction.id))
           .thenAnswer((_) async => Result.success(testTransaction));
-      when(mockRepository.update(updatedTransaction))
+      when(mockTransactionRepository.update(updatedTransaction))
           .thenAnswer((_) async => Result.success(updatedTransaction));
+      when(mockAccountRepository.getById(testAccount.id))
+          .thenAnswer((_) async => Result.success(testAccount));
+      when(mockAccountRepository.update(any))
+          .thenAnswer((_) async => Result.success(testAccount));
 
       // Act
       final result = await useCase(updatedTransaction);
@@ -61,14 +76,16 @@ void main() {
         },
         error: (_) => fail('Should not error'),
       );
-      verify(mockRepository.getById(testTransaction.id)).called(1);
-      verify(mockRepository.update(updatedTransaction)).called(1);
+      verify(mockTransactionRepository.getById(testTransaction.id)).called(1);
+      verify(mockTransactionRepository.update(updatedTransaction)).called(1);
+      verify(mockAccountRepository.getById(testAccount.id)).called(1);
+      verify(mockAccountRepository.update(any)).called(1);
     });
 
     test('should return validation error for empty title', () async {
       // Arrange
       final invalidTransaction = updatedTransaction.copyWith(title: '');
-      when(mockRepository.getById(testTransaction.id))
+      when(mockTransactionRepository.getById(testTransaction.id))
           .thenAnswer((_) async => Result.success(testTransaction));
 
       // Act
@@ -83,14 +100,14 @@ void main() {
           expect(failure.message, contains('title'));
         },
       );
-      verify(mockRepository.getById(testTransaction.id)).called(1);
-      verifyNever(mockRepository.update(any as Transaction));
+      verify(mockTransactionRepository.getById(testTransaction.id)).called(1);
+      verifyNever(mockTransactionRepository.update(any as Transaction));
     });
 
     test('should return validation error for zero amount', () async {
       // Arrange
       final invalidTransaction = updatedTransaction.copyWith(amount: 0);
-      when(mockRepository.getById(testTransaction.id))
+      when(mockTransactionRepository.getById(testTransaction.id))
           .thenAnswer((_) async => Result.success(testTransaction));
 
       // Act
@@ -105,13 +122,13 @@ void main() {
           expect(failure.message, contains('amount'));
         },
       );
-      verifyNever(mockRepository.update(any as Transaction));
+      verifyNever(mockTransactionRepository.update(any as Transaction));
     });
 
     test('should return validation error for negative amount', () async {
       // Arrange
       final invalidTransaction = updatedTransaction.copyWith(amount: -50);
-      when(mockRepository.getById(testTransaction.id))
+      when(mockTransactionRepository.getById(testTransaction.id))
           .thenAnswer((_) async => Result.success(testTransaction));
 
       // Act
@@ -126,13 +143,13 @@ void main() {
           expect(failure.message, contains('amount'));
         },
       );
-      verifyNever(mockRepository.update(any));
+      verifyNever(mockTransactionRepository.update(any));
     });
 
     test('should return validation error for empty category', () async {
       // Arrange
       final invalidTransaction = updatedTransaction.copyWith(categoryId: '');
-      when(mockRepository.getById(testTransaction.id))
+      when(mockTransactionRepository.getById(testTransaction.id))
           .thenAnswer((_) async => Result.success(testTransaction));
 
       // Act
@@ -147,14 +164,14 @@ void main() {
           expect(failure.message, contains('category'));
         },
       );
-      verifyNever(mockRepository.update(any));
+      verifyNever(mockTransactionRepository.update(any));
     });
 
     test('should return validation error for future date', () async {
       // Arrange
       final futureDate = DateTime.now().add(const Duration(days: 2));
       final invalidTransaction = updatedTransaction.copyWith(date: futureDate);
-      when(mockRepository.getById(testTransaction.id))
+      when(mockTransactionRepository.getById(testTransaction.id))
           .thenAnswer((_) async => Result.success(testTransaction));
 
       // Act
@@ -169,12 +186,12 @@ void main() {
           expect(failure.message, contains('future'));
         },
       );
-      verifyNever(mockRepository.update(any));
+      verifyNever(mockTransactionRepository.update(any));
     });
 
     test('should return error when transaction does not exist', () async {
       // Arrange
-      when(mockRepository.getById(testTransaction.id))
+      when(mockTransactionRepository.getById(testTransaction.id))
           .thenAnswer((_) async => Result.error(Failure.notFound('Transaction not found')));
 
       // Act
@@ -188,13 +205,13 @@ void main() {
           expect(failure, isA<NotFoundFailure>());
         },
       );
-      verify(mockRepository.getById(testTransaction.id)).called(1);
-      verifyNever(mockRepository.update(any as Transaction));
+      verify(mockTransactionRepository.getById(testTransaction.id)).called(1);
+      verifyNever(mockTransactionRepository.update(any as Transaction));
     });
 
     test('should return validation error when getById fails', () async {
       // Arrange
-      when(mockRepository.getById(testTransaction.id))
+      when(mockTransactionRepository.getById(testTransaction.id))
           .thenAnswer((_) async => Result.error(Failure.validation('Invalid ID', {'id': 'Invalid ID'})));
 
       // Act
@@ -208,14 +225,14 @@ void main() {
           expect(failure, isA<ValidationFailure>());
         },
       );
-      verifyNever(mockRepository.update(any as Transaction));
+      verifyNever(mockTransactionRepository.update(any as Transaction));
     });
 
     test('should handle repository update failure', () async {
       // Arrange
-      when(mockRepository.getById(testTransaction.id))
+      when(mockTransactionRepository.getById(testTransaction.id))
           .thenAnswer((_) async => Result.success(testTransaction));
-      when(mockRepository.update(updatedTransaction))
+      when(mockTransactionRepository.update(updatedTransaction))
           .thenAnswer((_) async => Result.error(Failure.cache('Database error')));
 
       // Act
@@ -233,7 +250,7 @@ void main() {
 
     test('should handle unknown errors', () async {
       // Arrange
-      when(mockRepository.getById(testTransaction.id))
+      when(mockTransactionRepository.getById(testTransaction.id))
           .thenAnswer((_) async => Result.error(Failure.unknown('Unexpected error')));
 
       // Act
@@ -256,9 +273,9 @@ void main() {
         amount: 1000.0,
         categoryId: 'salary',
       );
-      when(mockRepository.getById(testTransaction.id))
+      when(mockTransactionRepository.getById(testTransaction.id))
           .thenAnswer((_) async => Result.success(testTransaction));
-      when(mockRepository.update(incomeTransaction))
+      when(mockTransactionRepository.update(incomeTransaction))
           .thenAnswer((_) async => Result.success(incomeTransaction));
 
       // Act
@@ -266,7 +283,7 @@ void main() {
 
       // Assert
       expect(result, isA<Success<Transaction>>());
-      verify(mockRepository.update(incomeTransaction)).called(1);
+      verify(mockTransactionRepository.update(incomeTransaction)).called(1);
     });
 
     test('should accept transaction with description and tags', () async {
@@ -275,9 +292,9 @@ void main() {
         description: 'Updated lunch',
         tags: ['business', 'updated'],
       );
-      when(mockRepository.getById(testTransaction.id))
+      when(mockTransactionRepository.getById(testTransaction.id))
           .thenAnswer((_) async => Result.success(testTransaction));
-      when(mockRepository.update(detailedTransaction))
+      when(mockTransactionRepository.update(detailedTransaction))
           .thenAnswer((_) async => Result.success(detailedTransaction));
 
       // Act
@@ -285,7 +302,7 @@ void main() {
 
       // Assert
       expect(result, isA<Success<Transaction>>());
-      verify(mockRepository.update(detailedTransaction)).called(1);
+      verify(mockTransactionRepository.update(detailedTransaction)).called(1);
     });
   });
 }

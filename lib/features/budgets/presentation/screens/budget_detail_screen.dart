@@ -30,6 +30,8 @@ class _BudgetDetailScreenState extends ConsumerState<BudgetDetailScreen> {
   Widget build(BuildContext context) {
     final budgetAsync = ref.watch(budgetProvider(widget.budgetId));
     final budgetStatusAsync = ref.watch(budgetStatusProvider(widget.budgetId));
+    // Watch category changes to refresh display when category names/icons/colors change
+    ref.watch(categoryNotifierProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -131,6 +133,9 @@ class _BudgetDetailScreenState extends ConsumerState<BudgetDetailScreen> {
     Budget budget,
     AsyncValue<BudgetStatus?> budgetStatusAsync,
   ) {
+    final categoryIconColorService = ref.watch(categoryIconColorServiceProvider);
+    final categoryNotifier = ref.watch(categoryNotifierProvider.notifier);
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -158,7 +163,7 @@ class _BudgetDetailScreenState extends ConsumerState<BudgetDetailScreen> {
 
                 return Column(
                   children: status.categoryStatuses.map((categoryStatus) {
-                    final category = budget.categories.firstWhere(
+                    final budgetCategory = budget.categories.firstWhere(
                       (cat) => cat.id == categoryStatus.categoryId,
                       orElse: () => BudgetCategory(
                         id: categoryStatus.categoryId,
@@ -167,7 +172,24 @@ class _BudgetDetailScreenState extends ConsumerState<BudgetDetailScreen> {
                       ),
                     );
 
-                    return _buildCategoryProgressItem(context, category, categoryStatus);
+                    // Get updated category information from the notifier
+                    final transactionCategory = categoryNotifier.getCategoryById(categoryStatus.categoryId);
+                    final displayName = transactionCategory?.name ?? budgetCategory.name;
+                    final displayIcon = transactionCategory != null
+                        ? categoryIconColorService.getIconForCategory(transactionCategory.id)
+                        : Icons.category;
+                    final displayColor = transactionCategory != null
+                        ? categoryIconColorService.getColorForCategory(transactionCategory.id)
+                        : Theme.of(context).colorScheme.primary;
+
+                    return _buildCategoryProgressItem(
+                      context,
+                      budgetCategory,
+                      categoryStatus,
+                      displayName: displayName,
+                      displayIcon: displayIcon,
+                      displayColor: displayColor,
+                    );
                   }).toList(),
                 );
               },
@@ -185,10 +207,16 @@ class _BudgetDetailScreenState extends ConsumerState<BudgetDetailScreen> {
   Widget _buildCategoryProgressItem(
     BuildContext context,
     BudgetCategory category,
-    CategoryStatus status,
-  ) {
+    CategoryStatus status, {
+    String? displayName,
+    IconData? displayIcon,
+    Color? displayColor,
+  }) {
     final progress = status.spent / status.budget;
     final health = status.status;
+    final name = displayName ?? category.name;
+    final icon = displayIcon ?? Icons.category;
+    final color = displayColor ?? _getHealthColor(health);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -197,9 +225,15 @@ class _BudgetDetailScreenState extends ConsumerState<BudgetDetailScreen> {
         children: [
           Row(
             children: [
+              Icon(
+                icon,
+                size: 20,
+                color: color,
+              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  category.name,
+                  name,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -288,6 +322,9 @@ class _BudgetDetailScreenState extends ConsumerState<BudgetDetailScreen> {
 
             // Status
             _buildInfoRow('Status', budget.isActive ? 'Active' : 'Inactive'),
+
+            // Rollover
+            _buildInfoRow('Rollover', budget.allowRollover ? 'Enabled' : 'Disabled'),
 
             // Description
             if (budget.description != null && budget.description!.isNotEmpty) ...[
@@ -542,6 +579,8 @@ class _BudgetDetailScreenState extends ConsumerState<BudgetDetailScreen> {
     // Get transactions filtered by budget categories and date range
     final categoryIds = budget.categories.map((c) => c.id).toSet();
     final transactionStateAsync = ref.watch(transactionNotifierProvider);
+    // Watch category changes to refresh transaction filtering when categories change
+    ref.watch(categoryNotifierProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

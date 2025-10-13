@@ -246,21 +246,29 @@ class _BillsDashboardScreenState extends ConsumerState<BillsDashboardScreen> {
                   runSpacing: 8,
                   children: [
                     // All bills filter
-                    FilterChip(
-                      label: const Text('All Bills'),
-                      selected: _selectedAccountFilterId == null && !_showLinkedOnly,
-                      onSelected: (selected) {
-                        if (selected) {
-                          setState(() {
-                            _selectedAccountFilterId = null;
-                            _showLinkedOnly = false;
-                          });
-                        }
-                      },
-                    ),
+          FilterChip(
+            label: Text(
+              'All Bills',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            selected: _selectedAccountFilterId == null && !_showLinkedOnly,
+            onSelected: (selected) {
+              if (selected) {
+                setState(() {
+                  _selectedAccountFilterId = null;
+                  _showLinkedOnly = false;
+                });
+              }
+            },
+          ),
                     // Linked bills only filter
                     FilterChip(
-                      label: const Text('Linked Only'),
+                      label:  Text('Linked Only',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),),
                       selected: _showLinkedOnly,
                       onSelected: (selected) {
                         setState(() {

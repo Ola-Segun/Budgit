@@ -14,9 +14,11 @@ class Budget with _$Budget {
     required BudgetType type,
     required DateTime startDate,
     required DateTime endDate,
+    required DateTime createdAt,
     required List<BudgetCategory> categories,
     String? description,
     @Default(false) bool isActive,
+    @Default(false) bool allowRollover,
   }) = _Budget;
 
   const Budget._();

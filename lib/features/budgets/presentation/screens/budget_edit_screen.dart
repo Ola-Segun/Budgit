@@ -31,9 +31,10 @@ class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
   final _descriptionController = TextEditingController();
 
   BudgetType _selectedType = BudgetType.custom;
-  DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now().add(const Duration(days: 30));
+  DateTime _createdAt = DateTime.now();
   final List<BudgetCategoryFormData> _categories = [];
+  bool _allowRollover = false;
 
   bool _isSubmitting = false;
 
@@ -44,8 +45,9 @@ class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
     _nameController.text = widget.budget.name;
     _descriptionController.text = widget.budget.description ?? '';
     _selectedType = widget.budget.type;
-    _startDate = widget.budget.startDate;
     _endDate = widget.budget.endDate;
+    _createdAt = widget.budget.createdAt;
+    _allowRollover = widget.budget.allowRollover;
 
     // Categories will be initialized in _buildForm when expenseCategories are available
   }
@@ -63,7 +65,10 @@ class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
   @override
   Widget build(BuildContext context) {
     final categoryState = ref.watch(categoryNotifierProvider);
-    final categoryIconColorService = ref.watch(categoryIconColorServiceProvider);
+    final categoryIconColorService =
+        ref.watch(categoryIconColorServiceProvider);
+    // Watch for category changes to refresh the form when categories are updated
+    final _ = ref.watch(categoryNotifierProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -73,18 +78,35 @@ class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
         loading: () => const LoadingView(),
         error: (error, stack) => ErrorView(
           message: error.toString(),
-          onRetry: () => ref.read(categoryNotifierProvider.notifier).loadCategories(),
+          onRetry: () =>
+              ref.read(categoryNotifierProvider.notifier).loadCategories(),
         ),
-        data: (state) => _buildForm(context, state.expenseCategories, categoryIconColorService),
+        data: (state) {
+          // Check if categories are empty and show appropriate error
+          if (state.expenseCategories.isEmpty) {
+            return ErrorView(
+              message:
+                  'No expense categories available. Please create categories first.',
+              onRetry: () =>
+                  ref.read(categoryNotifierProvider.notifier).loadCategories(),
+            );
+          }
+          return _buildForm(
+              context, state.expenseCategories, categoryIconColorService);
+        },
       ),
     );
   }
 
-  Widget _buildForm(BuildContext context, List<TransactionCategory> expenseCategories, CategoryIconColorService categoryIconColorService) {
+  Widget _buildForm(
+      BuildContext context,
+      List<TransactionCategory> expenseCategories,
+      CategoryIconColorService categoryIconColorService) {
     // Initialize categories if not already done
     if (_categories.isEmpty) {
       for (final category in widget.budget.categories) {
-        _categories.add(BudgetCategoryFormData.fromDomain(category, expenseCategories));
+        _categories.add(
+            BudgetCategoryFormData.fromDomain(category, expenseCategories));
       }
 
       if (_categories.isEmpty) {
@@ -133,6 +155,20 @@ class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
           ),
           const SizedBox(height: 16),
 
+          // Allow Rollover Toggle
+          SwitchListTile(
+            title: const Text('Allow Budget Rollover'),
+            subtitle:
+                const Text('Carry over unused funds to the next budget period'),
+            value: _allowRollover,
+            onChanged: (value) {
+              setState(() {
+                _allowRollover = value;
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+
           // Budget Type
           DropdownButtonFormField<BudgetType>(
             initialValue: _selectedType,
@@ -155,73 +191,176 @@ class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Date Range
+          // Budget Period (Creation Date to End Date)
           Row(
             children: [
               Expanded(
-                child: InkWell(
+                child: TextFormField(
+                  readOnly: true,
+                  controller: TextEditingController(
+                    text: DateFormat('MMM dd, yyyy hh:mm a').format(_createdAt),
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Budget Creation Date & Time',
+                    suffixIcon: Icon(Icons.calendar_today, size: 18),
+                  ),
                   onTap: () async {
-                    final date = await showDatePicker(
+                    final confirmed = await showDialog<bool>(
                       context: context,
-                      initialDate: _startDate,
-                      firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                      builder: (context) => AlertDialog(
+                        title: const Text('Warning'),
+                        content: const Text(
+                            'Changing the budget creation date will affect which transactions are tracked. '
+                            'Only transactions made after the new creation date will be included in budget calculations. '
+                            'This may significantly change your budget status. Are you sure you want to continue?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Continue'),
+                          ),
+                        ],
+                      ),
                     );
-                    if (date != null) {
-                      setState(() {
-                        _startDate = date;
-                        // Auto-adjust end date if it's before start date
-                        if (_endDate.isBefore(_startDate)) {
-                          _endDate = _startDate.add(const Duration(days: 30));
-                        }
-                      });
+
+                    if (confirmed == true) {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: _createdAt,
+                        firstDate:
+                            DateTime.now().subtract(const Duration(days: 365)),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (date != null) {
+                        final time = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay.fromDateTime(_createdAt),
+                        );
+                        setState(() {
+                          _createdAt = DateTime(
+                            date.year,
+                            date.month,
+                            date.day,
+                            time?.hour ?? _createdAt.hour,
+                            time?.minute ?? _createdAt.minute,
+                          );
+                          // Auto-adjust end date if it's before creation date
+                          if (_endDate.isBefore(_createdAt)) {
+                            _endDate = _createdAt.add(const Duration(days: 30));
+                          }
+                        });
+                      }
                     }
                   },
-                  child: InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: 'Start Date',
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(DateFormat('MMM dd, yyyy').format(_startDate)),
-                        const Icon(Icons.calendar_today, size: 20),
-                      ],
-                    ),
-                  ),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
-                child: InkWell(
+                child: TextFormField(
+                  readOnly: true,
+                  controller: TextEditingController(
+                    text: DateFormat('MMM dd, yyyy hh:mm a').format(_endDate),
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Budget End Date & Time',
+                    suffixIcon: Icon(Icons.calendar_today, size: 18),
+                  ),
                   onTap: () async {
                     final date = await showDatePicker(
                       context: context,
                       initialDate: _endDate,
-                      firstDate: _startDate,
-                      lastDate: _startDate.add(const Duration(days: 365)),
+                      firstDate: _createdAt,
+                      lastDate: _createdAt.add(const Duration(days: 365)),
                     );
                     if (date != null) {
+                      final time = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay.fromDateTime(_endDate),
+                      );
                       setState(() {
-                        _endDate = date;
+                        _endDate = DateTime(
+                          date.year,
+                          date.month,
+                          date.day,
+                          time?.hour ?? _endDate.hour,
+                          time?.minute ?? _endDate.minute,
+                        );
                       });
                     }
                   },
-                  child: InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: 'End Date',
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(DateFormat('MMM dd, yyyy').format(_endDate)),
-                        const Icon(Icons.calendar_today, size: 20),
-                      ],
-                    ),
-                  ),
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+
+          // Creation Date/Time Picker (with warning)
+          TextFormField(
+            readOnly: true,
+            controller: TextEditingController(
+              text: DateFormat('MMM dd, yyyy hh:mm a').format(_createdAt),
+            ),
+            decoration: const InputDecoration(
+              labelText: 'Budget Creation Date & Time',
+              hintText: 'When should transaction tracking start?',
+              suffixIcon: Icon(Icons.calendar_today, size: 20),
+            ),
+            onTap: () async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Warning'),
+                  content: const Text(
+                      'Changing the budget creation date will affect which transactions are tracked. '
+                      'Only transactions made after the new creation date will be included in budget calculations. '
+                      'This may significantly change your budget status. Are you sure you want to continue?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Continue'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirmed == true) {
+                final date = await showDatePicker(
+                  context: context,
+                  initialDate: _createdAt,
+                  firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                  lastDate: DateTime.now().add(const Duration(days: 1)),
+                );
+                if (date != null) {
+                  final time = await showTimePicker(
+                    context: context,
+                    initialTime: TimeOfDay.fromDateTime(_createdAt),
+                  );
+                  setState(() {
+                    _createdAt = DateTime(
+                      date.year,
+                      date.month,
+                      date.day,
+                      time?.hour ?? _createdAt.hour,
+                      time?.minute ?? _createdAt.minute,
+                    );
+                  });
+                }
+              }
+            },
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '⚠️ Changing this date will affect which transactions are tracked against this budget.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.error,
+                ),
           ),
           const SizedBox(height: 24),
 
@@ -245,12 +384,16 @@ class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
           const SizedBox(height: 16),
 
           // Category List
-          ..._categories.map((category) => _buildCategoryItem(category, expenseCategories, categoryIconColorService)),
+          ..._categories.map((category) => _buildCategoryItem(
+              category, expenseCategories, categoryIconColorService)),
           const SizedBox(height: 16),
 
           // Total Budget Display
           Card(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            color: Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withValues(alpha: 0.5),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -281,14 +424,17 @@ class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: _isSubmitting ? null : () => Navigator.pop(context),
+                  onPressed:
+                      _isSubmitting ? null : () => Navigator.pop(context),
                   child: const Text('Cancel'),
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : () => _submitBudget(expenseCategories),
+                  onPressed: _isSubmitting
+                      ? null
+                      : () => _submitBudget(expenseCategories),
                   child: _isSubmitting
                       ? const SizedBox(
                           width: 20,
@@ -305,7 +451,10 @@ class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
     );
   }
 
-  Widget _buildCategoryItem(BudgetCategoryFormData category, List<TransactionCategory> expenseCategories, CategoryIconColorService categoryIconColorService) {
+  Widget _buildCategoryItem(
+      BudgetCategoryFormData category,
+      List<TransactionCategory> expenseCategories,
+      CategoryIconColorService categoryIconColorService) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -319,7 +468,8 @@ class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
               isExpanded: true,
               decoration: const InputDecoration(
                 labelText: 'Category',
-                contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                contentPadding:
+                    EdgeInsets.symmetric(vertical: 12, horizontal: 12),
               ),
               items: expenseCategories.map((cat) {
                 return DropdownMenuItem(
@@ -329,7 +479,8 @@ class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
                       Icon(
                         categoryIconColorService.getIconForCategory(cat.id),
                         size: 20,
-                        color: categoryIconColorService.getColorForCategory(cat.id),
+                        color: categoryIconColorService
+                            .getColorForCategory(cat.id),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -368,11 +519,14 @@ class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
                       labelText: 'Amount',
                       prefixText: '\$',
                       hintText: '0.00',
-                      contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                      contentPadding:
+                          EdgeInsets.symmetric(vertical: 12, horizontal: 12),
                     ),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                      FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d+\.?\d{0,2}')),
                     ],
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -429,7 +583,8 @@ class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
     });
   }
 
-  Future<void> _submitBudget(List<TransactionCategory> expenseCategories) async {
+  Future<void> _submitBudget(
+      List<TransactionCategory> expenseCategories) async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -446,12 +601,30 @@ class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
       return;
     }
 
+    // Validate that all categories have valid selections
+    for (final categoryData in _categories) {
+      if (categoryData.selectedCategoryId == null ||
+          !expenseCategories
+              .any((cat) => cat.id == categoryData.selectedCategoryId)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content:
+                Text('Please select valid categories for all budget items'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    }
+
     setState(() => _isSubmitting = true);
 
     try {
       final categories = _categories.map((categoryData) {
         final selectedCategory = expenseCategories.firstWhere(
           (cat) => cat.id == categoryData.selectedCategoryId,
+          orElse: () => throw Exception(
+              'Category not found: ${categoryData.selectedCategoryId}'),
         );
         return BudgetCategory(
           id: selectedCategory.id,
@@ -463,12 +636,14 @@ class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
       final updatedBudget = widget.budget.copyWith(
         name: _nameController.text.trim(),
         type: _selectedType,
-        startDate: _startDate,
+        startDate: _createdAt,
         endDate: _endDate,
+        createdAt: _createdAt,
         categories: categories,
         description: _descriptionController.text.trim().isNotEmpty
             ? _descriptionController.text.trim()
             : null,
+        allowRollover: _allowRollover,
       );
 
       final success = await ref
@@ -483,7 +658,7 @@ class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Failed to update budget'),
+            content: Text('Failed to update budget. Please try again.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -492,7 +667,7 @@ class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text('Error updating budget: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -513,7 +688,8 @@ class BudgetCategoryFormData {
 
   BudgetCategoryFormData({this.id, this.selectedCategoryId});
 
-  factory BudgetCategoryFormData.fromDomain(BudgetCategory category, List<TransactionCategory> expenseCategories) {
+  factory BudgetCategoryFormData.fromDomain(
+      BudgetCategory category, List<TransactionCategory> expenseCategories) {
     final data = BudgetCategoryFormData(id: category.id);
 
     // First try to find matching category by ID
@@ -533,7 +709,9 @@ class BudgetCategoryFormData {
       // Category was deleted or ID changed, try to find by name for backward compatibility
       final matchingCategoryByName = expenseCategories.firstWhere(
         (cat) => cat.name.toLowerCase() == category.name.toLowerCase(),
-        orElse: () => expenseCategories.isNotEmpty ? expenseCategories.first : throw Exception('No categories available'),
+        orElse: () => expenseCategories.isNotEmpty
+            ? expenseCategories.first
+            : throw Exception('No categories available'),
       );
       data.selectedCategoryId = matchingCategoryByName.id;
     }

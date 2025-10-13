@@ -6,6 +6,10 @@
 import 'dart:async' as _i3;
 
 import 'package:budget_tracker/core/error/result.dart' as _i4;
+import 'package:budget_tracker/features/accounts/domain/entities/account.dart'
+    as _i9;
+import 'package:budget_tracker/features/accounts/domain/repositories/account_repository.dart'
+    as _i8;
 import 'package:budget_tracker/features/transactions/domain/entities/transaction.dart'
     as _i5;
 import 'package:budget_tracker/features/transactions/domain/entities/transaction_filter.dart'
@@ -415,4 +419,194 @@ class MockTransactionRepository extends _i1.Mock
           ),
         )),
       ) as _i3.Future<_i4.Result<double>>);
+}
+
+/// A class which mocks [AccountRepository].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockAccountRepository extends _i1.Mock implements _i8.AccountRepository {
+  MockAccountRepository() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i3.Future<_i4.Result<List<_i9.Account>>> getAll() => (super.noSuchMethod(
+        Invocation.method(
+          #getAll,
+          [],
+        ),
+        returnValue: _i3.Future<_i4.Result<List<_i9.Account>>>.value(
+            _i6.dummyValue<_i4.Result<List<_i9.Account>>>(
+          this,
+          Invocation.method(
+            #getAll,
+            [],
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<List<_i9.Account>>>);
+
+  @override
+  _i3.Future<_i4.Result<_i9.Account?>> getById(String? id) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getById,
+          [id],
+        ),
+        returnValue: _i3.Future<_i4.Result<_i9.Account?>>.value(
+            _i6.dummyValue<_i4.Result<_i9.Account?>>(
+          this,
+          Invocation.method(
+            #getById,
+            [id],
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<_i9.Account?>>);
+
+  @override
+  _i3.Future<_i4.Result<List<_i9.Account>>> getByType(_i9.AccountType? type) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getByType,
+          [type],
+        ),
+        returnValue: _i3.Future<_i4.Result<List<_i9.Account>>>.value(
+            _i6.dummyValue<_i4.Result<List<_i9.Account>>>(
+          this,
+          Invocation.method(
+            #getByType,
+            [type],
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<List<_i9.Account>>>);
+
+  @override
+  _i3.Future<_i4.Result<List<_i9.Account>>> getActive() => (super.noSuchMethod(
+        Invocation.method(
+          #getActive,
+          [],
+        ),
+        returnValue: _i3.Future<_i4.Result<List<_i9.Account>>>.value(
+            _i6.dummyValue<_i4.Result<List<_i9.Account>>>(
+          this,
+          Invocation.method(
+            #getActive,
+            [],
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<List<_i9.Account>>>);
+
+  @override
+  _i3.Future<_i4.Result<_i9.Account>> add(_i9.Account? account) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #add,
+          [account],
+        ),
+        returnValue: _i3.Future<_i4.Result<_i9.Account>>.value(
+            _i6.dummyValue<_i4.Result<_i9.Account>>(
+          this,
+          Invocation.method(
+            #add,
+            [account],
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<_i9.Account>>);
+
+  @override
+  _i3.Future<_i4.Result<_i9.Account>> update(_i9.Account? account) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #update,
+          [account],
+        ),
+        returnValue: _i3.Future<_i4.Result<_i9.Account>>.value(
+            _i6.dummyValue<_i4.Result<_i9.Account>>(
+          this,
+          Invocation.method(
+            #update,
+            [account],
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<_i9.Account>>);
+
+  @override
+  _i3.Future<_i4.Result<void>> delete(String? id) => (super.noSuchMethod(
+        Invocation.method(
+          #delete,
+          [id],
+        ),
+        returnValue:
+            _i3.Future<_i4.Result<void>>.value(_i6.dummyValue<_i4.Result<void>>(
+          this,
+          Invocation.method(
+            #delete,
+            [id],
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<void>>);
+
+  @override
+  _i3.Future<_i4.Result<double>> getTotalBalance() => (super.noSuchMethod(
+        Invocation.method(
+          #getTotalBalance,
+          [],
+        ),
+        returnValue: _i3.Future<_i4.Result<double>>.value(
+            _i6.dummyValue<_i4.Result<double>>(
+          this,
+          Invocation.method(
+            #getTotalBalance,
+            [],
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<double>>);
+
+  @override
+  _i3.Future<_i4.Result<double>> getNetWorth() => (super.noSuchMethod(
+        Invocation.method(
+          #getNetWorth,
+          [],
+        ),
+        returnValue: _i3.Future<_i4.Result<double>>.value(
+            _i6.dummyValue<_i4.Result<double>>(
+          this,
+          Invocation.method(
+            #getNetWorth,
+            [],
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<double>>);
+
+  @override
+  _i3.Future<_i4.Result<int>> getCount() => (super.noSuchMethod(
+        Invocation.method(
+          #getCount,
+          [],
+        ),
+        returnValue:
+            _i3.Future<_i4.Result<int>>.value(_i6.dummyValue<_i4.Result<int>>(
+          this,
+          Invocation.method(
+            #getCount,
+            [],
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<int>>);
+
+  @override
+  _i3.Future<_i4.Result<List<_i9.Account>>> search(String? query) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #search,
+          [query],
+        ),
+        returnValue: _i3.Future<_i4.Result<List<_i9.Account>>>.value(
+            _i6.dummyValue<_i4.Result<List<_i9.Account>>>(
+          this,
+          Invocation.method(
+            #search,
+            [query],
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<List<_i9.Account>>>);
 }

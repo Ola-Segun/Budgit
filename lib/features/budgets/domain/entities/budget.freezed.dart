@@ -21,9 +21,11 @@ mixin _$Budget {
   BudgetType get type => throw _privateConstructorUsedError;
   DateTime get startDate => throw _privateConstructorUsedError;
   DateTime get endDate => throw _privateConstructorUsedError;
+  DateTime get createdAt => throw _privateConstructorUsedError;
   List<BudgetCategory> get categories => throw _privateConstructorUsedError;
   String? get description => throw _privateConstructorUsedError;
   bool get isActive => throw _privateConstructorUsedError;
+  bool get allowRollover => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
   $BudgetCopyWith<Budget> get copyWith => throw _privateConstructorUsedError;
@@ -40,9 +42,11 @@ abstract class $BudgetCopyWith<$Res> {
       BudgetType type,
       DateTime startDate,
       DateTime endDate,
+      DateTime createdAt,
       List<BudgetCategory> categories,
       String? description,
-      bool isActive});
+      bool isActive,
+      bool allowRollover});
 }
 
 /// @nodoc
@@ -63,9 +67,11 @@ class _$BudgetCopyWithImpl<$Res, $Val extends Budget>
     Object? type = null,
     Object? startDate = null,
     Object? endDate = null,
+    Object? createdAt = null,
     Object? categories = null,
     Object? description = freezed,
     Object? isActive = null,
+    Object? allowRollover = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -88,6 +94,10 @@ class _$BudgetCopyWithImpl<$Res, $Val extends Budget>
           ? _value.endDate
           : endDate // ignore: cast_nullable_to_non_nullable
               as DateTime,
+      createdAt: null == createdAt
+          ? _value.createdAt
+          : createdAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
       categories: null == categories
           ? _value.categories
           : categories // ignore: cast_nullable_to_non_nullable
@@ -99,6 +109,10 @@ class _$BudgetCopyWithImpl<$Res, $Val extends Budget>
       isActive: null == isActive
           ? _value.isActive
           : isActive // ignore: cast_nullable_to_non_nullable
+              as bool,
+      allowRollover: null == allowRollover
+          ? _value.allowRollover
+          : allowRollover // ignore: cast_nullable_to_non_nullable
               as bool,
     ) as $Val);
   }
@@ -117,9 +131,11 @@ abstract class _$$BudgetImplCopyWith<$Res> implements $BudgetCopyWith<$Res> {
       BudgetType type,
       DateTime startDate,
       DateTime endDate,
+      DateTime createdAt,
       List<BudgetCategory> categories,
       String? description,
-      bool isActive});
+      bool isActive,
+      bool allowRollover});
 }
 
 /// @nodoc
@@ -138,9 +154,11 @@ class __$$BudgetImplCopyWithImpl<$Res>
     Object? type = null,
     Object? startDate = null,
     Object? endDate = null,
+    Object? createdAt = null,
     Object? categories = null,
     Object? description = freezed,
     Object? isActive = null,
+    Object? allowRollover = null,
   }) {
     return _then(_$BudgetImpl(
       id: null == id
@@ -163,6 +181,10 @@ class __$$BudgetImplCopyWithImpl<$Res>
           ? _value.endDate
           : endDate // ignore: cast_nullable_to_non_nullable
               as DateTime,
+      createdAt: null == createdAt
+          ? _value.createdAt
+          : createdAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
       categories: null == categories
           ? _value._categories
           : categories // ignore: cast_nullable_to_non_nullable
@@ -174,6 +196,10 @@ class __$$BudgetImplCopyWithImpl<$Res>
       isActive: null == isActive
           ? _value.isActive
           : isActive // ignore: cast_nullable_to_non_nullable
+              as bool,
+      allowRollover: null == allowRollover
+          ? _value.allowRollover
+          : allowRollover // ignore: cast_nullable_to_non_nullable
               as bool,
     ));
   }
@@ -188,9 +214,11 @@ class _$BudgetImpl extends _Budget {
       required this.type,
       required this.startDate,
       required this.endDate,
+      required this.createdAt,
       required final List<BudgetCategory> categories,
       this.description,
-      this.isActive = false})
+      this.isActive = false,
+      this.allowRollover = false})
       : _categories = categories,
         super._();
 
@@ -204,6 +232,8 @@ class _$BudgetImpl extends _Budget {
   final DateTime startDate;
   @override
   final DateTime endDate;
+  @override
+  final DateTime createdAt;
   final List<BudgetCategory> _categories;
   @override
   List<BudgetCategory> get categories {
@@ -217,10 +247,13 @@ class _$BudgetImpl extends _Budget {
   @override
   @JsonKey()
   final bool isActive;
+  @override
+  @JsonKey()
+  final bool allowRollover;
 
   @override
   String toString() {
-    return 'Budget(id: $id, name: $name, type: $type, startDate: $startDate, endDate: $endDate, categories: $categories, description: $description, isActive: $isActive)';
+    return 'Budget(id: $id, name: $name, type: $type, startDate: $startDate, endDate: $endDate, createdAt: $createdAt, categories: $categories, description: $description, isActive: $isActive, allowRollover: $allowRollover)';
   }
 
   @override
@@ -234,12 +267,16 @@ class _$BudgetImpl extends _Budget {
             (identical(other.startDate, startDate) ||
                 other.startDate == startDate) &&
             (identical(other.endDate, endDate) || other.endDate == endDate) &&
+            (identical(other.createdAt, createdAt) ||
+                other.createdAt == createdAt) &&
             const DeepCollectionEquality()
                 .equals(other._categories, _categories) &&
             (identical(other.description, description) ||
                 other.description == description) &&
             (identical(other.isActive, isActive) ||
-                other.isActive == isActive));
+                other.isActive == isActive) &&
+            (identical(other.allowRollover, allowRollover) ||
+                other.allowRollover == allowRollover));
   }
 
   @override
@@ -250,9 +287,11 @@ class _$BudgetImpl extends _Budget {
       type,
       startDate,
       endDate,
+      createdAt,
       const DeepCollectionEquality().hash(_categories),
       description,
-      isActive);
+      isActive,
+      allowRollover);
 
   @JsonKey(ignore: true)
   @override
@@ -268,9 +307,11 @@ abstract class _Budget extends Budget {
       required final BudgetType type,
       required final DateTime startDate,
       required final DateTime endDate,
+      required final DateTime createdAt,
       required final List<BudgetCategory> categories,
       final String? description,
-      final bool isActive}) = _$BudgetImpl;
+      final bool isActive,
+      final bool allowRollover}) = _$BudgetImpl;
   const _Budget._() : super._();
 
   @override
@@ -284,11 +325,15 @@ abstract class _Budget extends Budget {
   @override
   DateTime get endDate;
   @override
+  DateTime get createdAt;
+  @override
   List<BudgetCategory> get categories;
   @override
   String? get description;
   @override
   bool get isActive;
+  @override
+  bool get allowRollover;
   @override
   @JsonKey(ignore: true)
   _$$BudgetImplCopyWith<_$BudgetImpl> get copyWith =>

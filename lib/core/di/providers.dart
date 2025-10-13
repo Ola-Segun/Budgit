@@ -160,7 +160,10 @@ final getTransactionsProvider = Provider<GetTransactions>((ref) {
 });
 
 final updateTransactionProvider = Provider<UpdateTransaction>((ref) {
-  return UpdateTransaction(ref.read(transactionRepositoryProvider));
+  return UpdateTransaction(
+    ref.read(transactionRepositoryProvider),
+    ref.read(accountRepositoryProvider),
+  );
 });
 
 final deleteTransactionProvider = Provider<DeleteTransaction>((ref) {

@@ -22,16 +22,18 @@ class BudgetDtoAdapter extends TypeAdapter<BudgetDto> {
       type: fields[2] as String,
       startDate: fields[3] as int,
       endDate: fields[4] as int,
-      categories: (fields[5] as List).cast<BudgetCategoryDto>(),
-      description: fields[6] as String?,
-      isActive: fields[7] as bool,
+      createdAt: fields[5] as int,
+      categories: (fields[6] as List).cast<BudgetCategoryDto>(),
+      description: fields[7] as String?,
+      isActive: fields[8] as bool,
+      allowRollover: fields[9] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, BudgetDto obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -43,11 +45,15 @@ class BudgetDtoAdapter extends TypeAdapter<BudgetDto> {
       ..writeByte(4)
       ..write(obj.endDate)
       ..writeByte(5)
-      ..write(obj.categories)
+      ..write(obj.createdAt)
       ..writeByte(6)
-      ..write(obj.description)
+      ..write(obj.categories)
       ..writeByte(7)
-      ..write(obj.isActive);
+      ..write(obj.description)
+      ..writeByte(8)
+      ..write(obj.isActive)
+      ..writeByte(9)
+      ..write(obj.allowRollover);
   }
 
   @override

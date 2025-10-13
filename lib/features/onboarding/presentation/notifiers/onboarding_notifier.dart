@@ -214,6 +214,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       type: data.selectedBudgetType!,
       startDate: now,
       endDate: endDate,
+      createdAt: now,
       categories: data.budgetCategories,
       description: 'Created during onboarding',
       isActive: true,

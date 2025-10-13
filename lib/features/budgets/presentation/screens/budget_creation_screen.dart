@@ -10,7 +10,9 @@ import '../../../transactions/domain/entities/transaction.dart';
 import '../../../transactions/domain/services/category_icon_color_service.dart';
 import '../../../transactions/presentation/providers/transaction_providers.dart';
 import '../../domain/entities/budget.dart';
+import '../../domain/entities/budget_template.dart';
 import '../providers/budget_providers.dart';
+import 'budget_template_selection_screen.dart';
 
 /// Screen for creating a new budget
 class BudgetCreationScreen extends ConsumerStatefulWidget {
@@ -26,8 +28,8 @@ class _BudgetCreationScreenState extends ConsumerState<BudgetCreationScreen> {
   final _descriptionController = TextEditingController();
 
   BudgetType _selectedType = BudgetType.custom;
-  DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now().add(const Duration(days: 30));
+  DateTime _createdAt = DateTime.now();
   final List<BudgetCategoryFormData> _categories = [];
 
   bool _isSubmitting = false;
@@ -56,6 +58,17 @@ class _BudgetCreationScreenState extends ConsumerState<BudgetCreationScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create Budget'),
+        actions: [
+          TextButton.icon(
+            onPressed: () => _showTemplateSelection(context),
+            icon: const Icon(Icons.description, color: Colors.white),
+            label: const Text(
+              'Type',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: categoryState.when(
         loading: () => const LoadingView(),
@@ -125,71 +138,131 @@ class _BudgetCreationScreenState extends ConsumerState<BudgetCreationScreen> {
             },
           ),
           const SizedBox(height: 16),
+          
+          // Budget Period (Creation Date to End Date)
           Row(
             children: [
               Expanded(
-                child: InkWell(
+                child: TextFormField(
+                  readOnly: true,
+                  controller: TextEditingController(
+                    text: DateFormat('MMM dd, yyyy hh:mm a').format(_createdAt),
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Budget Creation Date & Time',
+                    suffixIcon: Icon(Icons.calendar_today, size: 18),
+                  ),
                   onTap: () async {
                     final date = await showDatePicker(
                       context: context,
-                      initialDate: _startDate,
-                      firstDate: DateTime.now(),
+                      initialDate: _createdAt,
+                      firstDate:
+                          DateTime.now().subtract(const Duration(days: 365)),
                       lastDate: DateTime.now().add(const Duration(days: 365)),
                     );
                     if (date != null) {
+                      final time = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay.fromDateTime(_createdAt),
+                      );
                       setState(() {
-                        _startDate = date;
-                        if (_endDate.isBefore(_startDate)) {
-                          _endDate = _startDate.add(const Duration(days: 30));
+                        _createdAt = DateTime(
+                          date.year,
+                          date.month,
+                          date.day,
+                          time?.hour ?? _createdAt.hour,
+                          time?.minute ?? _createdAt.minute,
+                        );
+                        // Auto-adjust end date if it's before creation date
+                        if (_endDate.isBefore(_createdAt)) {
+                          _endDate = _createdAt.add(const Duration(days: 30));
                         }
                       });
                     }
                   },
-                  child: InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: 'Start Date',
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(DateFormat('MMM dd, yyyy').format(_startDate)),
-                        const Icon(Icons.calendar_today, size: 20),
-                      ],
-                    ),
-                  ),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
-                child: InkWell(
+                child: TextFormField(
+                  readOnly: true,
+                  controller: TextEditingController(
+                    text: DateFormat('MMM dd, yyyy hh:mm a').format(_endDate),
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Budget End Date & Time',
+                    suffixIcon: Icon(Icons.calendar_today, size: 18),
+                  ),
                   onTap: () async {
                     final date = await showDatePicker(
                       context: context,
                       initialDate: _endDate,
-                      firstDate: _startDate,
-                      lastDate: _startDate.add(const Duration(days: 365)),
+                      firstDate: _createdAt,
+                      lastDate: _createdAt.add(const Duration(days: 365)),
                     );
                     if (date != null) {
+                      final time = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay.fromDateTime(_endDate),
+                      );
                       setState(() {
-                        _endDate = date;
+                        _endDate = DateTime(
+                          date.year,
+                          date.month,
+                          date.day,
+                          time?.hour ?? _endDate.hour,
+                          time?.minute ?? _endDate.minute,
+                        );
                       });
                     }
                   },
-                  child: InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: 'End Date',
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(DateFormat('MMM dd, yyyy').format(_endDate)),
-                        const Icon(Icons.calendar_today, size: 20),
-                      ],
-                    ),
-                  ),
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+
+          // Fixed Creation Date/Time Picker
+          TextFormField(
+            readOnly: true,
+            controller: TextEditingController(
+              text: DateFormat('MMM dd, yyyy hh:mm a').format(_createdAt),
+            ),
+            decoration: const InputDecoration(
+              labelText: 'Budget Creation Date & Time',
+              hintText: 'When should transaction tracking start?',
+              suffixIcon: Icon(Icons.calendar_today, size: 20),
+            ),
+            onTap: () async {
+              final date = await showDatePicker(
+                context: context,
+                initialDate: _createdAt,
+                firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                lastDate: DateTime.now().add(const Duration(days: 1)),
+              );
+              if (date != null) {
+                final time = await showTimePicker(
+                  context: context,
+                  initialTime: TimeOfDay.fromDateTime(_createdAt),
+                );
+                setState(() {
+                  _createdAt = DateTime(
+                    date.year,
+                    date.month,
+                    date.day,
+                    time?.hour ?? _createdAt.hour,
+                    time?.minute ?? _createdAt.minute,
+                  );
+                });
+              }
+            },
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Transactions made after this date/time will be tracked against this budget.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 24),
           Row(
@@ -273,7 +346,6 @@ class _BudgetCreationScreenState extends ConsumerState<BudgetCreationScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Category Dropdown
             DropdownButtonFormField<String>(
               initialValue: category.selectedCategoryId,
               isExpanded: true,
@@ -317,7 +389,6 @@ class _BudgetCreationScreenState extends ConsumerState<BudgetCreationScreen> {
               },
             ),
             const SizedBox(height: 12),
-            // Amount Field and Delete Button Row
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -423,13 +494,15 @@ class _BudgetCreationScreenState extends ConsumerState<BudgetCreationScreen> {
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         name: _nameController.text.trim(),
         type: _selectedType,
-        startDate: _startDate,
+        startDate: _createdAt,
         endDate: _endDate,
+        createdAt: _createdAt,
         categories: categories,
         description: _descriptionController.text.trim().isNotEmpty
             ? _descriptionController.text.trim()
             : null,
         isActive: true,
+        allowRollover: false,
       );
 
       final success = await ref
@@ -464,6 +537,54 @@ class _BudgetCreationScreenState extends ConsumerState<BudgetCreationScreen> {
       }
     }
   }
+
+  Future<void> _showTemplateSelection(BuildContext context) async {
+    final selectedTemplate = await Navigator.push<BudgetTemplate?>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const BudgetTemplateSelectionScreen(),
+      ),
+    );
+
+    if (selectedTemplate != null && mounted) {
+      await _createBudgetFromTemplate(context, selectedTemplate);
+    }
+  }
+
+  Future<void> _createBudgetFromTemplate(BuildContext context, BudgetTemplate template) async {
+    final budgetDetails = await showDialog<BudgetFromTemplateData>(
+      context: context,
+      builder: (context) => BudgetFromTemplateDialog(template: template, initialCreatedAt: _createdAt),
+    );
+
+    if (budgetDetails != null && mounted) {
+      final budget = template.createBudget(
+        budgetName: budgetDetails.name,
+        startDate: budgetDetails.startDate,
+        endDate: budgetDetails.endDate,
+        totalAmount: budgetDetails.totalAmount,
+        description: budgetDetails.description,
+      ).copyWith(createdAt: budgetDetails.createdAt ?? _createdAt);
+
+      final success = await ref
+          .read(budgetNotifierProvider.notifier)
+          .createBudget(budget);
+
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${template.name} budget created successfully')),
+        );
+        Navigator.pop(context);
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to create budget from template'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 }
 
 /// Helper class for category form data
@@ -473,5 +594,232 @@ class BudgetCategoryFormData {
 
   void dispose() {
     amountController.dispose();
+  }
+}
+
+/// Data class for budget creation from template
+class BudgetFromTemplateData {
+  final String name;
+  final DateTime startDate;
+  final DateTime endDate;
+  final DateTime? createdAt;
+  final double totalAmount;
+  final String? description;
+
+  const BudgetFromTemplateData({
+    required this.name,
+    required this.startDate,
+    required this.endDate,
+    this.createdAt,
+    required this.totalAmount,
+    this.description,
+  });
+}
+
+/// Dialog for creating budget from template
+class BudgetFromTemplateDialog extends StatefulWidget {
+  const BudgetFromTemplateDialog({
+    super.key,
+    required this.template,
+    this.initialCreatedAt,
+  });
+
+  final BudgetTemplate template;
+  final DateTime? initialCreatedAt;
+
+  @override
+  State<BudgetFromTemplateDialog> createState() => _BudgetFromTemplateDialogState();
+}
+
+class _BudgetFromTemplateDialogState extends State<BudgetFromTemplateDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _totalAmountController = TextEditingController();
+  final _descriptionController = TextEditingController();
+
+  DateTime _endDate = DateTime.now().add(const Duration(days: 30));
+  DateTime _createdAt = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController.text = '${widget.template.name} Budget';
+    _totalAmountController.text = widget.template.totalBudget.toStringAsFixed(2);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _totalAmountController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Create ${widget.template.name} Budget'),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Budget Name',
+                  hintText: 'e.g., Monthly Budget',
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter a budget name';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _totalAmountController,
+                decoration: const InputDecoration(
+                  labelText: 'Total Budget Amount',
+                  prefixText: '\$',
+                  hintText: '0.00',
+                ),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter total budget amount';
+                  }
+                  final amount = double.tryParse(value);
+                  if (amount == null || amount <= 0) {
+                    return 'Please enter a valid amount';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              
+              // Budget Period (Creation Date to End Date)
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      readOnly: true,
+                      controller: TextEditingController(
+                        text: DateFormat('MMM dd, yyyy hh:mm a').format(_createdAt),
+                      ),
+                      decoration: const InputDecoration(
+                        labelText: 'Budget Creation Date & Time',
+                        suffixIcon: Icon(Icons.calendar_today, size: 16),
+                      ),
+                      style: const TextStyle(fontSize: 13),
+                      onTap: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: _createdAt,
+                          firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                        );
+                        if (date != null) {
+                          final time = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.fromDateTime(_createdAt),
+                          );
+                          setState(() {
+                            _createdAt = DateTime(
+                              date.year,
+                              date.month,
+                              date.day,
+                              time?.hour ?? _createdAt.hour,
+                              time?.minute ?? _createdAt.minute,
+                            );
+                            if (_endDate.isBefore(_createdAt)) {
+                              _endDate = _createdAt.add(const Duration(days: 30));
+                            }
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      readOnly: true,
+                      controller: TextEditingController(
+                        text: DateFormat('MMM dd, yyyy hh:mm a').format(_endDate),
+                      ),
+                      decoration: const InputDecoration(
+                        labelText: 'Budget End Date & Time',
+                        suffixIcon: Icon(Icons.calendar_today, size: 16),
+                      ),
+                      style: const TextStyle(fontSize: 13),
+                      onTap: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: _endDate,
+                          firstDate: _createdAt,
+                          lastDate: _createdAt.add(const Duration(days: 365)),
+                        );
+                        if (date != null) {
+                          final time = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.fromDateTime(_endDate),
+                          );
+                          setState(() {
+                            _endDate = DateTime(
+                              date.year,
+                              date.month,
+                              date.day,
+                              time?.hour ?? _endDate.hour,
+                              time?.minute ?? _endDate.minute,
+                            );
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Description (optional)',
+                  hintText: 'Describe your budget...',
+                ),
+                maxLength: 200,
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            if (_formKey.currentState!.validate()) {
+              final data = BudgetFromTemplateData(
+                name: _nameController.text.trim(),
+                startDate: _createdAt,
+                endDate: _endDate,
+                createdAt: _createdAt,
+                totalAmount: double.parse(_totalAmountController.text),
+                description: _descriptionController.text.trim().isNotEmpty
+                    ? _descriptionController.text.trim()
+                    : null,
+              );
+              Navigator.pop(context, data);
+            }
+          },
+          child: const Text('Create Budget'),
+        ),
+      ],
+    );
   }
 }

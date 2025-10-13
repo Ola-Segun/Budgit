@@ -23,13 +23,19 @@ class BudgetDto extends HiveObject {
   int endDate; // milliseconds since epoch
 
   @HiveField(5)
-  List<BudgetCategoryDto> categories;
+  int createdAt; // milliseconds since epoch
 
   @HiveField(6)
-  String? description;
+  List<BudgetCategoryDto> categories;
 
   @HiveField(7)
+  String? description;
+
+  @HiveField(8)
   bool isActive;
+
+  @HiveField(9)
+  bool allowRollover;
 
   BudgetDto({
     required this.id,
@@ -37,9 +43,11 @@ class BudgetDto extends HiveObject {
     required this.type,
     required this.startDate,
     required this.endDate,
+    required this.createdAt,
     required this.categories,
     this.description,
     this.isActive = false,
+    this.allowRollover = false,
   });
 
   /// Convert from domain entity
@@ -50,9 +58,11 @@ class BudgetDto extends HiveObject {
       type: budget.type.name,
       startDate: budget.startDate.millisecondsSinceEpoch,
       endDate: budget.endDate.millisecondsSinceEpoch,
+      createdAt: budget.createdAt.millisecondsSinceEpoch,
       categories: budget.categories.map(BudgetCategoryDto.fromDomain).toList(),
       description: budget.description,
       isActive: budget.isActive,
+      allowRollover: budget.allowRollover,
     );
   }
 
@@ -67,9 +77,11 @@ class BudgetDto extends HiveObject {
       ),
       startDate: DateTime.fromMillisecondsSinceEpoch(startDate),
       endDate: DateTime.fromMillisecondsSinceEpoch(endDate),
+      createdAt: DateTime.fromMillisecondsSinceEpoch(createdAt),
       categories: categories.map((c) => c.toDomain()).toList(),
       description: description,
       isActive: isActive,
+      allowRollover: allowRollover,
     );
   }
 }

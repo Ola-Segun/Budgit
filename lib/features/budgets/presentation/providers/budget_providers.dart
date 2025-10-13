@@ -198,6 +198,8 @@ final budgetStatusProvider = FutureProvider.family<BudgetStatus?, String>((ref, 
   final budgetState = ref.watch(budgetNotifierProvider);
   // Listen to transaction changes to refresh status
   ref.watch(transactionNotifierProvider);
+  // Listen to category changes to refresh status (important for category name/icon/color updates)
+  ref.watch(categoryNotifierProvider);
 
   final calculateBudgetStatus = ref.watch(calculateBudgetStatusProvider);
 
