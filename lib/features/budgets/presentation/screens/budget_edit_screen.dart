@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +13,7 @@ import '../../../transactions/domain/services/category_icon_color_service.dart';
 import '../../../transactions/presentation/providers/transaction_providers.dart';
 import '../../domain/entities/budget.dart';
 import '../providers/budget_providers.dart';
+import '../states/budget_state.dart';
 
 /// Screen for editing an existing budget
 class BudgetEditScreen extends ConsumerStatefulWidget {
@@ -26,17 +29,23 @@ class BudgetEditScreen extends ConsumerStatefulWidget {
 }
 
 class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _descriptionController = TextEditingController();
+   final _formKey = GlobalKey<FormState>();
+   final _nameController = TextEditingController();
+   final _descriptionController = TextEditingController();
 
-  BudgetType _selectedType = BudgetType.custom;
-  DateTime _endDate = DateTime.now().add(const Duration(days: 30));
-  DateTime _createdAt = DateTime.now();
-  final List<BudgetCategoryFormData> _categories = [];
-  bool _allowRollover = false;
+   BudgetType _selectedType = BudgetType.custom;
+   DateTime _endDate = DateTime.now().add(const Duration(days: 30));
+   DateTime _createdAt = DateTime.now();
+   final List<BudgetCategoryFormData> _categories = [];
+   bool _allowRollover = false;
 
-  bool _isSubmitting = false;
+   bool _isSubmitting = false;
+
+   // Reactive validation state
+   String? _nameValidationError;
+   bool _isValidatingName = false;
+   Timer? _nameValidationTimer;
+   String _lastValidatedName = '';
 
   @override
   void initState() {
@@ -49,13 +58,18 @@ class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
     _createdAt = widget.budget.createdAt;
     _allowRollover = widget.budget.allowRollover;
 
+    // Initialize validation state with current name
+    _lastValidatedName = widget.budget.name;
+
     // Categories will be initialized in _buildForm when expenseCategories are available
+    _setupNameValidationListener();
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
+    _nameValidationTimer?.cancel();
     for (final category in _categories) {
       category.dispose();
     }
@@ -102,6 +116,8 @@ class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
       BuildContext context,
       List<TransactionCategory> expenseCategories,
       CategoryIconColorService categoryIconColorService) {
+    final budgetState = ref.watch(budgetNotifierProvider);
+
     // Initialize categories if not already done
     if (_categories.isEmpty) {
       for (final category in widget.budget.categories) {
@@ -126,20 +142,171 @@ class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
       child: ListView(
         padding: AppTheme.screenPaddingAll,
         children: [
-          // Budget Name
-          TextFormField(
-            controller: _nameController,
-            decoration: const InputDecoration(
-              labelText: 'Budget Name',
-              hintText: 'e.g., Monthly Expenses',
+          // Show error message if there's a budget update error (but not duplicate name error)
+          if (budgetState.value?.error != null &&
+              !budgetState.value!.error!.contains('Budget names must be unique'))
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.errorContainer,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.error,
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    color: Theme.of(context).colorScheme.error,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      budgetState.value!.error!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onErrorContainer,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Please enter a budget name';
-              }
-              return null;
-            },
-            autofocus: false,
+          // Show name field error highlighting if there's a duplicate name error
+          if (budgetState.value?.error != null &&
+              budgetState.value!.error!.contains('Budget names must be unique'))
+            Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.error.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.warning,
+                        color: Theme.of(context).colorScheme.error,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Please choose a different budget name',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Existing budgets: ${_getExistingBudgetNames(budgetState, widget.budget.id)}',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 11,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          // Budget Name
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextFormField(
+                controller: _nameController,
+                decoration: InputDecoration(
+                  labelText: 'Budget Name',
+                  hintText: 'e.g., Monthly Expenses',
+                  errorStyle: const TextStyle(height: 0.8),
+                  errorBorder: (_nameValidationError != null ||
+                          (budgetState.value?.error != null &&
+                              budgetState.value!.error!.contains('Budget names must be unique')))
+                      ? OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.error,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        )
+                      : null,
+                  focusedErrorBorder: (_nameValidationError != null ||
+                          (budgetState.value?.error != null &&
+                              budgetState.value!.error!.contains('Budget names must be unique')))
+                      ? OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.error,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        )
+                      : null,
+                  suffixIcon: _isValidatingName
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: Padding(
+                            padding: EdgeInsets.all(12),
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : null,
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter a budget name';
+                  }
+                  // Basic client-side validation - full uniqueness check happens in use case
+                  if (value.trim().length < 2) {
+                    return 'Budget name must be at least 2 characters';
+                  }
+                  return null;
+                },
+                autofocus: false,
+              ),
+              // Show instant validation feedback
+              if (_nameValidationError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, left: 12),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        color: Theme.of(context).colorScheme.error,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          _nameValidationError!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 16),
 
@@ -298,71 +465,71 @@ class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
           const SizedBox(height: 16),
 
           // Creation Date/Time Picker (with warning)
-          TextFormField(
-            readOnly: true,
-            controller: TextEditingController(
-              text: DateFormat('MMM dd, yyyy hh:mm a').format(_createdAt),
-            ),
-            decoration: const InputDecoration(
-              labelText: 'Budget Creation Date & Time',
-              hintText: 'When should transaction tracking start?',
-              suffixIcon: Icon(Icons.calendar_today, size: 20),
-            ),
-            onTap: () async {
-              final confirmed = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Warning'),
-                  content: const Text(
-                      'Changing the budget creation date will affect which transactions are tracked. '
-                      'Only transactions made after the new creation date will be included in budget calculations. '
-                      'This may significantly change your budget status. Are you sure you want to continue?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Continue'),
-                    ),
-                  ],
-                ),
-              );
+          // TextFormField(
+          //   readOnly: true,
+          //   controller: TextEditingController(
+          //     text: DateFormat('MMM dd, yyyy hh:mm a').format(_createdAt),
+          //   ),
+          //   decoration: const InputDecoration(
+          //     labelText: 'Budget Creation Date & Time',
+          //     hintText: 'When should transaction tracking start?',
+          //     suffixIcon: Icon(Icons.calendar_today, size: 20),
+          //   ),
+          //   onTap: () async {
+          //     final confirmed = await showDialog<bool>(
+          //       context: context,
+          //       builder: (context) => AlertDialog(
+          //         title: const Text('Warning'),
+          //         content: const Text(
+          //             'Changing the budget creation date will affect which transactions are tracked. '
+          //             'Only transactions made after the new creation date will be included in budget calculations. '
+          //             'This may significantly change your budget status. Are you sure you want to continue?'),
+          //         actions: [
+          //           TextButton(
+          //             onPressed: () => Navigator.pop(context, false),
+          //             child: const Text('Cancel'),
+          //           ),
+          //           TextButton(
+          //             onPressed: () => Navigator.pop(context, true),
+          //             child: const Text('Continue'),
+          //           ),
+          //         ],
+          //       ),
+          //     );
 
-              if (confirmed == true) {
-                final date = await showDatePicker(
-                  context: context,
-                  initialDate: _createdAt,
-                  firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                  lastDate: DateTime.now().add(const Duration(days: 1)),
-                );
-                if (date != null) {
-                  final time = await showTimePicker(
-                    context: context,
-                    initialTime: TimeOfDay.fromDateTime(_createdAt),
-                  );
-                  setState(() {
-                    _createdAt = DateTime(
-                      date.year,
-                      date.month,
-                      date.day,
-                      time?.hour ?? _createdAt.hour,
-                      time?.minute ?? _createdAt.minute,
-                    );
-                  });
-                }
-              }
-            },
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '⚠️ Changing this date will affect which transactions are tracked against this budget.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.error,
-                ),
-          ),
-          const SizedBox(height: 24),
+          //     if (confirmed == true) {
+          //       final date = await showDatePicker(
+          //         context: context,
+          //         initialDate: _createdAt,
+          //         firstDate: DateTime.now().subtract(const Duration(days: 365)),
+          //         lastDate: DateTime.now().add(const Duration(days: 1)),
+          //       );
+          //       if (date != null) {
+          //         final time = await showTimePicker(
+          //           context: context,
+          //           initialTime: TimeOfDay.fromDateTime(_createdAt),
+          //         );
+          //         setState(() {
+          //           _createdAt = DateTime(
+          //             date.year,
+          //             date.month,
+          //             date.day,
+          //             time?.hour ?? _createdAt.hour,
+          //             time?.minute ?? _createdAt.minute,
+          //           );
+          //         });
+          //       }
+          //     }
+          //   },
+          // ),
+          // const SizedBox(height: 8),
+          // Text(
+          //   '⚠️ Changing this date will affect which transactions are tracked against this budget.',
+          //   style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          //         color: Theme.of(context).colorScheme.error,
+          //       ),
+          // ),
+          // const SizedBox(height: 24),
 
           // Categories Section
           Row(
@@ -583,6 +750,83 @@ class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
     });
   }
 
+  void _setupNameValidationListener() {
+    _nameController.addListener(_onNameChanged);
+  }
+
+   void _onNameChanged() {
+     final name = _nameController.text.trim();
+
+     // Clear validation error if name is empty
+     if (name.isEmpty) {
+       setState(() {
+         _nameValidationError = null;
+         _isValidatingName = false;
+       });
+       _nameValidationTimer?.cancel();
+       return;
+     }
+
+     // Don't validate if name hasn't changed
+     if (name == _lastValidatedName) {
+       return;
+     }
+
+     // Cancel previous timer
+     _nameValidationTimer?.cancel();
+
+     // Set validating state
+     setState(() {
+       _isValidatingName = true;
+       _nameValidationError = null;
+     });
+
+     // Debounce validation
+     _nameValidationTimer = Timer(const Duration(milliseconds: 500), () {
+       debugPrint('DEBUG: Validating budget name (edit): "$name"');
+       _validateBudgetName(name);
+     });
+   }
+   Future<void> _validateBudgetName(String name) async {
+     if (!mounted) return;
+
+     debugPrint('DEBUG: Starting budget name validation (edit) for: "$name"');
+
+     try {
+       final budgetState = ref.read(budgetNotifierProvider);
+       final existingBudgets = budgetState.value?.budgets ?? [];
+
+       debugPrint('DEBUG: Found ${existingBudgets.length} existing budgets');
+
+       // Check for duplicates (case-insensitive), excluding current budget
+       final isDuplicate = existingBudgets.any(
+         (budget) => budget.id != widget.budget.id &&
+                    budget.name.trim().toLowerCase() == name.toLowerCase(),
+       );
+
+       debugPrint('DEBUG: Validation result - isDuplicate: $isDuplicate');
+
+       if (mounted) {
+         setState(() {
+           _isValidatingName = false;
+           _lastValidatedName = name;
+           _nameValidationError = isDuplicate
+               ? 'A budget with this name already exists'
+               : null;
+         });
+         debugPrint('DEBUG: Validation completed (edit) - error: ${_nameValidationError ?? "none"}');
+       }
+     } catch (e) {
+       debugPrint('DEBUG: Validation error (edit): $e');
+       if (mounted) {
+         setState(() {
+           _isValidatingName = false;
+           _nameValidationError = null; // Clear error on failure
+         });
+       }
+     }
+   }
+
   Future<void> _submitBudget(
       List<TransactionCategory> expenseCategories) async {
     if (!_formKey.currentState!.validate()) {
@@ -646,24 +890,31 @@ class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
         allowRollover: _allowRollover,
       );
 
+      debugPrint('[DEBUG] Attempting to update budget with name: "${updatedBudget.name}"');
       final success = await ref
           .read(budgetNotifierProvider.notifier)
           .updateBudget(updatedBudget);
 
       if (success && mounted) {
+        debugPrint('[DEBUG] Budget update successful');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Budget updated successfully')),
         );
         Navigator.pop(context);
       } else if (mounted) {
+        // Show specific error message if available, otherwise generic message
+        final currentBudgetState = ref.read(budgetNotifierProvider);
+        final errorMessage = currentBudgetState.value?.error ?? 'Failed to update budget. Please try again.';
+        debugPrint('[DEBUG] Budget update failed with error: "$errorMessage"');
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to update budget. Please try again.'),
+          SnackBar(
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );
       }
     } catch (e) {
+      debugPrint('[DEBUG] Budget update threw exception: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -678,6 +929,19 @@ class _BudgetEditScreenState extends ConsumerState<BudgetEditScreen> {
       }
     }
   }
+}
+
+String _getExistingBudgetNames(AsyncValue<BudgetState> budgetState, String currentBudgetId) {
+  if (budgetState.hasValue) {
+    final budgets = budgetState.value!.budgets.where((b) => b.id != currentBudgetId).toList();
+    if (budgets.length <= 5) {
+      return budgets.map((b) => b.name).join(', ');
+    } else {
+      final firstFew = budgets.take(3).map((b) => b.name).join(', ');
+      return '$firstFew, and ${budgets.length - 3} more';
+    }
+  }
+  return 'Loading...';
 }
 
 /// Helper class for category form data

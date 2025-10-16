@@ -25,11 +25,17 @@ class AppSettings with _$AppSettings {
     /// Enable/disable bill reminders
     required bool billRemindersEnabled,
 
+    /// Enable/disable income reminders
+    required bool incomeRemindersEnabled,
+
     /// Budget alert threshold percentage (0-100)
     required int budgetAlertThreshold,
 
     /// Days before bill due date to show reminder
     required int billReminderDays,
+
+    /// Days before income expected to show reminder
+    required int incomeReminderDays,
 
     /// Enable/disable biometric authentication
     required bool biometricEnabled,
@@ -54,8 +60,10 @@ class AppSettings with _$AppSettings {
         notificationsEnabled: true,
         budgetAlertsEnabled: true,
         billRemindersEnabled: true,
+        incomeRemindersEnabled: true,
         budgetAlertThreshold: 80,
         billReminderDays: 3,
+        incomeReminderDays: 1,
         biometricEnabled: false,
         autoBackupEnabled: false,
         languageCode: 'en',

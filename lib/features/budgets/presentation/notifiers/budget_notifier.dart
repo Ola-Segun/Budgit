@@ -124,6 +124,7 @@ class BudgetNotifier extends StateNotifier<AsyncValue<BudgetState>> {
           isLoading: false,
           error: failure.message,
         ));
+
         return false;
       },
     );
@@ -134,6 +135,9 @@ class BudgetNotifier extends StateNotifier<AsyncValue<BudgetState>> {
     final currentState = state.value;
     if (currentState == null) return false;
 
+    // Clear any previous error and set loading state
+    state = AsyncValue.data(currentState.copyWith(isLoading: true, error: null));
+
     final result = await _updateBudget(budget);
 
     return result.when(
@@ -142,7 +146,10 @@ class BudgetNotifier extends StateNotifier<AsyncValue<BudgetState>> {
           return b.id == budget.id ? updatedBudget : b;
         }).toList();
 
-        state = AsyncValue.data(currentState.copyWith(budgets: updatedBudgets));
+        state = AsyncValue.data(currentState.copyWith(
+          budgets: updatedBudgets,
+          isLoading: false,
+        ));
 
         // Refresh statuses if budget is active
         if (updatedBudget.isActive) {
@@ -152,7 +159,10 @@ class BudgetNotifier extends StateNotifier<AsyncValue<BudgetState>> {
         return true;
       },
       error: (failure) {
-        state = AsyncValue.error(failure.message, StackTrace.current);
+        state = AsyncValue.data(currentState.copyWith(
+          isLoading: false,
+          error: failure.message,
+        ));
         return false;
       },
     );

@@ -5,7 +5,7 @@ import '../../domain/entities/account.dart';
 // Custom adapter to handle backward compatibility for balance fields
 class AccountDtoAdapter extends TypeAdapter<AccountDto> {
   @override
-  final int typeId = 8;
+  final int typeId = 12; // Changed from 8 to avoid conflict with RecurringIncomeDtoAdapter
 
   @override
   AccountDto read(BinaryReader reader) {

@@ -1,6 +1,7 @@
 import '../../../../core/error/result.dart';
 import '../../../bills/domain/entities/bill.dart';
 import '../../../insights/domain/entities/insight.dart';
+import '../../../recurring_incomes/domain/entities/recurring_income.dart';
 import '../../../transactions/domain/entities/transaction.dart';
 import '../entities/dashboard_data.dart';
 
@@ -17,6 +18,9 @@ abstract class DashboardRepository {
 
   /// Get upcoming bills
   Future<Result<List<Bill>>> getUpcomingBills({int limit = 3});
+
+  /// Get upcoming incomes
+  Future<Result<List<RecurringIncomeStatus>>> getUpcomingIncomes({int limit = 3});
 
   /// Get recent transactions
   Future<Result<List<Transaction>>> getRecentTransactions({int limit = 7});

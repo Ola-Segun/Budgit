@@ -22,7 +22,7 @@ class _IncomeEntryScreenState extends ConsumerState<IncomeEntryScreen> {
   final _nameController = TextEditingController();
   final _amountController = TextEditingController();
   PayFrequency _selectedFrequency = PayFrequency.monthly;
-  final bool _isAddingIncome = false;
+  bool _isAddingIncome = false;
 
   final _currencyFormatter = CurrencyTextInputFormatter.currency(
     locale: 'en_US',
@@ -31,7 +31,25 @@ class _IncomeEntryScreenState extends ConsumerState<IncomeEntryScreen> {
   );
 
   @override
+  void initState() {
+    super.initState();
+    // Add listeners to handle text changes properly
+    _nameController.addListener(_onTextChanged);
+    _amountController.addListener(_onTextChanged);
+  }
+
+  void _onTextChanged() {
+    // Handle text changes if needed
+  }
+
+  @override
   void dispose() {
+    // Remove listeners first
+    _nameController.removeListener(_onTextChanged);
+    _amountController.removeListener(_onTextChanged);
+    // Clear focus to prevent EditableText issues
+    FocusManager.instance.primaryFocus?.unfocus();
+    // Dispose controllers
     _nameController.dispose();
     _amountController.dispose();
     super.dispose();
@@ -40,25 +58,33 @@ class _IncomeEntryScreenState extends ConsumerState<IncomeEntryScreen> {
   void _addIncomeSource() {
     if (!_formKey.currentState!.validate()) return;
 
-    final name = _nameController.text.trim();
-    final amountText = _amountController.text.replaceAll('\$', '').replaceAll(',', '').trim();
-    final amount = double.tryParse(amountText) ?? 0.0;
+    setState(() => _isAddingIncome = true);
 
-    if (amount <= 0) return;
+    try {
+      final name = _nameController.text.trim();
+      final amountText = _amountController.text.replaceAll('\$', '').replaceAll(',', '').trim();
+      final amount = double.tryParse(amountText) ?? 0.0;
 
-    final incomeSource = IncomeSource(
-      id: 'income_${DateTime.now().millisecondsSinceEpoch}',
-      name: name,
-      amount: amount,
-      frequency: _selectedFrequency,
-    );
+      if (amount <= 0) return;
 
-    ref.read(onboardingNotifierProvider.notifier).addIncomeSource(incomeSource);
+      final incomeSource = IncomeSource(
+        id: 'income_${DateTime.now().millisecondsSinceEpoch}',
+        name: name,
+        amount: amount,
+        frequency: _selectedFrequency,
+      );
 
-    // Clear form
-    _nameController.clear();
-    _amountController.clear();
-    setState(() => _selectedFrequency = PayFrequency.monthly);
+      ref.read(onboardingNotifierProvider.notifier).addIncomeSource(incomeSource);
+
+      // Clear form
+      _nameController.clear();
+      _amountController.clear();
+      setState(() => _selectedFrequency = PayFrequency.monthly);
+    } finally {
+      if (mounted) {
+        setState(() => _isAddingIncome = false);
+      }
+    }
   }
 
   void _removeIncomeSource(String id) {
@@ -278,7 +304,7 @@ class _IncomeEntryScreenState extends ConsumerState<IncomeEntryScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton(
-                            onPressed: _addIncomeSource,
+                            onPressed: _isAddingIncome ? null : _addIncomeSource,
                             style: OutlinedButton.styleFrom(
                               padding: AppSpacing.buttonPaddingAll,
                               side: BorderSide(color: AppColors.primary),
@@ -286,12 +312,21 @@ class _IncomeEntryScreenState extends ConsumerState<IncomeEntryScreen> {
                                 borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                               ),
                             ),
-                            child: Text(
-                              'Add Income Source',
-                              style: AppTypography.buttonMedium.copyWith(
-                                color: AppColors.primary,
-                              ),
-                            ),
+                            child: _isAddingIncome
+                                ? SizedBox(
+                                    width: AppSpacing.iconMd,
+                                    height: AppSpacing.iconMd,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                                    ),
+                                  )
+                                : Text(
+                                    'Add Income Source',
+                                    style: AppTypography.buttonMedium.copyWith(
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
                           ),
                         ).animate().slideY(begin: 0.1, duration: 1200.ms).fadeIn(),
                       ],

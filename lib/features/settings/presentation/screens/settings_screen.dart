@@ -70,8 +70,10 @@ class SettingsScreen extends ConsumerWidget {
             _buildNotificationToggle(context, ref, settingsState.settings),
             _buildBudgetAlertsToggle(context, ref, settingsState.settings),
             _buildBillRemindersToggle(context, ref, settingsState.settings),
+            _buildIncomeRemindersToggle(context, ref, settingsState.settings),
             _buildBudgetAlertThreshold(context, ref, settingsState.settings),
             _buildBillReminderDays(context, ref, settingsState.settings),
+            _buildIncomeReminderDays(context, ref, settingsState.settings),
           ],
         ),
 
@@ -215,6 +217,32 @@ class SettingsScreen extends ConsumerWidget {
       trailing: const Icon(Icons.chevron_right),
       onTap: (settings.notificationsEnabled && settings.billRemindersEnabled)
           ? () => _showBillReminderDaysSelector(context, ref, settings.billReminderDays)
+          : null,
+    );
+  }
+
+  Widget _buildIncomeRemindersToggle(BuildContext context, WidgetRef ref, dynamic settings) {
+    return SwitchListTile(
+      title: const Text('Income Reminders'),
+      subtitle: const Text('Get reminded about expected income receipts'),
+      value: settings.incomeRemindersEnabled,
+      onChanged: settings.notificationsEnabled
+          ? (value) {
+              ref.read(settingsNotifierProvider.notifier).updateIncomeRemindersEnabled(value);
+            }
+          : null,
+    );
+  }
+
+  Widget _buildIncomeReminderDays(BuildContext context, WidgetRef ref, dynamic settings) {
+    return ListTile(
+      title: const Text('Income Reminder Days'),
+      subtitle: Text('${settings.incomeReminderDays} days before expected date'),
+      leading: const Icon(Icons.trending_up),
+      enabled: settings.notificationsEnabled && settings.incomeRemindersEnabled,
+      trailing: const Icon(Icons.chevron_right),
+      onTap: (settings.notificationsEnabled && settings.incomeRemindersEnabled)
+          ? () => _showIncomeReminderDaysSelector(context, ref, settings.incomeReminderDays)
           : null,
     );
   }
@@ -436,6 +464,37 @@ class SettingsScreen extends ConsumerWidget {
               label: '$currentDays days',
               onChanged: (value) {
                 ref.read(settingsNotifierProvider.notifier).updateBillReminderDays(value.round());
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showIncomeReminderDaysSelector(BuildContext context, WidgetRef ref, int currentDays) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Income Reminder Days'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Get reminded $currentDays days before income is expected'),
+            Slider(
+              value: currentDays.toDouble(),
+              min: 0,
+              max: 7,
+              divisions: 7,
+              label: '$currentDays days',
+              onChanged: (value) {
+                ref.read(settingsNotifierProvider.notifier).updateIncomeReminderDays(value.round());
               },
             ),
           ],

@@ -149,4 +149,9 @@ class BillNotifier extends StateNotifier<BillState> {
   Future<void> refresh() async {
     await loadBills();
   }
+
+  Future<void> clearError() async {
+  // Simply reload the bills to clear the error state
+  await loadBills();
+}
 }

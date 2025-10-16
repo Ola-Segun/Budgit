@@ -189,6 +189,48 @@ class SettingsNotifier extends StateNotifier<AsyncValue<SettingsState>> {
     );
   }
 
+  /// Update income reminders enabled
+  Future<bool> updateIncomeRemindersEnabled(bool enabled) async {
+    final currentState = state.value;
+    if (currentState == null) return false;
+
+    final result = await _updateSettings.updateSetting('incomeRemindersEnabled', enabled);
+
+    return result.when(
+      success: (_) {
+        state = AsyncValue.data(currentState.copyWith(
+          settings: currentState.settings.copyWith(incomeRemindersEnabled: enabled),
+        ));
+        return true;
+      },
+      error: (failure) {
+        state = AsyncValue.data(currentState.copyWith(error: failure.message));
+        return false;
+      },
+    );
+  }
+
+  /// Update income reminder days
+  Future<bool> updateIncomeReminderDays(int days) async {
+    final currentState = state.value;
+    if (currentState == null) return false;
+
+    final result = await _updateSettings.updateSetting('incomeReminderDays', days);
+
+    return result.when(
+      success: (_) {
+        state = AsyncValue.data(currentState.copyWith(
+          settings: currentState.settings.copyWith(incomeReminderDays: days),
+        ));
+        return true;
+      },
+      error: (failure) {
+        state = AsyncValue.data(currentState.copyWith(error: failure.message));
+        return false;
+      },
+    );
+  }
+
   /// Export data
   Future<String?> exportData(DataExportType type) async {
     // TODO: Implement data export through repository

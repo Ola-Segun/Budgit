@@ -27,6 +27,13 @@ import '../../features/accounts/presentation/screens/bank_connection_screen.dart
 import '../../features/notifications/presentation/screens/notification_center_screen.dart';
 import '../../features/settings/presentation/screens/help_center_screen.dart';
 import '../../features/debt/presentation/screens/debt_dashboard_screen.dart';
+import '../../features/recurring_incomes/presentation/screens/recurring_income_dashboard_screen.dart';
+import '../../features/recurring_incomes/presentation/screens/recurring_income_detail_screen.dart';
+import '../../features/recurring_incomes/presentation/screens/recurring_income_editing_screen.dart';
+import '../../features/recurring_incomes/presentation/screens/recurring_income_creation_screen.dart';
+import '../../features/recurring_incomes/presentation/screens/recurring_income_receipt_recording_screen.dart';
+import '../../features/recurring_incomes/domain/entities/recurring_income.dart';
+import '../../features/recurring_incomes/presentation/providers/recurring_income_providers.dart';
 import '../widgets/app_bottom_sheet.dart';
 import '../navigation/main_navigation_scaffold.dart';
 import '../navigation/screens/home_dashboard_screen.dart';
@@ -182,6 +189,39 @@ class AppRouter {
               GoRoute(
                 path: 'settings',
                 builder: (context, state) => const _SettingsScreen(),
+              ),
+              GoRoute(
+                path: 'incomes',
+                builder: (context, state) => const _IncomesScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'add',
+                    builder: (context, state) => const _AddIncomeScreen(),
+                  ),
+                  GoRoute(
+                    path: ':id',
+                    builder: (context, state) {
+                      final id = state.pathParameters['id']!;
+                      return _IncomeDetailScreen(id: id);
+                    },
+                    routes: [
+                      GoRoute(
+                        path: 'edit',
+                        builder: (context, state) {
+                          final id = state.pathParameters['id']!;
+                          return _EditIncomeScreen(incomeId: id);
+                        },
+                      ),
+                      GoRoute(
+                        path: 'receipt',
+                        builder: (context, state) {
+                          final id = state.pathParameters['id']!;
+                          return _RecordIncomeReceiptScreen(incomeId: id);
+                        },
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),
@@ -390,6 +430,58 @@ class _CategoriesScreen extends ConsumerWidget {
     return const CategoryManagementScreen();
   }
 }
+
+class _IncomesScreen extends ConsumerWidget {
+  const _IncomesScreen();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return const RecurringIncomeDashboardScreen();
+  }
+}
+
+class _AddIncomeScreen extends ConsumerWidget {
+  const _AddIncomeScreen();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return RecurringIncomeCreationScreen();
+  }
+}
+
+class _IncomeDetailScreen extends StatelessWidget {
+  const _IncomeDetailScreen({required this.id});
+
+  final String id;
+
+  @override
+  Widget build(BuildContext context) {
+    return RecurringIncomeDetailScreen(incomeId: id);
+  }
+}
+
+class _EditIncomeScreen extends StatelessWidget {
+  const _EditIncomeScreen({required this.incomeId});
+
+  final String incomeId;
+
+  @override
+  Widget build(BuildContext context) {
+    return RecurringIncomeEditingScreen(incomeId: incomeId);
+  }
+}
+
+class _RecordIncomeReceiptScreen extends StatelessWidget {
+  const _RecordIncomeReceiptScreen({required this.incomeId});
+
+  final String incomeId;
+
+  @override
+  Widget build(BuildContext context) {
+    return RecurringIncomeReceiptRecordingScreen(incomeId: incomeId);
+  }
+}
+
 
 class _ErrorScreen extends StatelessWidget {
   const _ErrorScreen({required this.error});

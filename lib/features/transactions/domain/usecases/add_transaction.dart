@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import '../../../../core/error/failures.dart';
 import '../../../../core/error/result.dart';
 import '../../../accounts/domain/repositories/account_repository.dart';
@@ -175,6 +177,8 @@ class AddTransaction {
         // Calculate balance delta based on transaction type
         final delta = transaction.isIncome ? transaction.amount : -transaction.amount;
 
+        developer.log('AddTransaction: Updating account ${account.id} balance - current: ${account.currentBalance}, delta: $delta, new: ${account.currentBalance + delta}');
+
         // Update cached balance and timestamp
         final updatedAccount = account.copyWith(
           cachedBalance: account.currentBalance + delta,
@@ -184,8 +188,14 @@ class AddTransaction {
 
         final updateResult = await _accountRepository.update(updatedAccount);
         return updateResult.when(
-          success: (_) => Result.success(null),
-          error: (failure) => Result.error(failure),
+          success: (_) {
+            developer.log('AddTransaction: Account balance updated successfully');
+            return Result.success(null);
+          },
+          error: (failure) {
+            developer.log('AddTransaction: Failed to update account balance: ${failure.message}');
+            return Result.error(failure);
+          },
         );
       },
       error: (failure) => Result.error(failure),

@@ -34,11 +34,17 @@ mixin _$AppSettings {
   /// Enable/disable bill reminders
   bool get billRemindersEnabled => throw _privateConstructorUsedError;
 
+  /// Enable/disable income reminders
+  bool get incomeRemindersEnabled => throw _privateConstructorUsedError;
+
   /// Budget alert threshold percentage (0-100)
   int get budgetAlertThreshold => throw _privateConstructorUsedError;
 
   /// Days before bill due date to show reminder
   int get billReminderDays => throw _privateConstructorUsedError;
+
+  /// Days before income expected to show reminder
+  int get incomeReminderDays => throw _privateConstructorUsedError;
 
   /// Enable/disable biometric authentication
   bool get biometricEnabled => throw _privateConstructorUsedError;
@@ -73,8 +79,10 @@ abstract class $AppSettingsCopyWith<$Res> {
       bool notificationsEnabled,
       bool budgetAlertsEnabled,
       bool billRemindersEnabled,
+      bool incomeRemindersEnabled,
       int budgetAlertThreshold,
       int billReminderDays,
+      int incomeReminderDays,
       bool biometricEnabled,
       bool autoBackupEnabled,
       String languageCode,
@@ -101,8 +109,10 @@ class _$AppSettingsCopyWithImpl<$Res, $Val extends AppSettings>
     Object? notificationsEnabled = null,
     Object? budgetAlertsEnabled = null,
     Object? billRemindersEnabled = null,
+    Object? incomeRemindersEnabled = null,
     Object? budgetAlertThreshold = null,
     Object? billReminderDays = null,
+    Object? incomeReminderDays = null,
     Object? biometricEnabled = null,
     Object? autoBackupEnabled = null,
     Object? languageCode = null,
@@ -134,6 +144,10 @@ class _$AppSettingsCopyWithImpl<$Res, $Val extends AppSettings>
           ? _value.billRemindersEnabled
           : billRemindersEnabled // ignore: cast_nullable_to_non_nullable
               as bool,
+      incomeRemindersEnabled: null == incomeRemindersEnabled
+          ? _value.incomeRemindersEnabled
+          : incomeRemindersEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
       budgetAlertThreshold: null == budgetAlertThreshold
           ? _value.budgetAlertThreshold
           : budgetAlertThreshold // ignore: cast_nullable_to_non_nullable
@@ -141,6 +155,10 @@ class _$AppSettingsCopyWithImpl<$Res, $Val extends AppSettings>
       billReminderDays: null == billReminderDays
           ? _value.billReminderDays
           : billReminderDays // ignore: cast_nullable_to_non_nullable
+              as int,
+      incomeReminderDays: null == incomeReminderDays
+          ? _value.incomeReminderDays
+          : incomeReminderDays // ignore: cast_nullable_to_non_nullable
               as int,
       biometricEnabled: null == biometricEnabled
           ? _value.biometricEnabled
@@ -181,8 +199,10 @@ abstract class _$$AppSettingsImplCopyWith<$Res>
       bool notificationsEnabled,
       bool budgetAlertsEnabled,
       bool billRemindersEnabled,
+      bool incomeRemindersEnabled,
       int budgetAlertThreshold,
       int billReminderDays,
+      int incomeReminderDays,
       bool biometricEnabled,
       bool autoBackupEnabled,
       String languageCode,
@@ -207,8 +227,10 @@ class __$$AppSettingsImplCopyWithImpl<$Res>
     Object? notificationsEnabled = null,
     Object? budgetAlertsEnabled = null,
     Object? billRemindersEnabled = null,
+    Object? incomeRemindersEnabled = null,
     Object? budgetAlertThreshold = null,
     Object? billReminderDays = null,
+    Object? incomeReminderDays = null,
     Object? biometricEnabled = null,
     Object? autoBackupEnabled = null,
     Object? languageCode = null,
@@ -240,6 +262,10 @@ class __$$AppSettingsImplCopyWithImpl<$Res>
           ? _value.billRemindersEnabled
           : billRemindersEnabled // ignore: cast_nullable_to_non_nullable
               as bool,
+      incomeRemindersEnabled: null == incomeRemindersEnabled
+          ? _value.incomeRemindersEnabled
+          : incomeRemindersEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
       budgetAlertThreshold: null == budgetAlertThreshold
           ? _value.budgetAlertThreshold
           : budgetAlertThreshold // ignore: cast_nullable_to_non_nullable
@@ -247,6 +273,10 @@ class __$$AppSettingsImplCopyWithImpl<$Res>
       billReminderDays: null == billReminderDays
           ? _value.billReminderDays
           : billReminderDays // ignore: cast_nullable_to_non_nullable
+              as int,
+      incomeReminderDays: null == incomeReminderDays
+          ? _value.incomeReminderDays
+          : incomeReminderDays // ignore: cast_nullable_to_non_nullable
               as int,
       biometricEnabled: null == biometricEnabled
           ? _value.biometricEnabled
@@ -282,8 +312,10 @@ class _$AppSettingsImpl implements _AppSettings {
       required this.notificationsEnabled,
       required this.budgetAlertsEnabled,
       required this.billRemindersEnabled,
+      required this.incomeRemindersEnabled,
       required this.budgetAlertThreshold,
       required this.billReminderDays,
+      required this.incomeReminderDays,
       required this.biometricEnabled,
       required this.autoBackupEnabled,
       required this.languageCode,
@@ -314,6 +346,10 @@ class _$AppSettingsImpl implements _AppSettings {
   @override
   final bool billRemindersEnabled;
 
+  /// Enable/disable income reminders
+  @override
+  final bool incomeRemindersEnabled;
+
   /// Budget alert threshold percentage (0-100)
   @override
   final int budgetAlertThreshold;
@@ -321,6 +357,10 @@ class _$AppSettingsImpl implements _AppSettings {
   /// Days before bill due date to show reminder
   @override
   final int billReminderDays;
+
+  /// Days before income expected to show reminder
+  @override
+  final int incomeReminderDays;
 
   /// Enable/disable biometric authentication
   @override
@@ -344,7 +384,7 @@ class _$AppSettingsImpl implements _AppSettings {
 
   @override
   String toString() {
-    return 'AppSettings(themeMode: $themeMode, currencyCode: $currencyCode, dateFormat: $dateFormat, notificationsEnabled: $notificationsEnabled, budgetAlertsEnabled: $budgetAlertsEnabled, billRemindersEnabled: $billRemindersEnabled, budgetAlertThreshold: $budgetAlertThreshold, billReminderDays: $billReminderDays, biometricEnabled: $biometricEnabled, autoBackupEnabled: $autoBackupEnabled, languageCode: $languageCode, isFirstTime: $isFirstTime, appVersion: $appVersion)';
+    return 'AppSettings(themeMode: $themeMode, currencyCode: $currencyCode, dateFormat: $dateFormat, notificationsEnabled: $notificationsEnabled, budgetAlertsEnabled: $budgetAlertsEnabled, billRemindersEnabled: $billRemindersEnabled, incomeRemindersEnabled: $incomeRemindersEnabled, budgetAlertThreshold: $budgetAlertThreshold, billReminderDays: $billReminderDays, incomeReminderDays: $incomeReminderDays, biometricEnabled: $biometricEnabled, autoBackupEnabled: $autoBackupEnabled, languageCode: $languageCode, isFirstTime: $isFirstTime, appVersion: $appVersion)';
   }
 
   @override
@@ -364,10 +404,14 @@ class _$AppSettingsImpl implements _AppSettings {
                 other.budgetAlertsEnabled == budgetAlertsEnabled) &&
             (identical(other.billRemindersEnabled, billRemindersEnabled) ||
                 other.billRemindersEnabled == billRemindersEnabled) &&
+            (identical(other.incomeRemindersEnabled, incomeRemindersEnabled) ||
+                other.incomeRemindersEnabled == incomeRemindersEnabled) &&
             (identical(other.budgetAlertThreshold, budgetAlertThreshold) ||
                 other.budgetAlertThreshold == budgetAlertThreshold) &&
             (identical(other.billReminderDays, billReminderDays) ||
                 other.billReminderDays == billReminderDays) &&
+            (identical(other.incomeReminderDays, incomeReminderDays) ||
+                other.incomeReminderDays == incomeReminderDays) &&
             (identical(other.biometricEnabled, biometricEnabled) ||
                 other.biometricEnabled == biometricEnabled) &&
             (identical(other.autoBackupEnabled, autoBackupEnabled) ||
@@ -389,8 +433,10 @@ class _$AppSettingsImpl implements _AppSettings {
       notificationsEnabled,
       budgetAlertsEnabled,
       billRemindersEnabled,
+      incomeRemindersEnabled,
       budgetAlertThreshold,
       billReminderDays,
+      incomeReminderDays,
       biometricEnabled,
       autoBackupEnabled,
       languageCode,
@@ -412,8 +458,10 @@ abstract class _AppSettings implements AppSettings {
       required final bool notificationsEnabled,
       required final bool budgetAlertsEnabled,
       required final bool billRemindersEnabled,
+      required final bool incomeRemindersEnabled,
       required final int budgetAlertThreshold,
       required final int billReminderDays,
+      required final int incomeReminderDays,
       required final bool biometricEnabled,
       required final bool autoBackupEnabled,
       required final String languageCode,
@@ -446,12 +494,20 @@ abstract class _AppSettings implements AppSettings {
   bool get billRemindersEnabled;
   @override
 
+  /// Enable/disable income reminders
+  bool get incomeRemindersEnabled;
+  @override
+
   /// Budget alert threshold percentage (0-100)
   int get budgetAlertThreshold;
   @override
 
   /// Days before bill due date to show reminder
   int get billReminderDays;
+  @override
+
+  /// Days before income expected to show reminder
+  int get incomeReminderDays;
   @override
 
   /// Enable/disable biometric authentication

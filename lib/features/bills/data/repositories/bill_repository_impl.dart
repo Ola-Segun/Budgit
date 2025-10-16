@@ -333,4 +333,28 @@ class BillRepositoryImpl implements BillRepository {
       return Result.error(Failure.unknown('Failed to reconcile bill payments: $e'));
     }
   }
+
+  @override
+  Future<Result<bool>> nameExists(String name, {String? excludeId}) async {
+    try {
+      final billsResult = await _dataSource.getAll();
+      if (billsResult.isError) {
+        return Result.error(billsResult.failureOrNull!);
+      }
+
+      final bills = billsResult.dataOrNull ?? [];
+      final trimmedName = name.trim().toLowerCase();
+
+      final exists = bills.any((bill) {
+        if (excludeId != null && bill.id == excludeId) {
+          return false;
+        }
+        return bill.name.trim().toLowerCase() == trimmedName;
+      });
+
+      return Result.success(exists);
+    } catch (e) {
+      return Result.error(Failure.unknown('Failed to check if bill name exists: $e'));
+    }
+  }
 }

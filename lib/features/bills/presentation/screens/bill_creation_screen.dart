@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,24 +26,37 @@ class BillCreationScreen extends ConsumerStatefulWidget {
 }
 
 class _BillCreationScreenState extends ConsumerState<BillCreationScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _amountController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _payeeController = TextEditingController();
-  final _websiteController = TextEditingController();
-  final _notesController = TextEditingController();
+   final _formKey = GlobalKey<FormState>();
+   final _nameController = TextEditingController();
+   final _amountController = TextEditingController();
+   final _descriptionController = TextEditingController();
+   final _payeeController = TextEditingController();
+   final _websiteController = TextEditingController();
+   final _notesController = TextEditingController();
 
-  BillFrequency _selectedFrequency = BillFrequency.monthly;
-  DateTime _selectedDueDate = DateTime.now().add(const Duration(days: 30));
-  String _selectedCategoryId = ''; // Will be set dynamically
-  String? _selectedAccountId;
-  bool _isAutoPay = false;
+   BillFrequency _selectedFrequency = BillFrequency.monthly;
+   DateTime _selectedDueDate = DateTime.now().add(const Duration(days: 30));
+   String _selectedCategoryId = ''; // Will be set dynamically
+   String? _selectedAccountId;
+   bool _isAutoPay = false;
 
-  bool _isSubmitting = false;
+   bool _isSubmitting = false;
+
+   // Reactive validation state
+   String? _nameValidationError;
+   bool _isValidatingName = false;
+   Timer? _nameValidationTimer;
+   String _lastValidatedName = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _setupNameValidationListener();
+  }
 
   @override
   void dispose() {
+    _nameValidationTimer?.cancel();
     _nameController.dispose();
     _amountController.dispose();
     _descriptionController.dispose();
@@ -51,31 +66,181 @@ class _BillCreationScreenState extends ConsumerState<BillCreationScreen> {
     super.dispose();
   }
 
+  void _setupNameValidationListener() {
+    _nameController.addListener(_onNameChanged);
+  }
+
+  void _onNameChanged() {
+    final name = _nameController.text.trim();
+
+    // Clear validation error if name is empty
+    if (name.isEmpty) {
+      setState(() {
+        _nameValidationError = null;
+        _isValidatingName = false;
+      });
+      _nameValidationTimer?.cancel();
+      return;
+    }
+
+    // Don't validate if name hasn't changed
+    if (name == _lastValidatedName) {
+      return;
+    }
+
+    // Cancel previous timer
+    _nameValidationTimer?.cancel();
+
+    // Set validating state
+    setState(() {
+      _isValidatingName = true;
+      _nameValidationError = null;
+    });
+
+    // Debounce validation
+    _nameValidationTimer = Timer(const Duration(milliseconds: 500), () {
+      _validateBillName(name);
+    });
+  }
+
+  Future<void> _validateBillName(String name) async {
+    if (!mounted) return;
+
+    try {
+      final billState = ref.read(billNotifierProvider);
+      final existingBills = billState.maybeWhen(
+        loaded: (bills, summary) => bills,
+        orElse: () => <Bill>[],
+      );
+
+      // Check for duplicates (case-insensitive)
+      final isDuplicate = existingBills.any(
+        (bill) => bill.name.trim().toLowerCase() == name.toLowerCase(),
+      );
+
+      if (mounted) {
+        setState(() {
+          _isValidatingName = false;
+          _lastValidatedName = name;
+          _nameValidationError = isDuplicate
+              ? 'A bill with this name already exists'
+              : null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isValidatingName = false;
+          _nameValidationError = null; // Clear error on failure
+        });
+      }
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Save reference to MediaQuery for safe access in dispose
+    // This prevents the "deactivated widget" error
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Add Bill'),
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: AppTheme.screenPaddingAll,
-          children: [
-            // Bill Name
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Bill Name',
-                hintText: 'e.g., Electricity Bill',
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter a bill name';
-                }
-                return null;
-              },
-              autofocus: true,
+      body: Consumer(
+        builder: (context, ref, child) {
+          return Form(
+            key: _formKey,
+            child: ListView(
+              padding: AppTheme.screenPaddingAll,
+              children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Bill Name',
+                    hintText: 'e.g., Electricity Bill',
+                    errorStyle: const TextStyle(height: 0.8),
+                    errorBorder: (_nameValidationError != null ||
+                            (ref.watch(billNotifierProvider).maybeWhen(
+                              error: (message, bills, summary) => message?.contains('Bill names must be unique') ?? false,
+                              orElse: () => false,
+                            )))
+                        ? OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.error,
+                              width: 2,
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          )
+                        : null,
+                  focusedErrorBorder: (_nameValidationError != null ||
+                            (ref.watch(billNotifierProvider).maybeWhen(
+                              error: (message, bills, summary) => message?.contains('Bill names must be unique') ?? false,
+                              orElse: () => false,
+                            )))
+                        ? OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.error,
+                              width: 2,
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          )
+                        : null,
+                    suffixIcon: _isValidatingName
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: Padding(
+                              padding: EdgeInsets.all(12),
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : null,
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter a bill name';
+                    }
+                    // Basic client-side validation - full uniqueness check happens in use case
+                    if (value.trim().length < 2) {
+                      return 'Bill name must be at least 2 characters';
+                    }
+                    return null;
+                  },
+                  autofocus: true,
+                ),
+                // Show instant validation feedback
+                if (_nameValidationError != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4, left: 12),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          color: Theme.of(context).colorScheme.error,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            _nameValidationError!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 16),
 
@@ -547,8 +712,10 @@ Consumer(
             ),
           ],
         ),
-      ),
-    );
+      );
+    },
+  ),
+);
   }
 
   /// Get smart default category ID for expense categories (bills)
@@ -575,103 +742,138 @@ Consumer(
     return expenseCategories.first.id;
   }
 
-  Future<void> _submitBill() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
+// In your _submitBill method, replace the createBill call section with this:
+
+Future<void> _submitBill() async {
+  if (!_formKey.currentState!.validate()) {
+    return;
+  }
+
+  // Check for instant validation error
+  if (_nameValidationError != null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_nameValidationError!),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
+  setState(() => _isSubmitting = true);
+
+  try {
+    final billAmount = double.parse(_amountController.text);
+
+    // Validate selected account if one is chosen
+    if (_selectedAccountId != null) {
+      final accountRepository = ref.read(core_providers.accountRepositoryProvider);
+      final validateAccount = ValidateBillAccount(accountRepository);
+      final accountValidation = await validateAccount(_selectedAccountId, billAmount);
+
+      if (accountValidation.isError) {
+        final failure = accountValidation.failureOrNull!;
+
+        String errorMessage = failure.message;
+        if (failure is ValidationFailure) {
+          final errors = failure.errors;
+          if (errors.containsKey('accountId')) {
+            errorMessage = errors['accountId']!;
+          }
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+        return;
+      }
     }
 
-    setState(() => _isSubmitting = true);
+    final amount = double.parse(_amountController.text);
 
-    try {
-      final billAmount = double.parse(_amountController.text);
+    final bill = Bill(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      name: _nameController.text.trim(),
+      amount: amount,
+      dueDate: _selectedDueDate,
+      frequency: _selectedFrequency,
+      categoryId: _selectedCategoryId,
+      accountId: _selectedAccountId,
+      description: _descriptionController.text.trim().isNotEmpty
+          ? _descriptionController.text.trim()
+          : null,
+      payee: _payeeController.text.trim().isNotEmpty
+          ? _payeeController.text.trim()
+          : null,
+      isAutoPay: _isAutoPay,
+      website: _websiteController.text.trim().isNotEmpty
+          ? _websiteController.text.trim()
+          : null,
+      notes: _notesController.text.trim().isNotEmpty
+          ? _notesController.text.trim()
+          : null,
+    );
 
-      // Validate selected account if one is chosen
-      if (_selectedAccountId != null) {
-        final accountRepository = ref.read(core_providers.accountRepositoryProvider);
-        final validateAccount = ValidateBillAccount(accountRepository);
-        final accountValidation = await validateAccount(_selectedAccountId, billAmount);
+    final success = await ref
+        .read(billNotifierProvider.notifier)
+        .createBill(bill);
 
-        if (accountValidation.isError) {
-          final failure = accountValidation.failureOrNull!;
-
-          String errorMessage = failure.message;
-          if (failure is ValidationFailure) {
-            final errors = failure.errors;
-            if (errors.containsKey('accountId')) {
-              errorMessage = errors['accountId']!;
-            }
-          }
-
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(errorMessage),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 4),
-              ),
-            );
-          }
-          return;
+    if (success && mounted) {
+      // Invalidate dashboard to refresh data
+      ref.invalidate(dashboardDataProvider);
+      // Use a post-frame callback to ensure the widget is still mounted
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Bill added successfully')),
+          );
+          Navigator.pop(context);
         }
-      }
-
-      final amount = double.parse(_amountController.text);
-
-      final bill = Bill(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        name: _nameController.text.trim(),
-        amount: amount,
-        dueDate: _selectedDueDate,
-        frequency: _selectedFrequency,
-        categoryId: _selectedCategoryId,
-        accountId: _selectedAccountId,
-        description: _descriptionController.text.trim().isNotEmpty
-            ? _descriptionController.text.trim()
-            : null,
-        payee: _payeeController.text.trim().isNotEmpty
-            ? _payeeController.text.trim()
-            : null,
-        isAutoPay: _isAutoPay,
-        website: _websiteController.text.trim().isNotEmpty
-            ? _websiteController.text.trim()
-            : null,
-        notes: _notesController.text.trim().isNotEmpty
-            ? _notesController.text.trim()
-            : null,
+      });
+    } else if (mounted) {
+      // Get the error message from the state
+      final billState = ref.read(billNotifierProvider);
+      final errorMessage = billState.maybeWhen(
+        error: (message, bills, summary) => message ?? 'Failed to add bill',
+        orElse: () => 'Failed to add bill',
       );
 
-      final success = await ref
-          .read(billNotifierProvider.notifier)
-          .createBill(bill);
+      // IMPORTANT: Clear the error state by reloading bills
+      // This prevents the error from persisting when navigating back
+      await ref.read(billNotifierProvider.notifier).clearError();
 
-      if (success && mounted) {
-        // Invalidate dashboard to refresh data
-        ref.invalidate(dashboardDataProvider);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Bill added successfully')),
-        );
-        Navigator.pop(context);
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to add bill'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
+      // Use a post-frame callback to ensure the widget is still mounted
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      });
+    }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  } finally {
+    if (mounted) {
+      setState(() => _isSubmitting = false);
     }
   }
+}
 }

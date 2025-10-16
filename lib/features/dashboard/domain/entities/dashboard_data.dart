@@ -2,6 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../../../bills/domain/entities/bill.dart';
 import '../../../insights/domain/entities/insight.dart';
+import '../../../recurring_incomes/domain/entities/recurring_income.dart';
 import '../../../transactions/domain/entities/transaction.dart';
 
 part 'dashboard_data.freezed.dart';
@@ -13,6 +14,7 @@ class DashboardData with _$DashboardData {
     required FinancialSnapshot financialSnapshot,
     required List<BudgetCategoryOverview> budgetOverview,
     required List<Bill> upcomingBills,
+    required List<RecurringIncomeStatus> upcomingIncomes,
     required List<Transaction> recentTransactions,
     required List<Insight> insights,
     required DateTime generatedAt,

@@ -51,4 +51,7 @@ abstract class BillRepository {
   /// Reconcile bill payment data consistency
   /// Ensures bill status matches associated transactions
   Future<Result<void>> reconcileBillPayments(String billId);
+
+  /// Check if a bill name already exists
+  Future<Result<bool>> nameExists(String name, {String? excludeId});
 }

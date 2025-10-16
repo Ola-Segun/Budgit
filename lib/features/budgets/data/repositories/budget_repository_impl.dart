@@ -164,4 +164,28 @@ class BudgetRepositoryImpl implements BudgetRepository {
         return BudgetHealthStatus.overBudget;
     }
   }
+
+  @override
+  Future<Result<bool>> nameExists(String name, {String? excludeId}) async {
+    try {
+      final budgetsResult = await _dataSource.getAll();
+      if (budgetsResult.isError) {
+        return Result.error(budgetsResult.failureOrNull!);
+      }
+
+      final budgets = budgetsResult.dataOrNull ?? [];
+      final trimmedName = name.trim().toLowerCase();
+
+      final exists = budgets.any((budget) {
+        if (excludeId != null && budget.id == excludeId) {
+          return false;
+        }
+        return budget.name.trim().toLowerCase() == trimmedName;
+      });
+
+      return Result.success(exists);
+    } catch (e) {
+      return Result.error(Failure.unknown('Failed to check if budget name exists: $e'));
+    }
+  }
 }

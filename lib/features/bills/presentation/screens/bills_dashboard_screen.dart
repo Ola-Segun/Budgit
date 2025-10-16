@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:go_router/go_router.dart';
+import 'dart:developer' as developer;
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/error_view.dart';
 import '../../../../core/widgets/loading_view.dart';
 import '../../../accounts/presentation/providers/account_providers.dart';
+import '../../../recurring_incomes/domain/entities/recurring_income.dart';
 import '../../domain/entities/bill.dart';
 import '../providers/bill_providers.dart';
 import '../widgets/bill_card.dart';
@@ -22,14 +24,23 @@ class BillsDashboardScreen extends ConsumerStatefulWidget {
 class _BillsDashboardScreenState extends ConsumerState<BillsDashboardScreen> {
   String? _selectedAccountFilterId;
   bool _showLinkedOnly = false;
+  String? _selectedIncomeAccountFilterId;
+  bool _showIncomeLinkedOnly = false;
 
   @override
   Widget build(BuildContext context) {
+    developer.log('BillsDashboardScreen built', name: 'Navigation');
     final billState = ref.watch(billNotifierProvider);
-    final summary = ref.watch(billsSummaryProvider);
     final upcomingBills = ref.watch(upcomingBillsProvider);
     final overdueCount = ref.watch(overdueBillsCountProvider);
     final totalMonthly = ref.watch(totalMonthlyBillsProvider);
+
+    // Recurring income data
+    final recurringIncomeSummary = ref.watch(recurringIncomesSummaryProvider);
+    final upcomingIncomes = ref.watch(upcomingIncomesProvider);
+    final expectedIncomesThisMonth = ref.watch(expectedIncomesThisMonthProvider);
+    final totalMonthlyIncomes = ref.watch(totalMonthlyIncomesProvider);
+    final receivedIncomesThisMonth = ref.watch(receivedIncomesThisMonthProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -37,7 +48,10 @@ class _BillsDashboardScreenState extends ConsumerState<BillsDashboardScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () => context.go('/more/bills/add'),
+            onPressed: () {
+              developer.log('Navigating to add bill screen', name: 'Navigation');
+              context.go('/more/bills/add');
+            },
           ),
         ],
       ),
@@ -51,6 +65,11 @@ class _BillsDashboardScreenState extends ConsumerState<BillsDashboardScreen> {
           upcomingBills,
           overdueCount,
           totalMonthly,
+          recurringIncomeSummary,
+          upcomingIncomes,
+          expectedIncomesThisMonth,
+          totalMonthlyIncomes,
+          receivedIncomesThisMonth,
         ),
         error: (message, bills, errorSummary) => ErrorView(
           message: message,
@@ -71,6 +90,11 @@ class _BillsDashboardScreenState extends ConsumerState<BillsDashboardScreen> {
     List<BillStatus> upcomingBills,
     int overdueCount,
     double totalMonthly,
+    RecurringIncomesSummary? recurringIncomeSummary,
+    List<RecurringIncomeStatus> upcomingIncomes,
+    int expectedIncomesThisMonth,
+    double totalMonthlyIncomes,
+    double receivedIncomesThisMonth,
   ) {
     return RefreshIndicator(
       onRefresh: () async {
@@ -80,7 +104,7 @@ class _BillsDashboardScreenState extends ConsumerState<BillsDashboardScreen> {
         padding: AppTheme.screenPaddingAll,
         children: [
           // Summary Cards
-          _buildSummaryCards(context, summary, overdueCount, totalMonthly),
+          _buildSummaryCards(context, summary, overdueCount, totalMonthly, recurringIncomeSummary, expectedIncomesThisMonth, totalMonthlyIncomes, receivedIncomesThisMonth),
           const SizedBox(height: 24),
 
           // Account Filters
@@ -90,6 +114,14 @@ class _BillsDashboardScreenState extends ConsumerState<BillsDashboardScreen> {
           // Upcoming Bills
           _buildUpcomingBillsSection(context, upcomingBills),
           const SizedBox(height: 24),
+
+          // Upcoming Incomes
+          _buildUpcomingIncomesSection(context, upcomingIncomes),
+          const SizedBox(height: 24),
+
+          // Income Account Filters
+          _buildIncomeAccountFilters(context),
+          const SizedBox(height: 16),
 
           // All Bills
           _buildAllBillsSection(context, ref),
@@ -106,6 +138,10 @@ class _BillsDashboardScreenState extends ConsumerState<BillsDashboardScreen> {
     BillsSummary summary,
     int overdueCount,
     double totalMonthly,
+    RecurringIncomesSummary? recurringIncomeSummary,
+    int expectedIncomesThisMonth,
+    double totalMonthlyIncomes,
+    double receivedIncomesThisMonth,
   ) {
     final billState = ref.watch(billNotifierProvider);
     final linkedBillsCount = billState.maybeWhen(
@@ -159,6 +195,30 @@ class _BillsDashboardScreenState extends ConsumerState<BillsDashboardScreen> {
                 '${summary.paidThisMonth}/${summary.dueThisMonth}',
                 Icons.check_circle,
                 Colors.green,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _buildSummaryCard(
+                context,
+                'Monthly Income',
+                '\$${totalMonthlyIncomes.toStringAsFixed(2)}',
+                Icons.trending_up,
+                Colors.blue,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildSummaryCard(
+                context,
+                'Received',
+                '\$${receivedIncomesThisMonth.toStringAsFixed(2)}',
+                Icons.account_balance_wallet,
+                Colors.teal,
               ),
             ),
           ],
@@ -250,7 +310,8 @@ class _BillsDashboardScreenState extends ConsumerState<BillsDashboardScreen> {
             label: Text(
               'All Bills',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
               ),
             ),
             selected: _selectedAccountFilterId == null && !_showLinkedOnly,
@@ -267,7 +328,8 @@ class _BillsDashboardScreenState extends ConsumerState<BillsDashboardScreen> {
                     FilterChip(
                       label:  Text('Linked Only',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
               ),),
                       selected: _showLinkedOnly,
                       onSelected: (selected) {
@@ -287,7 +349,11 @@ class _BillsDashboardScreenState extends ConsumerState<BillsDashboardScreen> {
                           size: 16,
                           color: Color(account.type.color),
                         ),
-                        label: Text(account.displayName),
+                        label: Text(account.displayName,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),),
                         selected: _selectedAccountFilterId == account.id,
                         onSelected: (selected) {
                           setState(() {
@@ -480,8 +546,225 @@ class _BillsDashboardScreenState extends ConsumerState<BillsDashboardScreen> {
             ),
           ),
         ),
-        onTap: () => context.go('/more/bills/${status.bill.id}'),
+        onTap: () {
+          developer.log('Navigating to bill detail: ${status.bill.id}', name: 'Navigation');
+          context.go('/more/bills/${status.bill.id}');
+        },
       ),
+    );
+  }
+
+  Widget _buildUpcomingIncomesSection(BuildContext context, List<RecurringIncomeStatus> upcomingIncomes) {
+    final filteredUpcomingIncomes = upcomingIncomes.where((status) {
+      if (_showIncomeLinkedOnly) {
+        return status.income.effectiveAccountId != null;
+      } else if (_selectedIncomeAccountFilterId != null) {
+        return status.income.effectiveAccountId == _selectedIncomeAccountFilterId;
+      }
+      return true;
+    }).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Upcoming Incomes',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        const SizedBox(height: 16),
+        if (filteredUpcomingIncomes.isEmpty)
+          _buildEmptyUpcomingIncomes(context)
+        else
+          ...filteredUpcomingIncomes.map((status) => _buildUpcomingIncomeCard(context, status)),
+      ],
+    );
+  }
+
+  Widget _buildEmptyUpcomingIncomes(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            Icon(
+              Icons.trending_up_outlined,
+              size: 48,
+              color: Theme.of(context).colorScheme.outline,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No upcoming incomes',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'All your incomes are received or no incomes are expected soon',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUpcomingIncomeCard(BuildContext context, RecurringIncomeStatus status) {
+    final color = _getIncomeUrgencyColor(status.urgency);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: color.withValues(alpha: 0.1),
+          child: Icon(
+            Icons.trending_up,
+            color: color,
+          ),
+        ),
+        title: Text(status.income.name),
+        subtitle: Text(
+          '${status.daysUntilExpected} days • \$${status.income.amount.toStringAsFixed(2)}',
+        ),
+        trailing: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            status.urgency.displayName,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        onTap: () {
+          developer.log('Navigating to income detail: ${status.income.id}', name: 'Navigation');
+          context.go('/more/incomes/${status.income.id}');
+        },
+      ),
+    );
+  }
+
+  Color _getIncomeUrgencyColor(RecurringIncomeUrgency urgency) {
+    switch (urgency) {
+      case RecurringIncomeUrgency.normal:
+        return Colors.grey;
+      case RecurringIncomeUrgency.expectedSoon:
+        return Colors.blue;
+      case RecurringIncomeUrgency.expectedToday:
+        return Colors.green;
+      case RecurringIncomeUrgency.overdue:
+        return Colors.red.shade900;
+    }
+  }
+
+  Widget _buildIncomeAccountFilters(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Filter Incomes by Account',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+        const SizedBox(height: 12),
+        Consumer(
+          builder: (context, ref, child) {
+            final accountsAsync = ref.watch(filteredAccountsProvider);
+            return accountsAsync.when(
+              data: (accounts) {
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    // All incomes filter
+                    FilterChip(
+                      label: Text(
+                        'All Incomes',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                        ),
+                      ),
+                      selected: _selectedIncomeAccountFilterId == null && !_showIncomeLinkedOnly,
+                      onSelected: (selected) {
+                        if (selected) {
+                          setState(() {
+                            _selectedIncomeAccountFilterId = null;
+                            _showIncomeLinkedOnly = false;
+                          });
+                        }
+                      },
+                    ),
+                    // Linked incomes only filter
+                    FilterChip(
+                      label: Text('Linked Only',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                        ),),
+                      selected: _showIncomeLinkedOnly,
+                      onSelected: (selected) {
+                        setState(() {
+                          _showIncomeLinkedOnly = selected;
+                          if (!selected && _selectedIncomeAccountFilterId == null) {
+                            // If unselecting linked only and no account selected, stay on all
+                          }
+                        });
+                      },
+                    ),
+                    // Individual account filters
+                    ...accounts.map((account) {
+                      return FilterChip(
+                        avatar: Icon(
+                          Icons.account_balance_wallet,
+                          size: 16,
+                          color: Color(account.type.color),
+                        ),
+                        label: Text(account.displayName,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14,
+                          ),),
+                        selected: _selectedIncomeAccountFilterId == account.id,
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedIncomeAccountFilterId = selected ? account.id : null;
+                            _showIncomeLinkedOnly = false; // Clear linked only when selecting specific account
+                          });
+                        },
+                      );
+                    }),
+                  ],
+                );
+              },
+              loading: () => const SizedBox(
+                height: 40,
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (error, stack) => Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Error loading accounts: $error',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -512,7 +795,21 @@ class _BillsDashboardScreenState extends ConsumerState<BillsDashboardScreen> {
             Expanded(
               child: _buildQuickActionButton(
                 context,
-                'View All',
+                'Add Income',
+                Icons.trending_up,
+                Colors.teal,
+                () => context.go('/more/incomes/add'), // Assuming this route exists
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _buildQuickActionButton(
+                context,
+                'View All Bills',
                 Icons.list,
                 Colors.green,
                 () {
@@ -521,6 +818,19 @@ class _BillsDashboardScreenState extends ConsumerState<BillsDashboardScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('All bills shown above')),
                   );
+                },
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildQuickActionButton(
+                context,
+                'View All Incomes',
+                Icons.account_balance_wallet,
+                Colors.purple,
+                () {
+                  developer.log('Navigating to incomes dashboard from quick actions', name: 'Navigation');
+                  context.go('/more/incomes');
                 },
               ),
             ),

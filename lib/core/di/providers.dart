@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hive/hive.dart';
 
 import '../storage/hive_storage.dart';
 import '../router/app_router.dart';
@@ -68,6 +69,14 @@ import '../../features/debt/domain/usecases/get_debts.dart';
 import '../../features/debt/domain/usecases/update_debt.dart';
 import '../../features/debt/domain/usecases/delete_debt.dart';
 import '../../features/settings/presentation/providers/settings_providers.dart' as settings_providers;
+import '../../features/recurring_incomes/domain/repositories/recurring_income_repository.dart';
+import '../../features/recurring_incomes/data/repositories/recurring_income_repository_impl.dart';
+import '../../features/recurring_incomes/domain/usecases/create_recurring_income.dart';
+import '../../features/recurring_incomes/domain/usecases/get_recurring_incomes.dart';
+import '../../features/recurring_incomes/domain/usecases/record_income_receipt.dart';
+import '../../features/recurring_incomes/data/datasources/recurring_income_hive_datasource.dart';
+import '../../features/recurring_incomes/data/models/recurring_income_dto.dart';
+import '../../features/recurring_incomes/presentation/providers/recurring_income_providers.dart' as recurring_income_providers;
 import '../../features/notifications/presentation/providers/notification_providers.dart' as notification_providers;
 
 /// Core providers for dependency injection
@@ -480,54 +489,61 @@ final appInitializationProvider = FutureProvider<void>((ref) async {
     await HiveStorage.init();
     ref.read(errorLoggerProvider).logInfo('Hive storage initialized');
 
-    // Initialize data sources (this also creates the singleton instances)
-    final transactionDataSource = ref.read(transactionDataSourceProvider);
-    final categoryDataSource = ref.read(transactionCategoryDataSourceProvider);
+    // Initialize data sources in dependency order
+    // Start with core data sources that others depend on
+
+    ref.read(errorLoggerProvider).logInfo('Initializing account data source');
     final accountDataSource = ref.read(accountDataSourceProvider);
-    final budgetDataSource = ref.read(budgetDataSourceProvider);
-    final billDataSource = ref.read(billDataSourceProvider); // This creates the singleton
-    final goalDataSource = ref.read(goalDataSourceProvider);
-    final insightDataSource = ref.read(insightDataSourceProvider);
-    final settingsDataSource = ref.read(settings_providers.settingsDataSourceProvider);
-    final debtDataSource = ref.read(debtDataSourceProvider);
+    await accountDataSource.init();
+    ref.read(errorLoggerProvider).logInfo('Account data source initialized');
 
     ref.read(errorLoggerProvider).logInfo('Initializing transaction data source');
+    final transactionDataSource = ref.read(transactionDataSourceProvider);
     await transactionDataSource.init();
     ref.read(errorLoggerProvider).logInfo('Transaction data source initialized');
 
     ref.read(errorLoggerProvider).logInfo('Initializing category data source');
+    final categoryDataSource = ref.read(transactionCategoryDataSourceProvider);
     await categoryDataSource.init();
     ref.read(errorLoggerProvider).logInfo('Category data source initialized');
 
-    ref.read(errorLoggerProvider).logInfo('Initializing account data source');
-    await accountDataSource.init();
-    ref.read(errorLoggerProvider).logInfo('Account data source initialized');
-
     ref.read(errorLoggerProvider).logInfo('Initializing budget data source');
+    final budgetDataSource = ref.read(budgetDataSourceProvider);
     await budgetDataSource.init();
     ref.read(errorLoggerProvider).logInfo('Budget data source initialized');
 
     ref.read(errorLoggerProvider).logInfo('Initializing bill data source');
+    final billDataSource = ref.read(billDataSourceProvider); // This creates the singleton
     await billDataSource.init();
     ref.read(errorLoggerProvider).logInfo('Bill data source initialized');
 
     ref.read(errorLoggerProvider).logInfo('Initializing goal data source');
+    final goalDataSource = ref.read(goalDataSourceProvider);
     await goalDataSource.init();
     ref.read(errorLoggerProvider).logInfo('Goal data source initialized');
 
     ref.read(errorLoggerProvider).logInfo('Initializing insight data source');
+    final insightDataSource = ref.read(insightDataSourceProvider);
     await insightDataSource.init();
     ref.read(errorLoggerProvider).logInfo('Insight data source initialized');
 
     ref.read(errorLoggerProvider).logInfo('Initializing settings data source');
+    final settingsDataSource = ref.read(settings_providers.settingsDataSourceProvider);
     await settingsDataSource.init();
     ref.read(errorLoggerProvider).logInfo('Settings data source initialized');
 
     ref.read(errorLoggerProvider).logInfo('Initializing debt data source');
+    final debtDataSource = ref.read(debtDataSourceProvider);
     await debtDataSource.init();
     ref.read(errorLoggerProvider).logInfo('Debt data source initialized');
 
-    // Initialize onboarding data source
+    // Initialize recurring income data source (depends on transaction data source)
+    ref.read(errorLoggerProvider).logInfo('Initializing recurring income data source');
+    final recurringIncomeDataSource = ref.read(recurringIncomeDataSourceProvider);
+    await recurringIncomeDataSource.init();
+    ref.read(errorLoggerProvider).logInfo('Recurring income data source initialized');
+
+    // Initialize onboarding data source (depends on user profile)
     ref.read(errorLoggerProvider).logInfo('Initializing user profile data source');
     final userProfileDataSource = ref.read(onboarding_providers.userProfileDataSourceProvider);
     await userProfileDataSource.init();
@@ -540,11 +556,43 @@ final appInitializationProvider = FutureProvider<void>((ref) async {
     ref.read(errorLoggerProvider).logInfo('Notification service initialized');
 
     // Initialize other services here as needed
-    ref.read(errorLoggerProvider).logInfo('App initialized successfully');
 
+    ref.read(errorLoggerProvider).logInfo('App initialized successfully');
     // Note: Onboarding state is initialized lazily when accessed
   } catch (e, stackTrace) {
     ref.read(errorLoggerProvider).logError(e, stackTrace);
     rethrow;
   }
 });
+// Recurring Income data sources
+final recurringIncomeDataSourceProvider = Provider<RecurringIncomeHiveDataSource>((ref) {
+  return RecurringIncomeHiveDataSource();
+});
+
+// Recurring Income repositories
+final recurringIncomeRepositoryProvider = Provider<RecurringIncomeRepository>((ref) {
+  return RecurringIncomeRepositoryImpl(
+    ref.read(accountRepositoryProvider),
+    ref.read(addTransactionProvider),
+    ref.read(deleteTransactionProvider),
+  );
+});
+
+// Recurring Income use cases
+final createRecurringIncomeProvider = Provider<CreateRecurringIncome>((ref) {
+  return CreateRecurringIncome(
+    ref.read(recurringIncomeRepositoryProvider),
+    ref.read(accountRepositoryProvider),
+  );
+});
+
+final getRecurringIncomesProvider = Provider<GetRecurringIncomes>((ref) {
+  return GetRecurringIncomes(ref.read(recurringIncomeRepositoryProvider));
+});
+
+final recordIncomeReceiptProvider = Provider<RecordIncomeReceipt>((ref) {
+  return RecordIncomeReceipt(ref.read(recurringIncomeRepositoryProvider));
+});
+
+// Recurring Income notifier provider
+final recurringIncomeNotifierProvider = recurring_income_providers.recurringIncomeNotifierProvider;

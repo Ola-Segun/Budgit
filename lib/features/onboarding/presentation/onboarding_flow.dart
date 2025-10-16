@@ -11,11 +11,27 @@ import 'screens/income_entry_screen.dart';
 import 'screens/welcome_screen.dart';
 
 /// Main onboarding flow widget that handles navigation between screens
-class OnboardingFlow extends ConsumerWidget {
+class OnboardingFlow extends ConsumerStatefulWidget {
   const OnboardingFlow({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<OnboardingFlow> createState() => _OnboardingFlowState();
+}
+
+class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
+  final Map<OnboardingStep, GlobalKey> _screenKeys = {};
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize keys for each screen to maintain state properly
+    for (final step in OnboardingStep.values) {
+      _screenKeys[step] = GlobalKey();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final currentStep = ref.watch(currentOnboardingStepProvider);
 
     // Get the index of the current step
@@ -25,15 +41,21 @@ class OnboardingFlow extends ConsumerWidget {
     return Scaffold(
       body: IndexedStack(
         index: currentIndex,
-        children: const [
-          WelcomeScreen(),
-          BudgetTypeSelectionScreen(),
-          IncomeEntryScreen(),
-          BudgetSetupScreen(),
-          BankConnectionScreen(),
-          CompletionScreen(),
+        children: [
+          WelcomeScreen(key: _screenKeys[OnboardingStep.welcome]),
+          BudgetTypeSelectionScreen(key: _screenKeys[OnboardingStep.budgetType]),
+          IncomeEntryScreen(key: _screenKeys[OnboardingStep.income]),
+          BudgetSetupScreen(key: _screenKeys[OnboardingStep.budgetSetup]),
+          BankConnectionScreen(key: _screenKeys[OnboardingStep.bankConnection]),
+          CompletionScreen(key: _screenKeys[OnboardingStep.completion]),
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    // Clear any pending operations when disposing
+    super.dispose();
   }
 }

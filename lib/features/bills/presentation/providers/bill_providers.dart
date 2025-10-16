@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../accounts/presentation/providers/account_providers.dart';
 import '../../../transactions/presentation/providers/transaction_providers.dart';
+import '../../../recurring_incomes/presentation/providers/recurring_income_providers.dart';
+import '../../../recurring_incomes/domain/entities/recurring_income.dart';
 import '../../../../core/di/providers.dart' as core_providers;
 import '../../domain/entities/bill.dart';
 import '../../domain/usecases/calculate_bills_summary.dart';
@@ -120,4 +122,42 @@ final billProvider = FutureProvider.family<Bill?, String>((ref, billId) async {
     loaded: (bills, summary) => bills.where((bill) => bill.id == billId).firstOrNull,
     orElse: () => null,
   );
+});
+
+/// Provider for recurring incomes summary
+final recurringIncomesSummaryProvider = Provider<RecurringIncomesSummary?>((ref) {
+  final recurringIncomeState = ref.watch(recurringIncomeNotifierProvider);
+
+  return recurringIncomeState.maybeWhen(
+    loaded: (incomes, summary) => summary,
+    orElse: () => null,
+  );
+});
+
+/// Provider for upcoming incomes
+final upcomingIncomesProvider = Provider<List<RecurringIncomeStatus>>((ref) {
+  final recurringIncomeState = ref.watch(recurringIncomeNotifierProvider);
+
+  return recurringIncomeState.maybeWhen(
+    loaded: (incomes, summary) => summary.upcomingIncomes,
+    orElse: () => [],
+  );
+});
+
+/// Provider for expected incomes this month
+final expectedIncomesThisMonthProvider = Provider<int>((ref) {
+  final summary = ref.watch(recurringIncomesSummaryProvider);
+  return summary?.expectedThisMonth ?? 0;
+});
+
+/// Provider for total monthly incomes amount
+final totalMonthlyIncomesProvider = Provider<double>((ref) {
+  final summary = ref.watch(recurringIncomesSummaryProvider);
+  return summary?.totalMonthlyAmount ?? 0.0;
+});
+
+/// Provider for received incomes this month
+final receivedIncomesThisMonthProvider = Provider<double>((ref) {
+  final summary = ref.watch(recurringIncomesSummaryProvider);
+  return summary?.receivedThisMonth ?? 0.0;
 });

@@ -27,24 +27,30 @@ class SettingsDto {
   final bool billRemindersEnabled;
 
   @HiveField(6)
-  final int budgetAlertThreshold;
+  final bool incomeRemindersEnabled;
 
   @HiveField(7)
-  final int billReminderDays;
+  final int budgetAlertThreshold;
 
   @HiveField(8)
-  final bool biometricEnabled;
+  final int billReminderDays;
 
   @HiveField(9)
-  final bool autoBackupEnabled;
+  final int incomeReminderDays;
 
   @HiveField(10)
-  final String languageCode;
+  final bool biometricEnabled;
 
   @HiveField(11)
-  final bool isFirstTime;
+  final bool autoBackupEnabled;
 
   @HiveField(12)
+  final String languageCode;
+
+  @HiveField(13)
+  final bool isFirstTime;
+
+  @HiveField(14)
   final String appVersion;
 
   const SettingsDto({
@@ -54,8 +60,10 @@ class SettingsDto {
     required this.notificationsEnabled,
     required this.budgetAlertsEnabled,
     required this.billRemindersEnabled,
+    required this.incomeRemindersEnabled,
     required this.budgetAlertThreshold,
     required this.billReminderDays,
+    required this.incomeReminderDays,
     required this.biometricEnabled,
     required this.autoBackupEnabled,
     required this.languageCode,
@@ -72,8 +80,10 @@ class SettingsDto {
       notificationsEnabled: settings.notificationsEnabled,
       budgetAlertsEnabled: settings.budgetAlertsEnabled,
       billRemindersEnabled: settings.billRemindersEnabled,
+      incomeRemindersEnabled: settings.incomeRemindersEnabled,
       budgetAlertThreshold: settings.budgetAlertThreshold,
       billReminderDays: settings.billReminderDays,
+      incomeReminderDays: settings.incomeReminderDays,
       biometricEnabled: settings.biometricEnabled,
       autoBackupEnabled: settings.autoBackupEnabled,
       languageCode: settings.languageCode,
@@ -94,8 +104,10 @@ class SettingsDto {
       notificationsEnabled: notificationsEnabled,
       budgetAlertsEnabled: budgetAlertsEnabled,
       billRemindersEnabled: billRemindersEnabled,
+      incomeRemindersEnabled: incomeRemindersEnabled,
       budgetAlertThreshold: budgetAlertThreshold,
       billReminderDays: billReminderDays,
+      incomeReminderDays: incomeReminderDays,
       biometricEnabled: biometricEnabled,
       autoBackupEnabled: autoBackupEnabled,
       languageCode: languageCode,

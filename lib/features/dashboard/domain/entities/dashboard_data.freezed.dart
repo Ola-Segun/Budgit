@@ -20,6 +20,8 @@ mixin _$DashboardData {
   List<BudgetCategoryOverview> get budgetOverview =>
       throw _privateConstructorUsedError;
   List<Bill> get upcomingBills => throw _privateConstructorUsedError;
+  List<RecurringIncomeStatus> get upcomingIncomes =>
+      throw _privateConstructorUsedError;
   List<Transaction> get recentTransactions =>
       throw _privateConstructorUsedError;
   List<Insight> get insights => throw _privateConstructorUsedError;
@@ -40,6 +42,7 @@ abstract class $DashboardDataCopyWith<$Res> {
       {FinancialSnapshot financialSnapshot,
       List<BudgetCategoryOverview> budgetOverview,
       List<Bill> upcomingBills,
+      List<RecurringIncomeStatus> upcomingIncomes,
       List<Transaction> recentTransactions,
       List<Insight> insights,
       DateTime generatedAt});
@@ -63,6 +66,7 @@ class _$DashboardDataCopyWithImpl<$Res, $Val extends DashboardData>
     Object? financialSnapshot = null,
     Object? budgetOverview = null,
     Object? upcomingBills = null,
+    Object? upcomingIncomes = null,
     Object? recentTransactions = null,
     Object? insights = null,
     Object? generatedAt = null,
@@ -80,6 +84,10 @@ class _$DashboardDataCopyWithImpl<$Res, $Val extends DashboardData>
           ? _value.upcomingBills
           : upcomingBills // ignore: cast_nullable_to_non_nullable
               as List<Bill>,
+      upcomingIncomes: null == upcomingIncomes
+          ? _value.upcomingIncomes
+          : upcomingIncomes // ignore: cast_nullable_to_non_nullable
+              as List<RecurringIncomeStatus>,
       recentTransactions: null == recentTransactions
           ? _value.recentTransactions
           : recentTransactions // ignore: cast_nullable_to_non_nullable
@@ -116,6 +124,7 @@ abstract class _$$DashboardDataImplCopyWith<$Res>
       {FinancialSnapshot financialSnapshot,
       List<BudgetCategoryOverview> budgetOverview,
       List<Bill> upcomingBills,
+      List<RecurringIncomeStatus> upcomingIncomes,
       List<Transaction> recentTransactions,
       List<Insight> insights,
       DateTime generatedAt});
@@ -138,6 +147,7 @@ class __$$DashboardDataImplCopyWithImpl<$Res>
     Object? financialSnapshot = null,
     Object? budgetOverview = null,
     Object? upcomingBills = null,
+    Object? upcomingIncomes = null,
     Object? recentTransactions = null,
     Object? insights = null,
     Object? generatedAt = null,
@@ -155,6 +165,10 @@ class __$$DashboardDataImplCopyWithImpl<$Res>
           ? _value._upcomingBills
           : upcomingBills // ignore: cast_nullable_to_non_nullable
               as List<Bill>,
+      upcomingIncomes: null == upcomingIncomes
+          ? _value._upcomingIncomes
+          : upcomingIncomes // ignore: cast_nullable_to_non_nullable
+              as List<RecurringIncomeStatus>,
       recentTransactions: null == recentTransactions
           ? _value._recentTransactions
           : recentTransactions // ignore: cast_nullable_to_non_nullable
@@ -178,11 +192,13 @@ class _$DashboardDataImpl extends _DashboardData {
       {required this.financialSnapshot,
       required final List<BudgetCategoryOverview> budgetOverview,
       required final List<Bill> upcomingBills,
+      required final List<RecurringIncomeStatus> upcomingIncomes,
       required final List<Transaction> recentTransactions,
       required final List<Insight> insights,
       required this.generatedAt})
       : _budgetOverview = budgetOverview,
         _upcomingBills = upcomingBills,
+        _upcomingIncomes = upcomingIncomes,
         _recentTransactions = recentTransactions,
         _insights = insights,
         super._();
@@ -203,6 +219,14 @@ class _$DashboardDataImpl extends _DashboardData {
     if (_upcomingBills is EqualUnmodifiableListView) return _upcomingBills;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_upcomingBills);
+  }
+
+  final List<RecurringIncomeStatus> _upcomingIncomes;
+  @override
+  List<RecurringIncomeStatus> get upcomingIncomes {
+    if (_upcomingIncomes is EqualUnmodifiableListView) return _upcomingIncomes;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_upcomingIncomes);
   }
 
   final List<Transaction> _recentTransactions;
@@ -227,7 +251,7 @@ class _$DashboardDataImpl extends _DashboardData {
 
   @override
   String toString() {
-    return 'DashboardData(financialSnapshot: $financialSnapshot, budgetOverview: $budgetOverview, upcomingBills: $upcomingBills, recentTransactions: $recentTransactions, insights: $insights, generatedAt: $generatedAt)';
+    return 'DashboardData(financialSnapshot: $financialSnapshot, budgetOverview: $budgetOverview, upcomingBills: $upcomingBills, upcomingIncomes: $upcomingIncomes, recentTransactions: $recentTransactions, insights: $insights, generatedAt: $generatedAt)';
   }
 
   @override
@@ -242,6 +266,8 @@ class _$DashboardDataImpl extends _DashboardData {
             const DeepCollectionEquality()
                 .equals(other._upcomingBills, _upcomingBills) &&
             const DeepCollectionEquality()
+                .equals(other._upcomingIncomes, _upcomingIncomes) &&
+            const DeepCollectionEquality()
                 .equals(other._recentTransactions, _recentTransactions) &&
             const DeepCollectionEquality().equals(other._insights, _insights) &&
             (identical(other.generatedAt, generatedAt) ||
@@ -254,6 +280,7 @@ class _$DashboardDataImpl extends _DashboardData {
       financialSnapshot,
       const DeepCollectionEquality().hash(_budgetOverview),
       const DeepCollectionEquality().hash(_upcomingBills),
+      const DeepCollectionEquality().hash(_upcomingIncomes),
       const DeepCollectionEquality().hash(_recentTransactions),
       const DeepCollectionEquality().hash(_insights),
       generatedAt);
@@ -270,6 +297,7 @@ abstract class _DashboardData extends DashboardData {
       {required final FinancialSnapshot financialSnapshot,
       required final List<BudgetCategoryOverview> budgetOverview,
       required final List<Bill> upcomingBills,
+      required final List<RecurringIncomeStatus> upcomingIncomes,
       required final List<Transaction> recentTransactions,
       required final List<Insight> insights,
       required final DateTime generatedAt}) = _$DashboardDataImpl;
@@ -281,6 +309,8 @@ abstract class _DashboardData extends DashboardData {
   List<BudgetCategoryOverview> get budgetOverview;
   @override
   List<Bill> get upcomingBills;
+  @override
+  List<RecurringIncomeStatus> get upcomingIncomes;
   @override
   List<Transaction> get recentTransactions;
   @override

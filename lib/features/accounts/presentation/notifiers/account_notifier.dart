@@ -16,6 +16,8 @@ class AccountNotifier extends StateNotifier<AsyncValue<AccountState>> {
   final DeleteAccount _deleteAccount;
   final GetAccountBalance _getAccountBalance;
 
+  bool _isDisposed = false;
+
   AccountNotifier({
     required GetAccounts getAccounts,
     required CreateAccount createAccount,
@@ -31,8 +33,19 @@ class AccountNotifier extends StateNotifier<AsyncValue<AccountState>> {
     loadAccounts();
   }
 
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
+  }
+
+  /// Check if notifier is disposed
+  bool get isDisposed => _isDisposed;
+
   /// Load all accounts and balance information
   Future<void> loadAccounts() async {
+    if (_isDisposed) return;
+
     state = const AsyncValue.loading();
 
     // Load accounts
@@ -42,35 +55,49 @@ class AccountNotifier extends StateNotifier<AsyncValue<AccountState>> {
     final totalBalanceResult = await _getAccountBalance.getTotalBalance();
     final netWorthResult = await _getAccountBalance.getNetWorth();
 
+    if (_isDisposed) return;
+
     accountsResult.when(
       success: (accounts) {
         final totalBalance = totalBalanceResult.getOrDefault(0.0);
         final netWorth = netWorthResult.getOrDefault(0.0);
 
-        state = AsyncValue.data(AccountState(
-          accounts: accounts,
-          totalBalance: totalBalance,
-          netWorth: netWorth,
-        ));
+        if (!_isDisposed) {
+          state = AsyncValue.data(AccountState(
+            accounts: accounts,
+            totalBalance: totalBalance,
+            netWorth: netWorth,
+          ));
+        }
       },
       error: (failure) {
-        state = AsyncValue.error(failure.message, StackTrace.current);
+        if (!_isDisposed) {
+          state = AsyncValue.error(failure.message, StackTrace.current);
+        }
       },
     );
   }
 
   /// Create a new account
   Future<bool> createAccount(Account account) async {
+    if (_isDisposed) return false;
+
     final currentState = state.value;
     if (currentState == null) return false;
 
     // Set loading state
-    state = AsyncValue.data(currentState.copyWith(isLoading: true));
+    if (!_isDisposed) {
+      state = AsyncValue.data(currentState.copyWith(isLoading: true));
+    }
 
     final result = await _createAccount(account);
 
+    if (_isDisposed) return false;
+
     return result.when(
       success: (createdAccount) {
+        if (_isDisposed) return false;
+
         // Update with server response
         final updatedAccounts = [createdAccount, ...currentState.accounts];
         final newTotalBalance = currentState.totalBalance + createdAccount.currentBalance;
@@ -78,20 +105,26 @@ class AccountNotifier extends StateNotifier<AsyncValue<AccountState>> {
             ? currentState.netWorth + createdAccount.currentBalance
             : currentState.netWorth - createdAccount.currentBalance;
 
-        state = AsyncValue.data(currentState.copyWith(
-          accounts: updatedAccounts,
-          totalBalance: newTotalBalance,
-          netWorth: newNetWorth,
-          isLoading: false,
-        ));
+        if (!_isDisposed) {
+          state = AsyncValue.data(currentState.copyWith(
+            accounts: updatedAccounts,
+            totalBalance: newTotalBalance,
+            netWorth: newNetWorth,
+            isLoading: false,
+          ));
+        }
         return true;
       },
       error: (failure) {
+        if (_isDisposed) return false;
+
         // Revert to original state with error
-        state = AsyncValue.data(currentState.copyWith(
-          isLoading: false,
-          error: failure.message,
-        ));
+        if (!_isDisposed) {
+          state = AsyncValue.data(currentState.copyWith(
+            isLoading: false,
+            error: failure.message,
+          ));
+        }
         return false;
       },
     );
@@ -99,6 +132,8 @@ class AccountNotifier extends StateNotifier<AsyncValue<AccountState>> {
 
   /// Update an existing account
   Future<bool> updateAccount(Account account) async {
+    if (_isDisposed) return false;
+
     final currentState = state.value;
     if (currentState == null) return false;
 
@@ -109,8 +144,12 @@ class AccountNotifier extends StateNotifier<AsyncValue<AccountState>> {
 
     final result = await _updateAccount(account);
 
+    if (_isDisposed) return false;
+
     return result.when(
       success: (updatedAccount) {
+        if (_isDisposed) return false;
+
         final updatedAccounts = currentState.accounts.map((a) {
           return a.id == account.id ? updatedAccount : a;
         }).toList();
@@ -121,15 +160,21 @@ class AccountNotifier extends StateNotifier<AsyncValue<AccountState>> {
             ? (oldAccount.isAsset ? balanceDiff : updatedAccount.currentBalance - (-oldAccount.currentBalance))
             : (oldAccount.isLiability ? -balanceDiff : -updatedAccount.currentBalance - oldAccount.currentBalance);
 
-        state = AsyncValue.data(currentState.copyWith(
-          accounts: updatedAccounts,
-          totalBalance: currentState.totalBalance + balanceDiff,
-          netWorth: currentState.netWorth + netWorthDiff,
-        ));
+        if (!_isDisposed) {
+          state = AsyncValue.data(currentState.copyWith(
+            accounts: updatedAccounts,
+            totalBalance: currentState.totalBalance + balanceDiff,
+            netWorth: currentState.netWorth + netWorthDiff,
+          ));
+        }
         return true;
       },
       error: (failure) {
-        state = AsyncValue.error(failure.message, StackTrace.current);
+        if (_isDisposed) return false;
+
+        if (!_isDisposed) {
+          state = AsyncValue.error(failure.message, StackTrace.current);
+        }
         return false;
       },
     );
@@ -137,6 +182,8 @@ class AccountNotifier extends StateNotifier<AsyncValue<AccountState>> {
 
   /// Delete an account
   Future<bool> deleteAccount(String accountId) async {
+    if (_isDisposed) return false;
+
     final currentState = state.value;
     if (currentState == null) return false;
 
@@ -147,8 +194,12 @@ class AccountNotifier extends StateNotifier<AsyncValue<AccountState>> {
 
     final result = await _deleteAccount(accountId);
 
+    if (_isDisposed) return false;
+
     return result.when(
       success: (_) {
+        if (_isDisposed) return false;
+
         final updatedAccounts = currentState.accounts
             .where((a) => a.id != accountId)
             .toList();
@@ -159,15 +210,21 @@ class AccountNotifier extends StateNotifier<AsyncValue<AccountState>> {
             ? currentState.netWorth - accountToDelete.currentBalance
             : currentState.netWorth + accountToDelete.currentBalance;
 
-        state = AsyncValue.data(currentState.copyWith(
-          accounts: updatedAccounts,
-          totalBalance: newTotalBalance,
-          netWorth: newNetWorth,
-        ));
+        if (!_isDisposed) {
+          state = AsyncValue.data(currentState.copyWith(
+            accounts: updatedAccounts,
+            totalBalance: newTotalBalance,
+            netWorth: newNetWorth,
+          ));
+        }
         return true;
       },
       error: (failure) {
-        state = AsyncValue.error(failure.message, StackTrace.current);
+        if (_isDisposed) return false;
+
+        if (!_isDisposed) {
+          state = AsyncValue.error(failure.message, StackTrace.current);
+        }
         return false;
       },
     );
@@ -207,18 +264,24 @@ class AccountNotifier extends StateNotifier<AsyncValue<AccountState>> {
 
   /// Refresh balances
   Future<void> refreshBalances() async {
+    if (_isDisposed) return;
+
     final currentState = state.value;
     if (currentState == null) return;
 
     final totalBalanceResult = await _getAccountBalance.getTotalBalance();
     final netWorthResult = await _getAccountBalance.getNetWorth();
 
+    if (_isDisposed) return;
+
     final totalBalance = totalBalanceResult.getOrDefault(currentState.totalBalance);
     final netWorth = netWorthResult.getOrDefault(currentState.netWorth);
 
-    state = AsyncValue.data(currentState.copyWith(
-      totalBalance: totalBalance,
-      netWorth: netWorth,
-    ));
+    if (!_isDisposed) {
+      state = AsyncValue.data(currentState.copyWith(
+        totalBalance: totalBalance,
+        netWorth: netWorth,
+      ));
+    }
   }
 }

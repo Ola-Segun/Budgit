@@ -36,4 +36,7 @@ abstract class BudgetRepository {
 
   /// Get budget category overviews with resolved category names
   Future<Result<List<BudgetCategoryOverview>>> getBudgetCategoryOverviews(String budgetId, {int limit = 5});
+
+  /// Check if a budget name already exists
+  Future<Result<bool>> nameExists(String name, {String? excludeId});
 }

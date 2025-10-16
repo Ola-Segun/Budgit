@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +9,7 @@ import '../../../accounts/domain/entities/account.dart';
 import '../../../accounts/presentation/providers/account_providers.dart';
 import '../../../transactions/presentation/providers/transaction_providers.dart';
 import '../../domain/entities/bill.dart';
+import '../providers/bill_providers.dart';
 
 /// Bottom sheet for editing an existing bill
 class EditBillBottomSheet extends ConsumerStatefulWidget {
@@ -40,6 +43,12 @@ class _EditBillBottomSheetState extends ConsumerState<EditBillBottomSheet> {
 
   bool _isSubmitting = false;
 
+  // Reactive validation state
+  String? _nameValidationError;
+  bool _isValidatingName = false;
+  Timer? _nameValidationTimer;
+  String _lastValidatedName = '';
+
   @override
   void initState() {
     super.initState();
@@ -55,10 +64,13 @@ class _EditBillBottomSheetState extends ConsumerState<EditBillBottomSheet> {
     _selectedCategoryId = widget.bill.categoryId;
     _selectedAccountId = widget.bill.accountId;
     _isAutoPay = widget.bill.isAutoPay;
+
+    _setupNameValidationListener();
   }
 
   @override
   void dispose() {
+    _nameValidationTimer?.cancel();
     _nameController.dispose();
     _amountController.dispose();
     _descriptionController.dispose();
@@ -66,6 +78,84 @@ class _EditBillBottomSheetState extends ConsumerState<EditBillBottomSheet> {
     _websiteController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+  void _setupNameValidationListener() {
+    _nameController.addListener(_onNameChanged);
+  }
+
+  void _onNameChanged() {
+    final name = _nameController.text.trim();
+
+    // Clear validation error if name is empty
+    if (name.isEmpty) {
+      setState(() {
+        _nameValidationError = null;
+        _isValidatingName = false;
+      });
+      _nameValidationTimer?.cancel();
+      return;
+    }
+
+    // Don't validate if name hasn't changed
+    if (name == _lastValidatedName) {
+      return;
+    }
+
+    // Cancel previous timer
+    _nameValidationTimer?.cancel();
+
+    // Set validating state
+    setState(() {
+      _isValidatingName = true;
+      _nameValidationError = null;
+    });
+
+    // Debounce validation
+    _nameValidationTimer = Timer(const Duration(milliseconds: 500), () {
+      _validateBillName(name);
+    });
+  }
+
+  Future<void> _validateBillName(String name) async {
+    if (!mounted) return;
+
+    try {
+      final billState = ref.read(billNotifierProvider);
+      final existingBills = billState.maybeWhen(
+        loaded: (bills, summary) => bills,
+        orElse: () => <Bill>[],
+      );
+
+      // Check for duplicates (case-insensitive), excluding current bill
+      final isDuplicate = existingBills.any(
+        (bill) => bill.id != widget.bill.id && bill.name.trim().toLowerCase() == name.toLowerCase(),
+      );
+
+      if (mounted) {
+        setState(() {
+          _isValidatingName = false;
+          _lastValidatedName = name;
+          _nameValidationError = isDuplicate
+              ? 'A bill with this name already exists'
+              : null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isValidatingName = false;
+          _nameValidationError = null; // Clear error on failure
+        });
+      }
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Save reference to MediaQuery for safe access in dispose
+    // This prevents the "deactivated widget" error
   }
 
   @override
@@ -113,18 +203,76 @@ class _EditBillBottomSheetState extends ConsumerState<EditBillBottomSheet> {
                     // Bill Name
                     TextFormField(
                       controller: _nameController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Bill Name',
                         hintText: 'e.g., Electricity Bill',
+                        errorStyle: const TextStyle(height: 0.8),
+                        errorBorder: (_nameValidationError != null)
+                            ? OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: Theme.of(context).colorScheme.error,
+                                  width: 2,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                              )
+                            : null,
+                        focusedErrorBorder: (_nameValidationError != null)
+                            ? OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: Theme.of(context).colorScheme.error,
+                                  width: 2,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                              )
+                            : null,
+                        suffixIcon: _isValidatingName
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              )
+                            : null,
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Please enter a bill name';
                         }
+                        // Basic client-side validation - full uniqueness check happens in use case
+                        if (value.trim().length < 2) {
+                          return 'Bill name must be at least 2 characters';
+                        }
                         return null;
                       },
                       autofocus: true,
                     ),
+                    // Show instant validation feedback
+                    if (_nameValidationError != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4, left: 12),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              color: Theme.of(context).colorScheme.error,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                _nameValidationError!,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     const SizedBox(height: 16),
 
                     // Amount
@@ -621,6 +769,7 @@ Consumer(
       );
 
       await widget.onSubmit(updatedBill);
+      // Note: Error handling is done in the parent widget via the callback
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -198,27 +198,54 @@ class _CompletionScreenState extends ConsumerState<CompletionScreen> {
   }
 
   Future<void> _completeOnboarding() async {
+    if (!mounted) return;
+
+    debugPrint('CompletionScreen: Starting onboarding completion');
     setState(() => _isCompleting = true);
 
     try {
       final success = await ref.read(onboardingNotifierProvider.notifier).completeOnboarding();
+      debugPrint('CompletionScreen: Onboarding completion result: $success');
 
       if (success && mounted) {
-        // Navigation will be handled automatically by main.dart when hasCompletedOnboarding changes
-        // The provider will trigger a rebuild and show the main app
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Welcome to Budget Tracker!')),
-        );
+        // Check if onboarding is actually completed
+        final hasCompleted = ref.read(hasCompletedOnboardingProvider);
+        debugPrint('CompletionScreen: hasCompletedOnboardingProvider value: $hasCompleted');
+
+        // Force a rebuild of the entire app by triggering a state change
+        // This will cause main.dart to re-evaluate hasCompletedOnboarding
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            debugPrint('CompletionScreen: Forcing app rebuild');
+            // Trigger a rebuild by updating a dummy state or using setState on a parent
+            // Since we're in a ConsumerStatefulWidget, we can use setState to force rebuild
+            setState(() {});
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Welcome to Budget Tracker!')),
+            );
+            debugPrint('CompletionScreen: Snackbar shown, app should rebuild and show dashboard');
+          }
+        });
       } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to complete setup. Please try again.')),
-        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            debugPrint('CompletionScreen: Showing failure snackbar');
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Failed to complete setup. Please try again.')),
+            );
+          }
+        });
       }
     } catch (e) {
+      debugPrint('CompletionScreen: Error during completion: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error completing setup: $e')),
-        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error completing setup: $e')),
+            );
+          }
+        });
       }
     } finally {
       if (mounted) {

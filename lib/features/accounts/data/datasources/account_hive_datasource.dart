@@ -20,7 +20,8 @@ class AccountHiveDataSource {
       await HiveStorage.init();
 
       // Register adapter if not already registered
-      if (!Hive.isAdapterRegistered(8)) {
+      // Changed from 8 to 12 to avoid conflict with RecurringIncomeDtoAdapter
+      if (!Hive.isAdapterRegistered(12)) {
         Hive.registerAdapter(AccountDtoAdapter());
       }
 

@@ -321,6 +321,28 @@ class MockBillRepository extends _i1.Mock implements _i2.BillRepository {
           ),
         )),
       ) as _i3.Future<_i4.Result<void>>);
+
+  @override
+  _i3.Future<_i4.Result<bool>> nameExists(
+    String? name, {
+    String? excludeId,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #nameExists,
+          [name],
+          {#excludeId: excludeId},
+        ),
+        returnValue:
+            _i3.Future<_i4.Result<bool>>.value(_i6.dummyValue<_i4.Result<bool>>(
+          this,
+          Invocation.method(
+            #nameExists,
+            [name],
+            {#excludeId: excludeId},
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<bool>>);
 }
 
 /// A class which mocks [AccountRepository].

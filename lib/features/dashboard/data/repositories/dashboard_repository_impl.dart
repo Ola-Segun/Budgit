@@ -9,6 +9,8 @@ import '../../../bills/domain/repositories/bill_repository.dart';
 import '../../../budgets/domain/entities/budget.dart';
 import '../../../budgets/domain/repositories/budget_repository.dart';
 import '../../../budgets/domain/usecases/calculate_budget_status.dart';
+import '../../../recurring_incomes/domain/entities/recurring_income.dart';
+import '../../../recurring_incomes/domain/repositories/recurring_income_repository.dart';
 import '../../../transactions/domain/entities/transaction.dart';
 import '../../../transactions/domain/repositories/transaction_category_repository.dart';
 import '../../../insights/domain/entities/insight.dart';
@@ -27,6 +29,7 @@ class DashboardRepositoryImpl implements DashboardRepository {
     this._insightRepository,
     this._transactionCategoryRepository,
     this._calculateBudgetStatus,
+    this._recurringIncomeRepository,
   );
 
   final TransactionRepository _transactionRepository;
@@ -36,6 +39,7 @@ class DashboardRepositoryImpl implements DashboardRepository {
   final InsightRepository _insightRepository;
   final TransactionCategoryRepository _transactionCategoryRepository;
   final CalculateBudgetStatus _calculateBudgetStatus;
+  final RecurringIncomeRepository? _recurringIncomeRepository;
 
   @override
   Future<Result<DashboardData>> getDashboardData() async {
@@ -45,6 +49,7 @@ class DashboardRepositoryImpl implements DashboardRepository {
         getFinancialSnapshot(),
         getBudgetOverview(),
         getUpcomingBills(),
+        getUpcomingIncomes(),
         getRecentTransactions(),
         getDashboardInsights(),
       ]);
@@ -67,17 +72,22 @@ class DashboardRepositoryImpl implements DashboardRepository {
           ? results[2] as Result<List<Bill>>
           : Result.success(<Bill>[]);
 
-      final recentTransactionsResult = results[3].isSuccess
-          ? results[3] as Result<List<Transaction>>
+      final upcomingIncomesResult = results[3].isSuccess
+          ? results[3] as Result<List<RecurringIncomeStatus>>
+          : Result.success(<RecurringIncomeStatus>[]);
+
+      final recentTransactionsResult = results[4].isSuccess
+          ? results[4] as Result<List<Transaction>>
           : Result.success(<Transaction>[]);
 
-      final insightsResult = results[4].isSuccess
-          ? results[4] as Result<List<Insight>>
+      final insightsResult = results[5].isSuccess
+          ? results[5] as Result<List<Insight>>
           : Result.success(<Insight>[]);
 
       final financialSnapshot = financialSnapshotResult;
       final budgetOverview = budgetOverviewResult;
       final upcomingBills = upcomingBillsResult;
+      final upcomingIncomes = upcomingIncomesResult;
       final recentTransactions = recentTransactionsResult;
       final insights = insightsResult;
 
@@ -85,6 +95,7 @@ class DashboardRepositoryImpl implements DashboardRepository {
         financialSnapshot: financialSnapshot.dataOrNull!,
         budgetOverview: budgetOverview.dataOrNull!,
         upcomingBills: upcomingBills.dataOrNull!,
+        upcomingIncomes: upcomingIncomes.dataOrNull!,
         recentTransactions: recentTransactions.dataOrNull!,
         insights: insights.dataOrNull!,
         generatedAt: DateTime.now(),
@@ -212,6 +223,52 @@ class DashboardRepositoryImpl implements DashboardRepository {
       return Result.success(upcomingBills);
     } catch (e) {
       return Result.error(Failure.unknown('Failed to get upcoming bills: $e'));
+    }
+  }
+
+  @override
+  Future<Result<List<RecurringIncomeStatus>>> getUpcomingIncomes({int limit = 3}) async {
+    try {
+      // Get all recurring incomes first
+      final incomesResult = await _recurringIncomeRepository?.getAllIncomeStatuses();
+      if (incomesResult == null || incomesResult.isError) {
+        // Fallback to empty list if repository not available
+        return Result.success(<RecurringIncomeStatus>[]);
+      }
+
+      final allStatuses = incomesResult.dataOrNull ?? [];
+
+      // Filter for upcoming incomes (expected soon, today, or overdue)
+      final upcomingStatuses = allStatuses.where((status) =>
+        status.isExpectedSoon ||
+        status.isExpectedToday ||
+        status.isOverdue
+      ).toList();
+
+      // Sort by urgency and date
+      upcomingStatuses.sort((a, b) {
+        // Overdue first
+        if (a.isOverdue && !b.isOverdue) return -1;
+        if (!a.isOverdue && b.isOverdue) return 1;
+
+        // Expected today second
+        if (a.isExpectedToday && !b.isExpectedToday) return -1;
+        if (!a.isExpectedToday && b.isExpectedToday) return 1;
+
+        // Expected soon third
+        if (a.isExpectedSoon && !b.isExpectedSoon) return -1;
+        if (!a.isExpectedSoon && b.isExpectedSoon) return 1;
+
+        // Then by days until expected
+        return a.daysUntilExpected.compareTo(b.daysUntilExpected);
+      });
+
+      // Take the limit
+      final limitedStatuses = upcomingStatuses.take(limit).toList();
+
+      return Result.success(limitedStatuses);
+    } catch (e) {
+      return Result.error(Failure.unknown('Failed to get upcoming incomes: $e'));
     }
   }
 

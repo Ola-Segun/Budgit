@@ -517,6 +517,12 @@ class NotificationManager {
     String? actionLabel,
     required SnackBarBehavior behavior,
   }) {
+    // Check if context is still mounted before proceeding
+    if (!context.mounted) {
+      debugPrint('NotificationManager: Context not mounted, skipping notification');
+      return;
+    }
+
     // Hide any existing SnackBar
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
 

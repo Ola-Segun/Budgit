@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'dart:developer' as developer;
 
 import '../../../features/dashboard/presentation/providers/dashboard_providers.dart';
 import '../../../features/dashboard/domain/entities/dashboard_data.dart';
 import '../../../features/bills/domain/entities/bill.dart';
+import '../../../features/recurring_incomes/domain/entities/recurring_income.dart';
 import '../../../features/transactions/domain/entities/transaction.dart';
 import '../../../features/insights/domain/entities/insight.dart';
 import '../../../features/transactions/presentation/widgets/add_transaction_fab.dart';
@@ -16,6 +18,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/skeleton_loader.dart';
 import '../../../core/widgets/app_bottom_sheet.dart';
+import '../../../core/widgets/notification_manager.dart';
 
 /// Header with current period, settings icon, and notification bell
 class _DashboardHeader extends StatelessWidget {
@@ -107,8 +110,11 @@ class HomeDashboardScreen extends ConsumerWidget {
                               // Budget Overview
                               _BudgetOverviewWidget(budgetOverview: dashboardData.budgetOverview),
                               const SizedBox(height: 24),
-                              // Upcoming Bills Widget
-                              _UpcomingBillsWidget(upcomingBills: dashboardData.upcomingBills),
+                              // Upcoming Payments & Income Widget
+                              _UpcomingPaymentsWidget(
+                                upcomingBills: dashboardData.upcomingBills,
+                                upcomingIncomes: dashboardData.upcomingIncomes,
+                              ),
                               const SizedBox(height: 24),
                               // Recent Transactions
                               _RecentTransactionsWidget(recentTransactions: dashboardData.recentTransactions),
@@ -231,13 +237,20 @@ class _SnapshotItem extends StatelessWidget {
         Text(
           label,
           style: AppTypography.caption.copyWith(color: Colors.grey[600]),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: AppSpacing.xs),
-        Text(
-          amount,
-          style: AppTypography.titleLarge.copyWith(
-            color: color,
-            fontWeight: FontWeight.bold,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            amount,
+            style: AppTypography.titleLarge.copyWith(
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
+            maxLines: 1,
           ),
         ),
       ],
@@ -260,25 +273,38 @@ class _QuickActionsBar extends StatelessWidget {
               style: AppTypography.headlineSmall,
             ),
             const SizedBox(height: AppSpacing.sm),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _QuickActionButton(
-                  icon: Icons.add,
-                  label: 'Add Transaction',
-                  onPressed: () => context.go('/transactions/add'),
-                ),
-                _QuickActionButton(
-                  icon: Icons.account_balance_wallet,
-                  label: 'View Accounts',
-                  onPressed: () => context.go('/more/accounts'),
-                ),
-                _QuickActionButton(
-                  icon: Icons.camera_alt,
-                  label: 'Scan Receipt',
-                  onPressed: () => context.go('/scan-receipt'),
-                ),
-              ],
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _QuickActionButton(
+                    icon: Icons.add,
+                    label: 'Add Transaction',
+                    onPressed: () => context.go('/transactions/add'),
+                  ),
+                  const SizedBox(width: 8),
+                  _QuickActionButton(
+                    icon: Icons.account_balance_wallet,
+                    label: 'View Accounts',
+                    onPressed: () => context.go('/more/accounts'),
+                  ),
+                  const SizedBox(width: 8),
+                  _QuickActionButton(
+                    icon: Icons.trending_up,
+                    label: 'Recurring Income',
+                    onPressed: () {
+                      developer.log('Navigating to recurring incomes dashboard', name: 'Navigation');
+                      context.go('/more/incomes');
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  _QuickActionButton(
+                    icon: Icons.camera_alt,
+                    label: 'Scan Receipt',
+                    onPressed: () => context.go('/scan-receipt'),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -303,12 +329,14 @@ class _QuickActionButton extends StatelessWidget {
     return InkWell(
       onTap: onPressed,
       borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: EdgeInsets.all(AppSpacing.sm),
+      child: Container(
+        width: 80,
+        padding: const EdgeInsets.all(8),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: EdgeInsets.all(AppSpacing.sm),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
@@ -324,6 +352,8 @@ class _QuickActionButton extends StatelessWidget {
               label,
               style: AppTypography.caption,
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -349,13 +379,17 @@ class _BudgetOverviewWidget extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Budget Overview',
-                  style: AppTypography.titleLarge,
+                Expanded(
+                  child: Text(
+                    'Budget Overview',
+                    style: AppTypography.titleLarge,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 TextButton(
                   onPressed: () => context.go('/budgets'),
-                  child: const Text('See All Categories'),
+                  child: const Text('See All'),
                 ),
               ],
             ),
@@ -403,23 +437,24 @@ class _BudgetCategoryItem extends StatelessWidget {
     final progressColor = _getProgressColor(status);
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(
               child: Text(
                 category,
                 style: AppTypography.bodyMedium,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
+            const SizedBox(width: 8),
             Text(
               '\$${spent.toStringAsFixed(0)} / \$${budget.toStringAsFixed(0)}',
-              style: AppTypography.bodyMedium.copyWith(
+              style: AppTypography.bodySmall.copyWith(
                 color: status == BudgetHealthStatus.overBudget ? Colors.red : Colors.grey[600],
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -447,14 +482,20 @@ class _BudgetCategoryItem extends StatelessWidget {
   }
 }
 
-/// Upcoming bills widget
-class _UpcomingBillsWidget extends StatelessWidget {
-  const _UpcomingBillsWidget({required this.upcomingBills});
+/// Upcoming payments and income widget
+class _UpcomingPaymentsWidget extends StatelessWidget {
+  const _UpcomingPaymentsWidget({
+    required this.upcomingBills,
+    required this.upcomingIncomes,
+  });
 
   final List<Bill> upcomingBills;
+  final List<RecurringIncomeStatus> upcomingIncomes;
 
   @override
   Widget build(BuildContext context) {
+    final combinedItems = _combineAndSortItems();
+
     return Card(
       child: Padding(
         padding: AppSpacing.cardPaddingAll,
@@ -464,36 +505,140 @@ class _UpcomingBillsWidget extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Upcoming Bills',
-                  style: AppTypography.titleLarge,
+                Expanded(
+                  child: Text(
+                    'Upcoming Payments & Income',
+                    style: AppTypography.titleLarge,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                TextButton(
-                  onPressed: () => context.go('/more/bills'),
-                  child: const Text('View All Bills'),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        developer.log('Navigating to bills dashboard from upcoming payments', name: 'Navigation');
+                        context.go('/more/bills');
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        minimumSize: const Size(0, 36),
+                      ),
+                      child: const Text('Bills'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        developer.log('Navigating to incomes dashboard from upcoming payments', name: 'Navigation');
+                        context.go('/more/incomes');
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        minimumSize: const Size(0, 36),
+                      ),
+                      child: const Text('Income'),
+                    ),
+                  ],
                 ),
               ],
             ),
             const SizedBox(height: AppSpacing.sm),
-            if (upcomingBills.isEmpty)
+            if (combinedItems.isEmpty)
               const Center(
                 child: Padding(
                   padding: EdgeInsets.all(16),
-                  child: Text('No upcoming bills'),
+                  child: Text('No upcoming payments or income'),
                 ),
               )
             else
-              ...upcomingBills.take(3).map((bill) => Padding(
+              ...combinedItems.take(5).map((item) => Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: _BillItem(
-                  bill: bill,
-                ),
+                child: item.isBill
+                    ? _BillItem(bill: item.bill!)
+                    : _IncomeItem(incomeStatus: item.incomeStatus!),
               )),
           ],
         ),
       ),
     );
   }
+
+  List<_CombinedItem> _combineAndSortItems() {
+    final items = <_CombinedItem>[];
+
+    // Add bills
+    for (final bill in upcomingBills) {
+      items.add(_CombinedItem(
+        date: bill.dueDate,
+        isBill: true,
+        bill: bill,
+      ));
+    }
+
+    // Add incomes
+    for (final incomeStatus in upcomingIncomes) {
+      items.add(_CombinedItem(
+        date: incomeStatus.income.nextExpectedDate ?? DateTime.now(),
+        isBill: false,
+        incomeStatus: incomeStatus,
+      ));
+    }
+
+    // Sort by urgency first, then by date
+    items.sort((a, b) {
+      // Get urgency level for comparison
+      final aUrgency = _getItemUrgency(a);
+      final bUrgency = _getItemUrgency(b);
+
+      // Compare urgency levels (higher urgency first)
+      final urgencyComparison = bUrgency.index.compareTo(aUrgency.index);
+      if (urgencyComparison != 0) return urgencyComparison;
+
+      // If same urgency, sort by date
+      return a.date.compareTo(b.date);
+    });
+
+    return items;
+  }
+
+  /// Get urgency level for an item
+  _ItemUrgency _getItemUrgency(_CombinedItem item) {
+    if (item.isBill) {
+      final bill = item.bill!;
+      if (bill.isOverdue) return _ItemUrgency.overdue;
+      if (bill.isDueToday) return _ItemUrgency.dueToday;
+      if (bill.isDueSoon) return _ItemUrgency.dueSoon;
+      return _ItemUrgency.normal;
+    } else {
+      final incomeStatus = item.incomeStatus!;
+      if (incomeStatus.isOverdue) return _ItemUrgency.overdue;
+      if (incomeStatus.isExpectedToday) return _ItemUrgency.dueToday;
+      if (incomeStatus.isExpectedSoon) return _ItemUrgency.dueSoon;
+      return _ItemUrgency.normal;
+    }
+  }
+}
+
+class _CombinedItem {
+  const _CombinedItem({
+    required this.date,
+    required this.isBill,
+    this.bill,
+    this.incomeStatus,
+  });
+
+  final DateTime date;
+  final bool isBill;
+  final Bill? bill;
+  final RecurringIncomeStatus? incomeStatus;
+}
+
+/// Urgency levels for sorting upcoming payments
+enum _ItemUrgency {
+  overdue,    // Highest priority
+  dueToday,   // Second highest
+  dueSoon,    // Third highest
+  normal,     // Lowest priority
 }
 
 class _BillItem extends StatelessWidget {
@@ -509,19 +654,28 @@ class _BillItem extends StatelessWidget {
 
     String dueText;
     Color indicatorColor;
+    Color textColor = Colors.grey[600]!;
 
     if (isOverdue) {
-      dueText = 'Overdue';
+      dueText = '${daysUntilDue.abs()}d overdue';
       indicatorColor = Colors.red;
+      textColor = Colors.red;
     } else if (daysUntilDue == 0) {
       dueText = 'Due today';
       indicatorColor = Colors.red;
+      textColor = Colors.red;
     } else if (daysUntilDue == 1) {
       dueText = 'Due tomorrow';
       indicatorColor = Colors.orange;
+      textColor = Colors.orange[700]!;
+    } else if (isDueSoon) {
+      dueText = 'Due in $daysUntilDue days';
+      indicatorColor = Colors.orange;
+      textColor = Colors.orange[700]!;
     } else {
       dueText = 'Due in $daysUntilDue days';
-      indicatorColor = isDueSoon ? Colors.orange : Colors.blue;
+      indicatorColor = Colors.blue;
+      textColor = Colors.grey[600]!;
     }
 
     return Row(
@@ -535,7 +689,7 @@ class _BillItem extends StatelessWidget {
             borderRadius: BorderRadius.circular(2),
           ),
         ),
-        const SizedBox(width: AppSpacing.sm),
+        const SizedBox(width: 8),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -543,30 +697,138 @@ class _BillItem extends StatelessWidget {
               Text(
                 bill.name,
                 style: AppTypography.bodyMedium,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               Text(
                 dueText,
                 style: AppTypography.caption.copyWith(
-                  color: isOverdue ? Colors.red : Colors.grey[600],
+                  color: textColor,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
         ),
+        const SizedBox(width: 4),
         // Amount
-        Text(
-          '\$${bill.amount.toStringAsFixed(2)}',
-          style: AppTypography.bodyMedium.copyWith(
-            fontWeight: FontWeight.bold,
+        SizedBox(
+          width: 70,
+          child: Text(
+            '\$${bill.amount.toStringAsFixed(2)}',
+            style: AppTypography.bodySmall.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
           ),
         ),
         // Mark as paid button
         IconButton(
           icon: const Icon(Icons.check_circle_outline, size: 20),
+          padding: const EdgeInsets.all(4),
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           onPressed: () {
             // TODO: Implement mark as paid functionality
           },
           tooltip: 'Mark as Paid',
+        ),
+      ],
+    );
+  }
+}
+
+class _IncomeItem extends StatelessWidget {
+  const _IncomeItem({required this.incomeStatus});
+
+  final RecurringIncomeStatus incomeStatus;
+
+  @override
+  Widget build(BuildContext context) {
+    final urgencyColor = switch (incomeStatus.urgency) {
+      RecurringIncomeUrgency.overdue => Colors.red,
+      RecurringIncomeUrgency.expectedToday => Colors.red,
+      RecurringIncomeUrgency.expectedSoon => Colors.orange,
+      RecurringIncomeUrgency.normal => Colors.green,
+    };
+
+    String dueText;
+    Color textColor = Colors.grey[600]!;
+
+    if (incomeStatus.isOverdue) {
+      dueText = '${incomeStatus.daysUntilExpected.abs()}d overdue';
+      textColor = Colors.red;
+    } else if (incomeStatus.daysUntilExpected == 0) {
+      dueText = 'Expected today';
+      textColor = Colors.red;
+    } else if (incomeStatus.isExpectedSoon) {
+      dueText = 'In ${incomeStatus.daysUntilExpected}d';
+      textColor = Colors.orange[700]!;
+    } else {
+      dueText = 'In ${incomeStatus.daysUntilExpected}d';
+      textColor = Colors.grey[600]!;
+    }
+
+    return Row(
+      children: [
+        // Indicator bar
+        Container(
+          width: 4,
+          height: 40,
+          decoration: BoxDecoration(
+            color: urgencyColor,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                incomeStatus.income.name,
+                style: AppTypography.bodyMedium,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                dueText,
+                style: AppTypography.caption.copyWith(
+                  color: textColor,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 4),
+        // Amount
+        SizedBox(
+          width: 70,
+          child: Text(
+            '+\$${incomeStatus.income.amount.toStringAsFixed(2)}',
+            style: AppTypography.bodySmall.copyWith(
+              fontWeight: FontWeight.bold,
+              color: Colors.green,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+          ),
+        ),
+        // Record receipt button
+        IconButton(
+          icon: const Icon(Icons.add_circle_outline, size: 20),
+          padding: const EdgeInsets.all(4),
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          onPressed: () {
+            // Navigate to income detail screen with receipt recording
+            context.go('/more/incomes/${incomeStatus.income.id}');
+          },
+          tooltip: 'Record Receipt',
         ),
       ],
     );
@@ -713,16 +975,19 @@ class _TransactionTile extends ConsumerWidget {
         ],
       ),
       child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         leading: CircleAvatar(
           backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
           child: Icon(
-            isExpense ? Icons.arrow_upward : Icons.arrow_downward,
+            isExpense ? Icons.arrow_downward : Icons.arrow_upward,
             color: amountColor,
           ),
         ),
         title: Text(
           transaction.description ?? 'Transaction',
           style: AppTypography.bodyMedium,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text(
           '${transaction.categoryId ?? 'Unknown'} • ${DateFormat('HH:mm').format(transaction.date)}',
@@ -730,14 +995,18 @@ class _TransactionTile extends ConsumerWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        trailing: Text(
-          '$amountPrefix\$${transaction.amount.abs().toStringAsFixed(2)}',
-          style: AppTypography.bodyMedium.copyWith(
-            color: amountColor,
-            fontWeight: FontWeight.bold,
+        trailing: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 100),
+          child: Text(
+            '$amountPrefix\$${transaction.amount.abs().toStringAsFixed(2)}',
+            style: AppTypography.bodyMedium.copyWith(
+              color: amountColor,
+              fontWeight: FontWeight.bold,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
         ),
         onTap: () => context.push('/transactions/${transaction.id}'),
       ),
@@ -800,37 +1069,33 @@ class _TransactionTile extends ConsumerWidget {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: const Text('Change Category'),
-          content: RadioGroup<String>(
-            groupValue: selectedCategoryId,
-            onChanged: (value) {
-              setState(() {
-                selectedCategoryId = value;
-              });
-              Navigator.pop(context, value);
-            },
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: categories.map((category) {
-                  final iconColorService = ref.watch(categoryIconColorServiceProvider);
-                  return ListTile(
-                    title: Row(
-                      children: [
-                        Icon(
-                          iconColorService.getIconForCategory(category.id),
-                          size: 20,
-                          color: Color(category.color),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(category.name),
-                      ],
-                    ),
-                    leading: Radio<String>(
-                      value: category.id,
-                    ),
-                  );
-                }).toList(),
-              ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: categories.map((category) {
+                final iconColorService = ref.watch(categoryIconColorServiceProvider);
+                return RadioListTile<String>(
+                  value: category.id,
+                  groupValue: selectedCategoryId,
+                  onChanged: (value) {
+                    setState(() {
+                      selectedCategoryId = value;
+                    });
+                    Navigator.pop(context, value);
+                  },
+                  title: Row(
+                    children: [
+                      Icon(
+                        iconColorService.getIconForCategory(category.id),
+                        size: 20,
+                        color: Color(category.color),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(category.name),
+                    ],
+                  ),
+                );
+              }).toList(),
             ),
           ),
           actions: [
@@ -850,9 +1115,11 @@ class _TransactionTile extends ConsumerWidget {
           .updateTransaction(updatedTransaction);
 
       if (success && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Category updated')),
-        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted) {
+            NotificationManager.categoryUpdated(context);
+          }
+        });
       }
     }
   }

@@ -10,6 +10,7 @@ import '../../../transactions/presentation/providers/transaction_providers.dart'
 import '../../../budgets/presentation/providers/budget_providers.dart';
 import '../../../bills/presentation/providers/bill_providers.dart';
 import '../../../accounts/presentation/providers/account_providers.dart';
+import '../../../recurring_incomes/presentation/providers/recurring_income_providers.dart';
 
 // Repository providers
 final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
@@ -21,6 +22,7 @@ final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
     ref.watch(core_providers.insightRepositoryProvider),
     ref.watch(core_providers.transactionCategoryRepositoryProvider),
     ref.watch(core_providers.calculateBudgetStatusProvider),
+    ref.watch(recurringIncomeRepositoryProvider),
   );
 });
 
@@ -65,6 +67,7 @@ final dashboardDataProvider = FutureProvider<DashboardData>((ref) async {
   ref.watch(budgetNotifierProvider);
   ref.watch(billNotifierProvider);
   ref.watch(accountNotifierProvider);
+  ref.watch(recurringIncomeNotifierProvider);
 
   // Invalidate cache when underlying data changes
   ref.listen(transactionNotifierProvider, (previous, next) {
@@ -80,6 +83,18 @@ final dashboardDataProvider = FutureProvider<DashboardData>((ref) async {
   });
 
   ref.listen(billNotifierProvider, (previous, next) {
+    if (previous != next) {
+      _dashboardCache.invalidate();
+    }
+  });
+
+  ref.listen(accountNotifierProvider, (previous, next) {
+    if (previous != next) {
+      _dashboardCache.invalidate();
+    }
+  });
+
+  ref.listen(recurringIncomeNotifierProvider, (previous, next) {
     if (previous != next) {
       _dashboardCache.invalidate();
     }

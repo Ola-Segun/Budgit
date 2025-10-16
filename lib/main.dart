@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive/hive.dart';
 
 import 'core/di/providers.dart';
 import 'core/router/app_router.dart';
@@ -7,6 +8,7 @@ import 'core/storage/hive_storage.dart';
 import 'core/theme/app_theme.dart';
 import 'features/onboarding/presentation/onboarding_flow.dart';
 import 'features/onboarding/presentation/providers/onboarding_providers.dart';
+import 'features/recurring_incomes/data/models/recurring_income_dto.dart';
 
 void main() async {
   // Ensure Flutter is initialized
@@ -14,6 +16,23 @@ void main() async {
 
   // Initialize Hive storage
   await HiveStorage.init();
+
+  // Register all adapters globally before app starts
+  // Register recurring income adapters first (typeIds 8, 9, 10)
+  if (!Hive.isAdapterRegistered(8)) {
+    Hive.registerAdapter(RecurringIncomeDtoAdapter());
+  }
+  if (!Hive.isAdapterRegistered(9)) {
+    Hive.registerAdapter(RecurringIncomeInstanceDtoAdapter());
+  }
+  if (!Hive.isAdapterRegistered(10)) {
+    Hive.registerAdapter(RecurringIncomeRuleDtoAdapter());
+  }
+
+  // Register account adapter (typeId 8) - but recurring income already uses 8, so this conflicts!
+  // We need to fix the typeId conflict. Let's use a different ID for accounts.
+  // Actually, looking at the logs, accounts datasource registers with ID 8, but recurring income also uses 8.
+  // This is a conflict that needs to be resolved.
 
   runApp(const ProviderScope(child: MyApp()));
 }
@@ -51,7 +70,21 @@ class MyApp extends ConsumerWidget {
 
         // Check if onboarding is completed
         final hasCompletedOnboarding = ref.watch(hasCompletedOnboardingProvider);
+        debugPrint('MyApp: hasCompletedOnboarding = $hasCompletedOnboarding');
 
+        if (!hasCompletedOnboarding) {
+          debugPrint('MyApp: Showing OnboardingFlow');
+          return MaterialApp(
+            title: 'Budget Tracker',
+            theme: AppTheme.light,
+            darkTheme: AppTheme.dark,
+            themeMode: themeMode,
+            home: const OnboardingFlow(),
+            debugShowCheckedModeBanner: false,
+          );
+        }
+
+        debugPrint('MyApp: Showing main app');
         return MaterialApp.router(
           title: 'Budget Tracker',
           theme: AppTheme.light,
@@ -60,13 +93,16 @@ class MyApp extends ConsumerWidget {
           routerConfig: AppRouter.router,
           debugShowCheckedModeBanner: false,
           builder: (context, child) {
-            // Show onboarding if not completed
-            if (!hasCompletedOnboarding) {
-              return const OnboardingFlow();
-            }
-
-            // Add error boundary for main app
-            return _ErrorBoundary(child: child);
+            // Wrap with Overlay for proper overlay management
+            return Overlay(
+              initialEntries: [
+                OverlayEntry(
+                  builder: (context) => ScaffoldMessenger(
+                    child: _ErrorBoundary(child: child),
+                  ),
+                ),
+              ],
+            );
           },
         );
       },

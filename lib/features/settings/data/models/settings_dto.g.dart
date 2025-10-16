@@ -23,20 +23,22 @@ class SettingsDtoAdapter extends TypeAdapter<SettingsDto> {
       notificationsEnabled: fields[3] as bool,
       budgetAlertsEnabled: fields[4] as bool,
       billRemindersEnabled: fields[5] as bool,
-      budgetAlertThreshold: fields[6] as int,
-      billReminderDays: fields[7] as int,
-      biometricEnabled: fields[8] as bool,
-      autoBackupEnabled: fields[9] as bool,
-      languageCode: fields[10] as String,
-      isFirstTime: fields[11] as bool,
-      appVersion: fields[12] as String,
+      incomeRemindersEnabled: fields[6] as bool,
+      budgetAlertThreshold: fields[7] as int,
+      billReminderDays: fields[8] as int,
+      incomeReminderDays: fields[9] as int,
+      biometricEnabled: fields[10] as bool,
+      autoBackupEnabled: fields[11] as bool,
+      languageCode: fields[12] as String,
+      isFirstTime: fields[13] as bool,
+      appVersion: fields[14] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, SettingsDto obj) {
     writer
-      ..writeByte(13)
+      ..writeByte(15)
       ..writeByte(0)
       ..write(obj.themeMode)
       ..writeByte(1)
@@ -50,18 +52,22 @@ class SettingsDtoAdapter extends TypeAdapter<SettingsDto> {
       ..writeByte(5)
       ..write(obj.billRemindersEnabled)
       ..writeByte(6)
-      ..write(obj.budgetAlertThreshold)
+      ..write(obj.incomeRemindersEnabled)
       ..writeByte(7)
-      ..write(obj.billReminderDays)
+      ..write(obj.budgetAlertThreshold)
       ..writeByte(8)
-      ..write(obj.biometricEnabled)
+      ..write(obj.billReminderDays)
       ..writeByte(9)
-      ..write(obj.autoBackupEnabled)
+      ..write(obj.incomeReminderDays)
       ..writeByte(10)
-      ..write(obj.languageCode)
+      ..write(obj.biometricEnabled)
       ..writeByte(11)
-      ..write(obj.isFirstTime)
+      ..write(obj.autoBackupEnabled)
       ..writeByte(12)
+      ..write(obj.languageCode)
+      ..writeByte(13)
+      ..write(obj.isFirstTime)
+      ..writeByte(14)
       ..write(obj.appVersion);
   }
 

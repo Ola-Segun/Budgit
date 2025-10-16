@@ -4,6 +4,7 @@ import '../../../accounts/domain/repositories/account_repository.dart';
 import '../entities/bill.dart';
 import '../repositories/bill_repository.dart';
 import 'validate_bill_account.dart';
+import 'validate_bill_name.dart';
 
 /// Use case for updating an existing bill
 class UpdateBill {
@@ -37,6 +38,13 @@ class UpdateBill {
     final billValidation = bill.validate();
     if (billValidation.isError) {
       return billValidation;
+    }
+
+    // Validate bill name uniqueness (excluding current bill)
+    final nameValidator = ValidateBillName(_repository);
+    final nameValidation = await nameValidator(bill.name, excludeId: bill.id);
+    if (nameValidation.isError) {
+      return Result.error(nameValidation.failureOrNull!);
     }
 
     // Then validate account if specified
