@@ -96,9 +96,9 @@ Combine:
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'app_colors.dart';
-import 'app_dimensions.dart';
-import 'app_typography.dart';
+import '../SystemDesignImple/app_colors.dart';
+import '../SystemDesignImple/app_dimensions.dart';
+import '../SystemDesignImple/app_typography.dart';
 
 class AppTheme {
   // Private constructor to prevent instantiation
@@ -594,7 +594,7 @@ class AppColors {
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'app_colors.dart';
+import '../SystemDesignImple/app_colors.dart';
 
 class AppTypography {
   AppTypography._();

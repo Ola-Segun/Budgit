@@ -330,7 +330,7 @@ class AppColors {
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'app_colors.dart';
+import '../SystemDesignImple/app_colors.dart';
 
 /// Central typography system
 /// Uses Inter font for modern, clean look
@@ -606,9 +606,9 @@ class AppDimensions {
 // 🎨 INSTRUCTION: Main theme configuration
 
 import 'package:flutter/material.dart';
-import 'app_colors.dart';
-import 'app_typography.dart';
-import 'app_dimensions.dart';
+import '../SystemDesignImple/app_colors.dart';
+import '../SystemDesignImple/app_typography.dart';
+import '../SystemDesignImple/app_dimensions.dart';
 
 class AppTheme {
   AppTheme._();
@@ -776,10 +776,10 @@ class AppTheme {
 // lib/main.dart
 
 import 'package:flutter/material.dart';
-import 'core/theme/app_theme.dart';
-import 'core/theme/app_colors.dart';
-import 'core/theme/app_typography.dart';
-import 'core/theme/app_dimensions.dart';
+import '../SystemDesignImple/core/theme/app_theme.dart';
+import '../SystemDesignImple/core/theme/app_colors.dart';
+import '../SystemDesignImple/core/theme/app_typography.dart';
+import '../SystemDesignImple/core/theme/app_dimensions.dart';
 
 void main() {
   runApp(const MyApp());
@@ -866,3 +866,912 @@ class _ColorBox extends StatelessWidget {
     return Container(
       margin: EdgeInsets.only(bottom: AppDimensions.spacing2),
       padding: EdgeInsets.
+
+
+
+      Step 1.5: Create Extension Utilities
+dart// lib/core/extensions/context_extensions.dart
+// 🔧 INSTRUCTION: Helper extensions for easier access to theme
+
+import 'package:flutter/material.dart';
+
+extension BuildContextExtensions on BuildContext {
+  /// Access theme data easily
+  ThemeData get theme => Theme.of(this);
+  
+  /// Access color scheme
+  ColorScheme get colorScheme => theme.colorScheme;
+  
+  /// Access text theme
+  TextTheme get textTheme => theme.textTheme;
+  
+  /// Screen size helpers
+  Size get screenSize => MediaQuery.of(this).size;
+  double get screenWidth => screenSize.width;
+  double get screenHeight => screenSize.height;
+  
+  /// Responsive breakpoints
+  bool get isMobile => screenWidth < 640;
+  bool get isTablet => screenWidth >= 640 && screenWidth < 1024;
+  bool get isDesktop => screenWidth >= 1024;
+  
+  /// Navigation helpers
+  void pop<T>([T? result]) => Navigator.of(this).pop(result);
+  
+  Future<T?> push<T>(Widget page) {
+    return Navigator.of(this).push(
+      MaterialPageRoute(builder: (_) => page),
+    );
+  }
+  
+  /// Show snackbar helper
+  void showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(this).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? colorScheme.error : null,
+      ),
+    );
+  }
+}
+
+// lib/core/extensions/number_extensions.dart
+// 💰 INSTRUCTION: Format numbers for display
+
+import 'package:intl/intl.dart';
+
+extension NumberExtensions on num {
+  /// Format as currency: 1234.56 -> "$1,234.56"
+  String toCurrency({String symbol = '\$', int decimals = 2}) {
+    return NumberFormat.currency(
+      symbol: symbol,
+      decimalDigits: decimals,
+    ).format(this);
+  }
+  
+  /// Format with commas: 1234567 -> "1,234,567"
+  String toFormatted() {
+    return NumberFormat('#,###').format(this);
+  }
+  
+  /// Compact format: 1500000 -> "1.5M"
+  String toCompact() {
+    return NumberFormat.compact().format(this);
+  }
+  
+  /// Percentage: 0.85 -> "85%"
+  String toPercentage({int decimals = 0}) {
+    return NumberFormat.percentPattern()
+        .format(this)
+        .replaceAll('.00', '');
+  }
+}
+
+// lib/core/extensions/date_extensions.dart
+// 📅 INSTRUCTION: Format dates for display
+
+import 'package:intl/intl.dart';
+
+extension DateTimeExtensions on DateTime {
+  /// Format as "Oct 16, 2025"
+  String toDisplayDate() {
+    return DateFormat('MMM dd, yyyy').format(this);
+  }
+  
+  /// Format as "Today", "Yesterday", or date
+  String toRelativeDate() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final dateToCheck = DateTime(year, month, day);
+    
+    if (dateToCheck == today) return 'Today';
+    if (dateToCheck == yesterday) return 'Yesterday';
+    return DateFormat('MMM dd').format(this);
+  }
+  
+  /// Format as "2 hours ago"
+  String toTimeAgo() {
+    final now = DateTime.now();
+    final difference = now.difference(this);
+    
+    if (difference.inDays > 365) {
+      return '${(difference.inDays / 365).floor()} years ago';
+    } else if (difference.inDays > 30) {
+      return '${(difference.inDays / 30).floor()} months ago';
+    } else if (difference.inDays > 0) {
+      return '${difference.inDays} days ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours} hours ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes} minutes ago';
+    } else {
+      return 'Just now';
+    }
+  }
+  
+  /// Check if date is in current month
+  bool get isThisMonth {
+    final now = DateTime.now();
+    return year == now.year && month == now.month;
+  }
+}
+Step 1.6: Create Gap Widget
+dart// lib/shared/presentation/widgets/common/gap.dart
+// 📏 INSTRUCTION: Spacing widget (replace SizedBox everywhere)
+
+import 'package:flutter/widgets.dart';
+import '../../../../core/theme/app_dimensions.dart';
+
+/// Responsive spacing widget
+/// Replaces SizedBox for consistent spacing
+class Gap extends StatelessWidget {
+  final double size;
+  final bool isHorizontal;
+  
+  const Gap(this.size, {super.key}) : isHorizontal = false;
+  const Gap.horizontal(this.size, {super.key}) : isHorizontal = true;
+  
+  // Named constructors for common sizes
+  const Gap.xs({super.key}) : size = AppDimensions.spacing1, isHorizontal = false;
+  const Gap.sm({super.key}) : size = AppDimensions.spacing2, isHorizontal = false;
+  const Gap.md({super.key}) : size = AppDimensions.spacing3, isHorizontal = false;
+  const Gap.lg({super.key}) : size = AppDimensions.spacing4, isHorizontal = false;
+  const Gap.xl({super.key}) : size = AppDimensions.spacing6, isHorizontal = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: isHorizontal ? size : null,
+      height: isHorizontal ? null : size,
+    );
+  }
+}
+
+🎯 PHASE 2: Core Components (Week 2)
+Priority: HIGH - Build reusable components
+Step 2.1: Create Button Components
+dart// lib/shared/presentation/widgets/buttons/app_button.dart
+// 🔘 INSTRUCTION: Primary button component
+
+import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/app_dimensions.dart';
+import '../common/gap.dart';
+
+enum AppButtonVariant { primary, secondary, outline, ghost }
+
+class AppButton extends StatelessWidget {
+  final String label;
+  final VoidCallback? onPressed;
+  final AppButtonVariant variant;
+  final IconData? icon;
+  final bool isLoading;
+  final bool isFullWidth;
+  final double? height;
+  
+  const AppButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.variant = AppButtonVariant.primary,
+    this.icon,
+    this.isLoading = false,
+    this.isFullWidth = false,
+    this.height,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final buttonHeight = height ?? AppDimensions.buttonHeightMd;
+    
+    return SizedBox(
+      width: isFullWidth ? double.infinity : null,
+      height: buttonHeight,
+      child: ElevatedButton(
+        onPressed: isLoading ? null : onPressed,
+        style: _getButtonStyle(),
+        child: isLoading
+            ? _buildLoadingIndicator()
+            : _buildButtonContent(),
+      ),
+    );
+  }
+
+  ButtonStyle _getButtonStyle() {
+    switch (variant) {
+      case AppButtonVariant.primary:
+        return ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: AppColors.borderSubtle,
+          disabledForegroundColor: AppColors.textTertiary,
+        );
+      
+      case AppButtonVariant.secondary:
+        return ElevatedButton.styleFrom(
+          backgroundColor: AppColors.backgroundAlt,
+          foregroundColor: AppColors.textPrimary,
+        );
+      
+      case AppButtonVariant.outline:
+        return OutlinedButton.styleFrom(
+          foregroundColor: AppColors.primary,
+          side: const BorderSide(color: AppColors.primary, width: 1.5),
+        );
+      
+      case AppButtonVariant.ghost:
+        return TextButton.styleFrom(
+          foregroundColor: AppColors.primary,
+        );
+    }
+  }
+
+  Widget _buildButtonContent() {
+    if (icon == null) {
+      return Text(label, style: AppTypography.button);
+    }
+    
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 20),
+        const Gap.horizontal(8),
+        Text(label, style: AppTypography.button),
+      ],
+    );
+  }
+
+  Widget _buildLoadingIndicator() {
+    return const SizedBox(
+      width: 20,
+      height: 20,
+      child: CircularProgressIndicator(
+        strokeWidth: 2,
+        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+      ),
+    );
+  }
+}
+
+// lib/shared/presentation/widgets/buttons/app_icon_button.dart
+// 🔘 INSTRUCTION: Icon-only button
+
+import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_dimensions.dart';
+
+class AppIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final Color? backgroundColor;
+  final Color? iconColor;
+  final double size;
+  
+  const AppIconButton({
+    super.key,
+    required this.icon,
+    required this.onPressed,
+    this.backgroundColor,
+    this.iconColor,
+    this.size = 40,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: backgroundColor ?? AppColors.backgroundAlt,
+      borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: Icon(
+            icon,
+            size: size * 0.5,
+            color: iconColor ?? AppColors.textPrimary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+Step 2.2: Create Card Components
+dart// lib/shared/presentation/widgets/cards/app_card.dart
+// 🃏 INSTRUCTION: Base card component
+
+import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_dimensions.dart';
+
+class AppCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+  final VoidCallback? onTap;
+  final Color? backgroundColor;
+  final Gradient? gradient;
+  final double? elevation;
+  final double? borderRadius;
+  
+  const AppCard({
+    super.key,
+    required this.child,
+    this.padding,
+    this.onTap,
+    this.backgroundColor,
+    this.gradient,
+    this.elevation,
+    this.borderRadius,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cardBorderRadius = borderRadius ?? AppDimensions.cardRadius;
+    
+    Widget cardContent = Container(
+      padding: padding ?? EdgeInsets.all(AppDimensions.cardPadding),
+      decoration: BoxDecoration(
+        color: gradient == null ? (backgroundColor ?? AppColors.surface) : null,
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(cardBorderRadius),
+        boxShadow: [
+          if (elevation != null && elevation! > 0)
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: elevation! * 2,
+              offset: Offset(0, elevation!),
+            ),
+        ],
+      ),
+      child: child,
+    );
+    
+    if (onTap != null) {
+      cardContent = Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(cardBorderRadius),
+          child: cardContent,
+        ),
+      );
+    }
+    
+    return cardContent;
+  }
+}
+
+// lib/shared/presentation/widgets/cards/balance_card.dart
+// 💳 INSTRUCTION: Gradient balance card
+
+import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/app_dimensions.dart';
+import '../../../../core/extensions/number_extensions.dart';
+import '../common/gap.dart';
+import 'app_card.dart';
+
+class BalanceCard extends StatelessWidget {
+  final String title;
+  final double balance;
+  final String subtitle;
+  final List<MetricItem>? metrics;
+  
+  const BalanceCard({
+    super.key,
+    required this.title,
+    required this.balance,
+    required this.subtitle,
+    this.metrics,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      gradient: AppColors.primaryGradient,
+      padding: EdgeInsets.all(AppDimensions.cardPaddingLarge),
+      borderRadius: 20,
+      elevation: 2,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Text(
+            title,
+            style: AppTypography.bodySmall.copyWith(
+              color: Colors.white.withOpacity(0.9),
+            ),
+          ),
+          const Gap.sm(),
+          
+          // Balance
+          Text(
+            balance.toCurrency(),
+            style: AppTypography.currencyLarge.copyWith(
+              color: Colors.white,
+            ),
+          ),
+          const Gap.xs(),
+          
+          // Subtitle
+          Text(
+            subtitle,
+            style: AppTypography.bodySmall.copyWith(
+              color: Colors.white.withOpacity(0.8),
+            ),
+          ),
+          
+          // Metrics (if provided)
+          if (metrics != null) ...[
+            const Gap.lg(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: metrics!.map((metric) {
+                return _MetricDisplay(metric: metric);
+              }).toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class MetricItem {
+  final String label;
+  final String value;
+  final IconData? icon;
+  
+  const MetricItem({
+    required this.label,
+    required this.value,
+    this.icon,
+  });
+}
+
+class _MetricDisplay extends StatelessWidget {
+  final MetricItem metric;
+  
+  const _MetricDisplay({required this.metric});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (metric.icon != null) ...[
+          Icon(metric.icon, size: 16, color: Colors.white.withOpacity(0.9)),
+          const Gap.xs(),
+        ],
+        Text(
+          metric.label,
+          style: AppTypography.caption.copyWith(
+            color: Colors.white.withOpacity(0.8),
+          ),
+        ),
+        const Gap.xs(),
+        Text(
+          metric.value,
+          style: AppTypography.h3.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+Step 2.3: Create Input Components
+dart// lib/shared/presentation/widgets/inputs/app_text_field.dart
+// 📝 INSTRUCTION: Standard text input
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/app_dimensions.dart';
+import '../common/gap.dart';
+
+class AppTextField extends StatelessWidget {
+  final String? label;
+  final String? hint;
+  final String? helperText;
+  final String? errorText;
+  final TextEditingController? controller;
+  final TextInputType? keyboardType;
+  final bool obscureText;
+  final Widget? prefixIcon;
+  final Widget? suffixIcon;
+  final int? maxLines;
+  final int? maxLength;
+  final List<TextInputFormatter>? inputFormatters;
+  final ValueChanged<String>? onChanged;
+  final VoidCallback? onTap;
+  final bool readOnly;
+  
+  const AppTextField({
+    super.key,
+    this.label,
+    this.hint,
+    this.helperText,
+    this.errorText,
+    this.controller,
+    this.keyboardType,
+    this.obscureText = false,
+    this.prefixIcon,
+    this.suffixIcon,
+    this.maxLines = 1,
+    this.maxLength,
+    this.inputFormatters,
+    this.onChanged,
+    this.onTap,
+    this.readOnly = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Label
+        if (label != null) ...[
+          Text(
+            label!,
+            style: AppTypography.bodySmall.copyWith(
+              color: errorText != null ? AppColors.error : AppColors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const Gap.sm(),
+        ],
+        
+        // Text field
+        TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          obscureText: obscureText,
+          maxLines: maxLines,
+          maxLength: maxLength,
+          inputFormatters: inputFormatters,
+          onChanged: onChanged,
+          onTap: onTap,
+          readOnly: readOnly,
+          style: AppTypography.body,
+          decoration: InputDecoration(
+            hintText: hint,
+            helperText: helperText,
+            errorText: errorText,
+            prefixIcon: prefixIcon,
+            suffixIcon: suffixIcon,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// lib/shared/presentation/widgets/inputs/currency_input.dart
+// 💰 INSTRUCTION: Currency input with formatting
+
+import 'package:flutter/material.dart';
+import 'package:currency_text_input_formatter/currency_text_input_formatter.dart';
+import 'app_text_field.dart';
+
+class CurrencyInput extends StatelessWidget {
+  final String? label;
+  final TextEditingController controller;
+  final ValueChanged<double>? onChanged;
+  final String? errorText;
+  
+  const CurrencyInput({
+    super.key,
+    this.label,
+    required this.controller,
+    this.onChanged,
+    this.errorText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AppTextField(
+      label: label,
+      controller: controller,
+      errorText: errorText,
+      keyboardType: TextInputType.number,
+      inputFormatters: [
+        CurrencyTextInputFormatter(
+          locale: 'en_US',
+          decimalDigits: 2,
+          symbol: '\$',
+        ),
+      ],
+      onChanged: (value) {
+        if (onChanged != null) {
+          final numValue = double.tryParse(
+            value.replaceAll(RegExp(r'[^\d.]'), ''),
+          );
+          if (numValue != null) {
+            onChanged!(numValue);
+          }
+        }
+      },
+    );
+  }
+}
+Step 2.4: Create State Components
+dart// lib/shared/presentation/widgets/states/empty_state.dart
+// 🗑️ INSTRUCTION: Empty state component
+
+import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/app_dimensions.dart';
+import '../common/gap.dart';
+import '../buttons/app_button.dart';
+
+class EmptyState extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+  
+  const EmptyState({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(AppDimensions.spacing10),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Icon
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: AppColors.backgroundAlt,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 60,
+                color: AppColors.textTertiary,
+              ),
+            ),
+            const Gap.xl(),
+            
+            // Title
+            Text(
+              title,
+              style: AppTypography.h2,
+              textAlign: TextAlign.center,
+            ),
+            const Gap.sm(),
+            
+            // Message
+            Text(
+              message,
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 3,
+            ),
+            
+            // Action button
+            if (actionLabel != null && onAction != null) ...[
+              const Gap.xl(),
+              AppButton(
+                label: actionLabel!,
+                onPressed: onAction,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// lib/shared/presentation/widgets/states/loading_skeleton.dart
+// ⏳ INSTRUCTION: Loading skeleton for lists
+
+import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_dimensions.dart';
+import '../common/gap.dart';
+
+class LoadingSkeleton extends StatelessWidget {
+  final int itemCount;
+  
+  const LoadingSkeleton({super.key, this.itemCount = 5});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      itemCount: itemCount,
+      separatorBuilder: (_, __) => const Gap.sm(),
+      itemBuilder: (context, index) => const _SkeletonItem(),
+    );
+  }
+}
+
+class _SkeletonItem extends StatelessWidget {
+  const _SkeletonItem();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: AppColors.backgroundAlt,
+      highlightColor: AppColors.surface,
+      child: Container(
+        padding: EdgeInsets.all(AppDimensions.spacing3),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        ),
+        child: Row(
+          children: [
+            // Icon skeleton
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            const Gap.md(),
+            
+            // Content skeleton
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const Gap.sm(),
+                  Container(
+                    height: 12,
+                    width: 120,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Amount skeleton
+            Container(
+              height: 20,
+              width: 80,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+🎯 CHECKPOINT 2: Test Component Library
+dart// Create test screen to verify all components
+// lib/test_components_screen.dart
+
+import 'package:flutter/material.dart';
+import 'shared/presentation/widgets/buttons/app_button.dart';
+import 'shared/presentation/widgets/buttons/app_icon_button.dart';
+import 'shared/presentation/widgets/cards/app_card.dart';
+import 'shared/presentation/widgets/cards/balance_card.dart';
+import 'shared/presentation/widgets/inputs/app_text_field.dart';
+import 'shared/presentation/widgets/inputs/currency_input.dart';
+import 'shared/presentation/widgets/states/empty_state.dart';
+import 'shared/presentation/widgets/states/loading_skeleton.dart';
+import 'core/theme/app_dimensions.dart';
+import 'shared/presentation/widgets/common/gap.dart';
+
+class TestComponentsScreen extends StatelessWidget {
+  const TestComponentsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Component Library Test'),
+      ),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(AppDimensions.screenPaddingH),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Buttons Test
+            AppButton(
+              label: 'Primary Button',
+              onPressed: () {},
+            ),
+            const Gap.md(),
+            AppButton(
+              label: 'Secondary Button',
+              variant: AppButtonVariant.secondary,
+              onPressed: () {},
+            ),
+            const Gap.md(),
+            AppButton(
+              label: 'With Icon',
+              icon: Icons.add,
+              onPressed: () {},
+            ),
+            const Gap.xl(),
+            
+            // Cards Test
+            BalanceCard(
+              title: 'Total Balance',
+              balance: 1234.56,
+              subtitle: 'As of today',
+              metrics: [
+                MetricItem(label: 'Income', value: '\$2,000', icon: Icons.trending_up),
+                MetricItem(label: 'Expenses', value: '\$765', icon: Icons.trending_down),
+              ],
+            ),
+            const Gap.xl(),
+            
+            // Input Test
+            AppTextField(
+              label: 'Description',
+              hint: 'Enter description',
+            ),
+            const Gap.md(),
+            CurrencyInput(
+              label: 'Amount',
+              controller: TextEditingController(),
+            ),
+            const Gap.xl(),
+            
+            // Empty State Test
+            SizedBox(
+              height: 300,
+              child: EmptyState(
+                icon: Icons.inbox,
+                title: 'No Data',
+                message: 'This is an empty state example',
+                actionLabel: 'Add Item',
+                onAction: () {},
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+✅ At this point, you should have:
+
+✓ Complete design system foundation
+✓ Reusable component library
+✓ All utilities and extensions
+✓ Test screen showing all components
